@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Геймификация участников</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="transfer.css">
+    <script defer src="main.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div id="logo-container">
+        <img src="logo.jpg" alt="Логотип" id="main-logo">
+    </div>
+    <div id="login-section">
+        <h2>Вход</h2>
+        <form id="login-form">
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Пароль" required>
+            <button type="submit">Войти</button>
+        </form>
+        <p>Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a></p>
+    </div>
+    <div id="register-section" style="display:none;">
+        <h2>Регистрация</h2>
+        <form id="register-form">
+            <input type="text" id="register-username" placeholder="Имя пользователя" required>
+            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="password" id="register-password" placeholder="Пароль" required>
+            <input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" required>
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+        <p>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
+    </div>
+    <div id="profile-card" class="card" style="display:none; margin: 30px auto 10px auto; max-width: 420px;">
+        <h2>Профиль</h2>
+        <p id="profile-info"></p>
+        <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
+        <div id="transfer-form-container" style="display:none;"></div>
+        <div id="top5-container"></div>
+        <div id="profile-buttons" style="display: flex; gap: 12px; margin-top: 12px;">
+            <button id="logout-btn">Выйти</button>
+            <button id="shop-btn" class="btn">Магазин</button>
+        </div>
+        <button id="toggle-rating-btn" class="main-btn" style="margin: 18px auto 0 auto; width: 80%; display: block;">Показать рейтинг</button>
+    </div>
+    <div id="rating-section" style="display:none;">
+        <h2>Рейтинг участников</h2>
+        <table id="rating-table">
+            <thead>
+                <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="admin-section" style="display:none;">
+        <h2>Админ-панель</h2>
+        <input type="text" id="admin-user" placeholder="Имя участника">
+        <input type="number" id="admin-points" placeholder="Баллы для начисления">
+        <button id="admin-add-points">Начислить баллы</button>
+        <button id="admin-add-coins">Начислить монеты</button>
+        <button id="admin-reset-user">Обнулить баллы и монеты у участника</button>
+        <button id="admin-reset-all">Обнулить баллы и монеты у всех</button>
+        <p id="admin-message"></p>
+    </div>
+    <div id="shop-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="shop-close">&times;</span>
+            <h2>Магазин</h2>
+            <div id="shop-items">
+                <!-- Товары магазина будут подгружаться сюда -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<script src="shop.js"></script>
+<script src="transfer.js"></script> 
