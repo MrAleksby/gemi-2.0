@@ -213,15 +213,69 @@ th {
 @media (max-width: 600px) {
   .modal-content {
     min-width: 0;
-    width: 96vw;
-    max-width: 98vw;
-    padding: 18px 6vw;
-    font-size: 1.08em;
+    width: 98vw;
+    max-width: 99vw;
+    padding: 10px 2vw 10px 2vw;
+    font-size: 1.12em;
+    border-radius: 8px;
   }
   .close {
-    right: 10px;
+    right: 2vw;
     top: 8px;
-    font-size: 2.2rem;
+    font-size: 2.8rem;
+    color: #222;
+    background: rgba(255,255,255,0.85);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  }
+  .close:hover {
+    color: #d32f2f;
+    background: #fff;
+  }
+  .shop-cards {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .shop-card {
+    min-width: 92vw;
+    max-width: 99vw;
+    padding: 12px 4vw 10px 4vw;
+    border-radius: 10px;
+    margin-bottom: 0;
+  }
+  .shop-btn {
+    font-size: 1.15em;
+    padding: 14px 0;
+    border-radius: 9px;
+    margin-top: 8px;
+  }
+  .shop-title, .shop-progress, .shop-value, .shop-next {
+    text-align: center;
+  }
+  body, html {
+    overflow-x: hidden;
+  }
+}
+@media (max-width: 700px) {
+  .shop-cards {
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+  .shop-card {
+    min-width: 92vw;
+    max-width: 99vw;
+    padding: 12px 4vw 10px 4vw;
+    border-radius: 10px;
   }
 }
 
