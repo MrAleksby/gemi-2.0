@@ -35,6 +35,14 @@ const adminResetUserBtn = document.getElementById('admin-reset-user');
 const adminResetAllBtn = document.getElementById('admin-reset-all');
 const profileCard = document.getElementById('profile-card');
 const adminAddCoinsBtn = document.getElementById('admin-add-coins');
+const adminAddWinsBtn = document.getElementById('admin-add-wins');
+const adminWinsInput = document.getElementById('admin-wins');
+const adminAddGamesBtn = document.getElementById('admin-add-games');
+const adminGamesInput = document.getElementById('admin-games');
+const adminResetWinsBtn = document.getElementById('admin-reset-wins');
+const adminResetGamesBtn = document.getElementById('admin-reset-games');
+const adminResetAllWinsBtn = document.getElementById('admin-reset-all-wins');
+const adminResetAllGamesBtn = document.getElementById('admin-reset-all-games');
 
 const auth = firebase.auth();
 
@@ -256,16 +264,33 @@ async function showProfile() {
         const lvlColor = getLevelColor(lvl);
         profileInfo.innerHTML = `
         <div class="profile-stats">
-          <span class="profile-badge level"><span style="font-size:1.2em;">🏅</span> ${lvlTitle} ${lvl}</span>
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
+          <span class="profile-badge wins"><span style="font-size:1.2em;">🏆</span> ${data.wins ?? 0}</span>
+          <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
         </div>
-        <div style="margin-top:8px; color:#444; font-size:1em;">Имя: <b>${data.name}</b> | Email: <b>${data.email}</b></div>
         `;
+        const profileHeader = document.getElementById('profile-header');
+        if (profileHeader) {
+            let emoji = '🏅';
+            if (lvl === 25) emoji = '👑';
+            else if (lvl >= 20) emoji = '🥇';
+            else if (lvl >= 15) emoji = '🥈';
+            else if (lvl >= 10) emoji = '🥉';
+            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:#1976d2;font-weight:600;padding:2px 10px 2px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-left:4px;'>${lvlTitle} ${lvl}</span>`;
+        }
         // Топ-5 игроков
         const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
         let top5Html = `<div class="top5-title" style="margin:14px 0 4px 0;font-weight:600;color:#1976d2;">🏆 Топ-5 игроков</div>`;
-        top5Html += `<table class="top5-table" style="width:100%;font-size:0.98em;background:#f7fbfc;border-radius:10px;overflow:hidden;"><thead><tr><th style='width:32px;'>Место</th><th>Имя</th><th>Ур.</th><th>Баллы</th></tr></thead><tbody>`;
+        top5Html += `<table class="top5-table" style="width:100%;font-size:0.98em;background:#f7fbfc;border-radius:10px;overflow:hidden;"><thead><tr>
+            <th><span style='font-size:1.1em;'>🏅</span></th>
+            <th><span style='font-size:1.1em;'>👤</span></th>
+            <th><span style='font-size:1.1em;'>🎯</span></th>
+            <th><span style='font-size:1.1em;'>⭐</span></th>
+            <th><span style='font-size:1.1em;'>💰</span></th>
+            <th><span style='font-size:1.1em;'>🏆</span></th>
+            <th><span style='font-size:1.1em;'>🎮</span></th>
+        </tr></thead><tbody>`;
         let place = 1;
         top5Snap.forEach(doc => {
             const d = doc.data();
@@ -273,7 +298,7 @@ async function showProfile() {
             const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
             const title = getLevelTitle(l);
             const color = getLevelColor(l);
-            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};border-radius:8px;padding:2px 8px;font-weight:500;'>${title} ${l}</span></td><td>${d.points}</td></tr>`;
+            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};border-radius:8px;padding:2px 8px;font-weight:500;'>${title} ${l}</span></td><td>${d.points}</td><td>${d.coins ?? 0}</td><td>${d.wins ?? 0}</td><td>${d.games ?? 0}</td></tr>`;
             place++;
         });
         top5Html += `</tbody></table>`;
@@ -286,6 +311,16 @@ async function showRating() {
     const usersSnap = await db.collection('users').orderBy('points', 'desc').get();
     ratingTableBody.innerHTML = '';
     let place = 1;
+    // Добавляем заголовок с новыми столбцами
+    document.querySelector('#rating-table thead').innerHTML = `<tr>
+        <th><span style='font-size:1.1em;'>🏅</span></th>
+        <th><span style='font-size:1.1em;'>👤</span></th>
+        <th><span style='font-size:1.1em;'>🎯</span></th>
+        <th><span class='profile-badge points'><span style='font-size:1.1em;'>⭐</span></span></th>
+        <th><span class='profile-badge coins'><span style='font-size:1.1em;'>💰</span></span></th>
+        <th><span class='profile-badge wins'><span style='font-size:1.1em;'>🏆</span></span></th>
+        <th><span class='profile-badge games'><span style='font-size:1.1em;'>🎮</span></span></th>
+    </tr>`;
     usersSnap.forEach(doc => {
         const data = doc.data();
         if (!data.name || data.name.trim() === "") return; // фильтрация безымянных
@@ -294,7 +329,7 @@ async function showRating() {
         const lvlColor = getLevelColor(lvl);
         const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor};\">${lvlTitle} ${lvl}</span>`;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td>`;
+        tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td><td>${data.wins ?? 0}</td><td>${data.games ?? 0}</td>`;
         ratingTableBody.appendChild(tr);
     });
 }
@@ -316,7 +351,6 @@ adminAddPointsBtn.onclick = async () => {
             level: newLevel
         });
         adminMessage.textContent = `Начислено ${points} баллов пользователю ${user}`;
-        adminUserInput.value = '';
         adminPointsInput.value = '';
         setTimeout(() => {
             showProfile();
@@ -342,7 +376,6 @@ adminAddCoinsBtn.onclick = async () => {
             coins: newCoins
         });
         adminMessage.textContent = `Начислено ${coins} монет пользователю ${user}`;
-        adminUserInput.value = '';
         adminPointsInput.value = '';
         setTimeout(() => {
             showProfile();
@@ -383,6 +416,7 @@ adminResetUserBtn.onclick = async () => {
         adminMessage.textContent = `Баллы, монеты и магазин пользователя ${user} обнулены!`;
         if (userDoc.id === currentUser) showProfile();
         showRating();
+        showProfile();
         if (typeof renderShop === 'function') renderShop();
     } else {
         adminMessage.textContent = `Пользователь ${user} не найден.`;
@@ -421,6 +455,21 @@ adminResetAllBtn.onclick = async () => {
     if (typeof renderShop === 'function') renderShop();
 };
 
+if (adminAddWinsBtn) {
+    adminAddWinsBtn.onclick = () => {
+        const user = adminUserInput.value.trim();
+        const wins = parseInt(adminWinsInput.value, 10);
+        window.adminAddWins(user, wins);
+    };
+}
+if (adminAddGamesBtn) {
+    adminAddGamesBtn.onclick = () => {
+        const user = adminUserInput.value.trim();
+        const games = parseInt(adminGamesInput.value, 10);
+        window.adminAddGames(user, games);
+    };
+}
+
 const toggleRatingBtn = document.getElementById('toggle-rating-btn');
 if (toggleRatingBtn && ratingSection) {
     toggleRatingBtn.onclick = () => {
@@ -435,4 +484,81 @@ if (toggleRatingBtn && ratingSection) {
     // По умолчанию скрываем рейтинг
     ratingSection.classList.remove('visible');
     toggleRatingBtn.textContent = 'Показать рейтинг';
-} 
+}
+
+if (adminResetWinsBtn) {
+    adminResetWinsBtn.onclick = async () => {
+        const user = adminUserInput.value.trim();
+        if (!user) return;
+        // Поиск пользователя по имени без учёта регистра и пробелов
+        const usersSnap = await db.collection('users').get();
+        const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
+        if (userDoc) {
+            await userDoc.ref.update({ wins: 0 });
+            adminMessage.textContent = `Победы пользователя ${user} сброшены!`;
+            setTimeout(() => {
+                if (typeof showProfile === 'function') showProfile();
+                if (typeof showRating === 'function') showRating();
+            }, 500);
+        } else {
+            adminMessage.textContent = `Пользователь ${user} не найден.`;
+        }
+    };
+}
+
+if (adminResetGamesBtn) {
+    adminResetGamesBtn.onclick = async () => {
+        const user = adminUserInput.value.trim();
+        if (!user) return;
+        // Поиск пользователя по имени без учёта регистра и пробелов
+        const usersSnap = await db.collection('users').get();
+        const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
+        if (userDoc) {
+            await userDoc.ref.update({ games: 0 });
+            adminMessage.textContent = `Игры пользователя ${user} сброшены!`;
+            setTimeout(() => {
+                if (typeof showProfile === 'function') showProfile();
+                if (typeof showRating === 'function') showRating();
+            }, 500);
+        } else {
+            adminMessage.textContent = `Пользователь ${user} не найден.`;
+        }
+    };
+}
+
+if (adminResetAllWinsBtn) {
+    adminResetAllWinsBtn.onclick = async () => {
+        if (!confirm('Вы уверены, что хотите сбросить победы у всех участников?')) return;
+        const usersSnap = await db.collection('users').get();
+        const batch = db.batch();
+        usersSnap.forEach(doc => {
+            batch.update(doc.ref, { wins: 0 });
+        });
+        await batch.commit();
+        adminMessage.textContent = 'Победы у всех участников сброшены!';
+        setTimeout(() => {
+            if (typeof showProfile === 'function') showProfile();
+            if (typeof showRating === 'function') showRating();
+        }, 500);
+    };
+}
+if (adminResetAllGamesBtn) {
+    adminResetAllGamesBtn.onclick = async () => {
+        if (!confirm('Вы уверены, что хотите сбросить игры у всех участников?')) return;
+        const usersSnap = await db.collection('users').get();
+        const batch = db.batch();
+        usersSnap.forEach(doc => {
+            batch.update(doc.ref, { games: 0 });
+        });
+        await batch.commit();
+        adminMessage.textContent = 'Игры у всех участников сброшены!';
+        setTimeout(() => {
+            if (typeof showProfile === 'function') showProfile();
+            if (typeof showRating === 'function') showRating();
+        }, 500);
+    };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    showRating();
+}); 

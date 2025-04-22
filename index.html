@@ -37,7 +37,7 @@
         <p>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
     </div>
     <div id="profile-card" class="card" style="display:none; margin: 30px auto 10px auto; max-width: 420px;">
-        <h2>Профиль</h2>
+        <h2 id="profile-header"></h2>
         <p id="profile-info"></p>
         <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
         <div id="transfer-form-container" style="display:none;"></div>
@@ -52,7 +52,7 @@
         <h2>Рейтинг участников</h2>
         <table id="rating-table">
             <thead>
-                <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th></tr>
+                <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th><th>Победы</th><th>Игры</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -61,10 +61,27 @@
         <h2>Админ-панель</h2>
         <input type="text" id="admin-user" placeholder="Имя участника">
         <input type="number" id="admin-points" placeholder="Баллы для начисления">
-        <button id="admin-add-points">Начислить баллы</button>
-        <button id="admin-add-coins">Начислить монеты</button>
+        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
+            <button id="admin-add-points" style="flex:1; min-width:0;">Начислить баллы</button>
+            <button id="admin-add-coins" style="flex:1; min-width:0;">Начислить монеты</button>
+        </div>
         <button id="admin-reset-user">Обнулить баллы и монеты у участника</button>
         <button id="admin-reset-all">Обнулить баллы и монеты у всех</button>
+        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
+            <button id="admin-reset-all-wins" style="flex:1; min-width:0;">Сбросить победы у всех</button>
+            <button id="admin-reset-all-games" style="flex:1; min-width:0;">Сбросить игры у всех</button>
+        </div>
+        <br><br>
+        <input type="number" id="admin-wins" placeholder="Победы для начисления">
+        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
+            <button id="admin-add-wins" style="flex:1; min-width:0;">Начислить победы</button>
+            <button id="admin-reset-wins" style="flex:1; min-width:0;">Сбросить победы</button>
+        </div>
+        <input type="number" id="admin-games" placeholder="Игры для начисления">
+        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
+            <button id="admin-add-games" style="flex:1; min-width:0;">Начислить игры</button>
+            <button id="admin-reset-games" style="flex:1; min-width:0;">Сбросить игры</button>
+        </div>
         <p id="admin-message"></p>
     </div>
     <div id="shop-modal" class="modal" style="display: none;">
@@ -79,4 +96,5 @@
 </body>
 </html>
 <script src="shop.js"></script>
-<script src="transfer.js"></script> 
+<script src="transfer.js"></script>
+<script src="admin-actions.js"></script> 

@@ -374,6 +374,7 @@ th {
   overflow: hidden;
   opacity: 0;
   max-height: 0;
+  overflow-x: auto;
 }
 #rating-section.visible {
   display: block;
@@ -403,24 +404,15 @@ th {
   }
 }
 .profile-stats {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  margin: 18px 0 8px 0;
+  gap: 8px !important;
+  margin: 10px 0 6px 0 !important;
 }
 .profile-badge {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  padding: 8px 18px 8px 12px;
-  font-size: 1.18em;
-  font-weight: 600;
-  color: #00796b;
-  min-width: 80px;
-  transition: box-shadow 0.18s;
+  padding: 4px 10px 4px 8px !important;
+  font-size: 1em !important;
+  border-radius: 8px !important;
+  min-width: 0 !important;
+  box-shadow: none !important;
 }
 .profile-badge.level {
   background: #e3f2fd;
@@ -433,6 +425,14 @@ th {
 .profile-badge.coins {
   background: #e0f7fa;
   color: #009688;
+}
+.profile-badge.wins {
+  background: #ffe082;
+  color: #d84315;
+}
+.profile-badge.games {
+  background: #b3e5fc;
+  color: #0277bd;
 }
 .profile-badge img {
   width: 26px;
@@ -452,4 +452,72 @@ th {
     width: 22px;
     height: 22px;
   }
+}
+#rating-table {
+  min-width: 0 !important;
+  width: 100%;
+  font-size: 0.98em;
+}
+#rating-table th, #rating-table td {
+  padding: 3px 4px !important;
+  font-size: 0.98em !important;
+  border-radius: 0 !important;
+}
+#rating-table th {
+  background: #e0f7fa;
+  font-size: 1em !important;
+  min-width: 0 !important;
+}
+#rating-table td {
+  min-width: 0 !important;
+}
+#rating-table .level-badge {
+  min-width: 0 !important;
+  padding: 2px 6px !important;
+  font-size: 0.97em !important;
+  border-radius: 6px !important;
+  margin: 0 0 0 2px !important;
+}
+#rating-table .profile-badge {
+  min-width: 0 !important;
+  padding: 0 4px !important;
+  font-size: 1em !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+.top5-table, .top5-table tr, .top5-table td, .top5-table th, .top5-table .profile-badge {
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+.top5-table th, .top5-table td {
+  padding: 2px 3px !important;
+  font-size: 0.95em !important;
+  border-radius: 0 !important;
+}
+.top5-table {
+  overflow-x: auto;
+  display: block;
+}
+#top5-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+  overflow-x: auto;
+}
+.top5-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.top5-table th, .top5-table td {
+  width: 1%;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+#top5-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+  overflow-x: auto;
 } 
