@@ -38,6 +38,33 @@ const adminAddCoinsBtn = document.getElementById('admin-add-coins');
 
 const auth = firebase.auth();
 
+// Глобальный обработчик авторизации
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        currentUser = user.uid;
+        await showProfile();
+        await showRating();
+        // Проверка на админа
+        const doc = await db.collection('users').doc(currentUser).get();
+        if (doc.exists && doc.data().name && doc.data().name.toLowerCase() === adminName.toLowerCase()) {
+            if (adminSection) adminSection.style.display = '';
+        } else {
+            if (adminSection) adminSection.style.display = 'none';
+        }
+        if (loginSection) loginSection.style.display = 'none';
+        if (registerSection) registerSection.style.display = 'none';
+        if (profileCard) profileCard.style.display = '';
+        if (ratingSection) ratingSection.style.display = '';
+    } else {
+        currentUser = null;
+        if (loginSection) loginSection.style.display = '';
+        if (registerSection) registerSection.style.display = 'none';
+        if (profileCard) profileCard.style.display = 'none';
+        if (ratingSection) ratingSection.style.display = 'none';
+        if (adminSection) adminSection.style.display = 'none';
+    }
+});
+
 // Переключение между формами
 showRegister.onclick = (e) => {
     e.preventDefault();
@@ -115,18 +142,27 @@ function getLevelColor(lvl) {
 // Регистрация
 registerForm.onsubmit = async (e) => {
     e.preventDefault();
+    const submitBtn = registerForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
     const username = document.getElementById('register-username').value.trim();
     const email = document.getElementById('register-email').value.trim();
     const password = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
+    if (!username) {
+        alert('Поле "Имя пользователя" обязательно для заполнения!');
+        submitBtn.disabled = false;
+        return;
+    }
     if (password !== passwordConfirm) {
         alert('Пароли не совпадают!');
+        submitBtn.disabled = false;
         return;
     }
     // Проверка уникальности имени в коллекции usernames
     const usernameDoc = await db.collection('usernames').doc(username.toLowerCase()).get();
     if (usernameDoc.exists) {
         alert('Пользователь с таким именем уже существует!');
+        submitBtn.disabled = false;
         return;
     }
     try {
@@ -167,6 +203,7 @@ registerForm.onsubmit = async (e) => {
     } catch (err) {
         alert('Ошибка регистрации: ' + err.message);
     }
+    submitBtn.disabled = false;
 };
 
 // Вход
