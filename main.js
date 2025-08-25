@@ -46,29 +46,29 @@ const adminResetAllGamesBtn = document.getElementById('admin-reset-all-games');
 
 const auth = firebase.auth();
 
-// Проверка поддержки градиентного текста и применение fallback стилей
-function checkGradientTextSupport() {
-    const testElement = document.createElement('div');
-    testElement.style.background = 'linear-gradient(45deg, red, blue)';
-    testElement.style.webkitBackgroundClip = 'text';
-    testElement.style.webkitTextFillColor = 'transparent';
-    
-    // Если градиентный текст не поддерживается, применяем fallback стили
-    if (!testElement.style.webkitBackgroundClip) {
-        document.body.classList.add('no-gradient-text');
-        
-        // Применяем fallback стили к заголовкам
-        const headings = document.querySelectorAll('h2');
-        headings.forEach(h => h.classList.add('fallback'));
-        
-        // Применяем fallback стили к ссылкам
-        const links = document.querySelectorAll('a');
-        links.forEach(a => a.classList.add('fallback'));
-    }
-}
+// Убираем проверку градиентного текста, так как теперь используем обычные цвета
+// function checkGradientTextSupport() {
+//     const testElement = document.createElement('div');
+//     testElement.style.background = 'linear-gradient(45deg, red, blue)';
+//     testElement.style.webkitBackgroundClip = 'text';
+//     testElement.style.webkitTextFillColor = 'transparent';
+//     
+//     // Если градиентный текст не поддерживается, применяем fallback стили
+//     if (!testElement.style.webkitBackgroundClip) {
+//         document.body.classList.add('no-gradient-text');
+//         
+//         // Применяем fallback стили к заголовкам
+//         const headings = document.querySelectorAll('h2');
+//         headings.forEach(h => h.classList.add('fallback'));
+//         
+//         // Применяем fallback стили к ссылкам
+//         const links = document.querySelectorAll('a');
+//         links.forEach(a => a.classList.add('fallback'));
+//     }
+// }
 
 // Вызываем проверку при загрузке страницы
-document.addEventListener('DOMContentLoaded', checkGradientTextSupport);
+// document.addEventListener('DOMContentLoaded', checkGradientTextSupport);
 
 // Глобальный обработчик авторизации
 auth.onAuthStateChanged(async (user) => {

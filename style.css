@@ -20,16 +20,15 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Обновленные заголовки - убираем градиент для лучшей читаемости */
 h2 {
     margin-top: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #333;
     font-size: 2rem;
     margin-bottom: 18px;
     text-align: center;
     font-weight: bold;
+    text-shadow: none;
 }
 
 form {
@@ -100,11 +99,9 @@ p {
     font-weight: 500;
 }
 
+/* Обновленные ссылки - убираем градиент */
 a {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #667eea;
     text-decoration: none;
     cursor: pointer;
     font-weight: 600;
@@ -112,15 +109,24 @@ a {
 }
 
 a:hover {
+    color: #764ba2;
     text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }
 
-/* Альтернативный стиль для ссылок */
-a.fallback {
+/* Убираем ненужные fallback стили */
+/* Альтернативный стиль для заголовков если градиент не поддерживается */
+/* h2.fallback {
     color: #667eea;
     background: none;
     -webkit-text-fill-color: initial;
-}
+} */
+
+/* Альтернативный стиль для ссылок */
+/* a.fallback {
+    color: #667eea;
+    background: none;
+    -webkit-text-fill-color: initial;
+} */
 
 /* Обновленные таблицы */
 table {
@@ -269,22 +275,20 @@ th {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Обновленные кнопки закрытия - убираем градиент */
 .close {
   position: absolute;
   right: 18px;
   top: 12px;
   font-size: 2rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  cursor: pointer;
+    color: #667eea;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .close:hover {
     transform: scale(1.1);
-    -webkit-text-fill-color: #ff6b6b;
+    color: #ff6b6b;
 }
 
 /* Обновленные сообщения */
@@ -501,16 +505,13 @@ th {
     }
 }
 
-/* Обновленные стили для магазина */
+/* Обновленные стили для магазина - убираем градиентный текст */
 .shop-balance {
-  text-align: center;
-  font-size: 1.15em;
-  margin-bottom: 18px;
-  font-weight: bold;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    text-align: center;
+    font-size: 1.15em;
+    margin-bottom: 18px;
+    font-weight: bold;
+    color: #333;
 }
 
 .shop-cards {
@@ -549,31 +550,19 @@ th {
 }
 
 .shop-title.savings { 
-    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #00b894;
 }
 
 .shop-title.twobig { 
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ee5a52;
 }
 
 .shop-title.ok4u { 
-    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #0984e3;
 }
 
 .shop-title.myt4u { 
-    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #fbc02d;
 }
 
 .shop-progress {
@@ -583,13 +572,10 @@ th {
 }
 
 .shop-value {
-  font-size: 1.25em;
-  font-weight: bold;
-  margin-bottom: 4px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 1.25em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #667eea;
 }
 
 .shop-next {
