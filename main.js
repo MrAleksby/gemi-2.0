@@ -367,7 +367,8 @@ async function showProfile() {
         const profileHeader = document.getElementById('profile-header');
         if (profileHeader) {
             let emoji = getLevelEmoji(lvl);
-            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:#1976d2;font-weight:600;padding:2px 10px 2px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-left:4px;'>${lvlTitle} ${lvl}</span>`;
+            // Используем белый текст для лучшей контрастности
+            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:white;font-weight:600;padding:2px 10px 2px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-left:4px;text-shadow:0 1px 2px rgba(0,0,0,0.3);'>${lvlTitle} ${lvl}</span>`;
         }
         // Топ-5 игроков
         const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
@@ -388,7 +389,7 @@ async function showProfile() {
             const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
             const title = getLevelTitle(l);
             const color = getLevelColor(l);
-            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};border-radius:8px;padding:2px 8px;font-weight:500;'>${title} ${l}</span></td><td>${d.points}</td><td>${d.coins ?? 0}</td><td>${d.wins ?? 0}</td><td>${d.games ?? 0}</td></tr>`;
+            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};color:white;border-radius:8px;padding:2px 8px;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,0.3);'>${title} ${l}</span></td><td>${d.points}</td><td>${d.coins ?? 0}</td><td>${d.wins ?? 0}</td><td>${d.games ?? 0}</td></tr>`;
             place++;
         });
         top5Html += `</tbody></table>`;
