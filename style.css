@@ -825,4 +825,99 @@ th {
         width: 22px;
         height: 22px;
     }
+}
+
+/* Специальные стили для админ-секции */
+#admin-section {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+#admin-section h2 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    font-weight: bold;
+}
+
+#admin-section input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 2px solid rgba(102, 126, 234, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 15px 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+#admin-section input:focus {
+    border: 2px solid #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+#admin-section button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 15px 0 !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    font-size: 1.1rem !important;
+    margin-top: 8px !important;
+    width: 100% !important;
+    transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+#admin-section button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+#admin-section button:active {
+    transform: translateY(0) !important;
+}
+
+.admin-row-btns {
+    display: flex !important;
+    gap: 10px !important;
+    margin-top: 8px !important;
+}
+
+.admin-row-btns button {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 0.95rem !important;
+    padding: 12px 0 !important;
+}
+
+#admin-message {
+    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
+    color: white !important;
+    margin-top: 15px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3) !important;
+    text-align: center !important;
+}
+
+/* Стили для рейтинг-секции */
+#rating-section {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+#rating-section h2 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    font-weight: bold;
 } 
