@@ -20,15 +20,19 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Обновленные заголовки - убираем градиент для лучшей читаемости */
+/* Принудительные стили для заголовков - гарантированная читаемость */
 h2 {
-    margin-top: 0;
-    color: #333;
-    font-size: 2rem;
-    margin-bottom: 18px;
-    text-align: center;
-    font-weight: bold;
-    text-shadow: none;
+    margin-top: 0 !important;
+    color: #000000 !important;
+    font-size: 2rem !important;
+    margin-bottom: 18px !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    text-shadow: none !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    background-clip: initial !important;
 }
 
 form {
@@ -38,33 +42,32 @@ form {
     margin-bottom: 10px;
 }
 
-/* Обновленные поля ввода */
+/* Принудительные стили для полей ввода */
 input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
-    width: 100%;
-    padding: 15px 12px;
-    margin: 0;
-    border: 2px solid rgba(102, 126, 234, 0.3);
-    border-radius: 12px;
-    font-size: 1.1rem;
-    box-sizing: border-box;
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(5px);
-    color: #333;
-    font-weight: 500;
+    width: 100% !important;
+    padding: 15px 12px !important;
+    margin: 0 !important;
+    border: 2px solid #000000 !important;
+    border-radius: 12px !important;
+    font-size: 1.1rem !important;
+    box-sizing: border-box !important;
+    transition: all 0.3s ease !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 500 !important;
 }
 
 input:focus {
-    border: 2px solid #667eea;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    transform: translateY(-2px);
-    background: #ffffff;
+    border: 2px solid #0000ff !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 255, 0.1) !important;
+    transform: translateY(-2px) !important;
+    background: #ffffff !important;
 }
 
 input::placeholder {
-    color: #666;
-    opacity: 0.8;
+    color: #666666 !important;
+    opacity: 0.8 !important;
 }
 
 /* Обновленные кнопки */
@@ -92,25 +95,30 @@ button:active {
     transform: translateY(0);
 }
 
+/* Принудительные стили для текста */
 p {
-    margin: 10px 0 0 0;
-    font-size: 1rem;
-    color: #333;
-    font-weight: 500;
+    margin: 10px 0 0 0 !important;
+    font-size: 1rem !important;
+    color: #000000 !important;
+    font-weight: 500 !important;
 }
 
 /* Обновленные ссылки - убираем градиент */
 a {
-    color: #667eea;
-    text-decoration: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    color: #0000ff !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    background-clip: initial !important;
 }
 
 a:hover {
-    color: #764ba2;
-    text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    color: #000080 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 255, 0.3) !important;
 }
 
 /* Убираем ненужные fallback стили */
@@ -166,6 +174,65 @@ th {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Принудительные стили для бейджей уровней - максимальная контрастность */
+.level-badge {
+    display: inline-block !important;
+    min-width: 90px !important;
+    padding: 6px 16px !important;
+    border-radius: 20px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    margin: 0 0 0 8px !important;
+    font-size: 1.05em !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+    border: 2px solid #ffffff !important;
+}
+
+/* Принудительные стили для профиль-бейджей */
+.profile-badge {
+    padding: 8px 12px !important;
+    font-size: 1em !important;
+    border-radius: 15px !important;
+    min-width: 0 !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.profile-badge.level {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+.profile-badge.points {
+    background: #ffff00 !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+}
+
+.profile-badge.coins {
+    background: #00ff00 !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+}
+
+.profile-badge.wins {
+    background: #ff0000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+.profile-badge.games {
+    background: #0000ff !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
 }
 
 /* Обновленный логотип */
