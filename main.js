@@ -85,34 +85,34 @@ showLogin.onclick = (e) => {
     loginSection.style.display = '';
 };
 
-// Массив уровней
+// Массив уровней с концепцией "Путь к взрослости"
 const levels = [
-  { name: "Начинающий инвестор", color: "#d4edda" }, // 0
-  { name: "Уровень 1" },
-  { name: "Уровень 2" },
-  { name: "Уровень 3" },
-  { name: "Уровень 4" },
-  { name: "Искатель", color: "#e3f2fd" },           // 5
-  { name: "Уровень 6" },
-  { name: "Уровень 7" },
-  { name: "Уровень 8" },
-  { name: "Уровень 9" },
-  { name: "Капитан активов", color: "#ffcdd2" },   // 10
-  { name: "Уровень 11" },
-  { name: "Уровень 12" },
-  { name: "Уровень 13" },
-  { name: "Уровень 14" },
-  { name: "Магнат инвестиций", color: "#fff9c4" }, // 15
-  { name: "Уровень 16" },
-  { name: "Уровень 17" },
-  { name: "Уровень 18" },
-  { name: "Уровень 19" },
-  { name: "Титан финансов", color: "#b2ebf2" },    // 20
-  { name: "Уровень 21" },
-  { name: "Уровень 22" },
-  { name: "Уровень 23" },
-  { name: "Уровень 24" },
-  { name: "Творец", color: "#e1bee7" }             // 25
+  { name: "Ребенок", color: "#e3f2fd", emoji: "👶", description: "Только начинаешь изучать деньги" }, // 0
+  { name: "Уровень 1", emoji: "👶" },
+  { name: "Уровень 2", emoji: "👶" },
+  { name: "Уровень 3", emoji: "👶" },
+  { name: "Уровень 4", emoji: "👶" },
+  { name: "Ученик", color: "#d4edda", emoji: "👨‍🎓", description: "Изучаешь основы инвестиций" },           // 5
+  { name: "Уровень 6", emoji: "👨‍🎓" },
+  { name: "Уровень 7", emoji: "👨‍🎓" },
+  { name: "Уровень 8", emoji: "👨‍🎓" },
+  { name: "Уровень 9", emoji: "👨‍🎓" },
+  { name: "Начинающий инвестор", color: "#ffcdd2", emoji: "💼", description: "Делаешь первые инвестиции" },   // 10
+  { name: "Уровень 11", emoji: "💼" },
+  { name: "Уровень 12", emoji: "💼" },
+  { name: "Уровень 13", emoji: "💼" },
+  { name: "Уровень 14", emoji: "💼" },
+  { name: "Опытный инвестор", color: "#fff9c4", emoji: "🏢", description: "Строишь инвестиционный портфель" }, // 15
+  { name: "Уровень 16", emoji: "🏢" },
+  { name: "Уровень 17", emoji: "🏢" },
+  { name: "Уровень 18", emoji: "🏢" },
+  { name: "Уровень 19", emoji: "🏢" },
+  { name: "Финансовый магнат", color: "#b2ebf2", emoji: "👑", description: "Создаешь финансовую империю" },    // 20
+  { name: "Уровень 21", emoji: "👑" },
+  { name: "Уровень 22", emoji: "👑" },
+  { name: "Уровень 23", emoji: "👑" },
+  { name: "Уровень 24", emoji: "👑" },
+  { name: "Финансовая свобода", color: "#e1bee7", emoji: "🌟", description: "Достиг финансовой независимости" }             // 25
 ];
 
 // Границы баллов для уровней (индекс = уровень - 1)
@@ -128,23 +128,89 @@ function getLevelByPoints(points) {
 }
 
 function getLevelTitle(lvl) {
-    if (lvl >= 1 && lvl <= 4) return 'Искатель';
-    if (lvl >= 5 && lvl <= 9) return 'Начинающий инвестор';
-    if (lvl >= 10 && lvl <= 14) return 'Капитан активов';
-    if (lvl >= 15 && lvl <= 19) return 'Магнат инвестиций';
-    if (lvl >= 20 && lvl <= 24) return 'Титан финансов';
-    if (lvl === 25) return 'Творец';
+    if (lvl >= 1 && lvl <= 4) return 'Ребенок';
+    if (lvl >= 5 && lvl <= 9) return 'Ученик';
+    if (lvl >= 10 && lvl <= 14) return 'Начинающий инвестор';
+    if (lvl >= 15 && lvl <= 19) return 'Опытный инвестор';
+    if (lvl >= 20 && lvl <= 24) return 'Финансовый магнат';
+    if (lvl === 25) return 'Финансовая свобода';
+    return 'Неизвестно';
+}
+
+function getLevelEmoji(lvl) {
+    if (lvl >= 1 && lvl <= 4) return '👶';
+    if (lvl >= 5 && lvl <= 9) return '👨‍🎓';
+    if (lvl >= 10 && lvl <= 14) return '💼';
+    if (lvl >= 15 && lvl <= 19) return '🏢';
+    if (lvl >= 20 && lvl <= 24) return '👑';
+    if (lvl === 25) return '🌟';
+    return '❓';
+}
+
+function getLevelDescription(lvl) {
+    if (lvl >= 1 && lvl <= 4) return 'Только начинаешь изучать деньги';
+    if (lvl >= 5 && lvl <= 9) return 'Изучаешь основы инвестиций';
+    if (lvl >= 10 && lvl <= 14) return 'Делаешь первые инвестиции';
+    if (lvl >= 15 && lvl <= 19) return 'Строишь инвестиционный портфель';
+    if (lvl >= 20 && lvl <= 24) return 'Создаешь финансовую империю';
+    if (lvl === 25) return 'Достиг финансовой независимости';
     return 'Неизвестно';
 }
 
 function getLevelColor(lvl) {
-    if (lvl >= 1 && lvl <= 4) return '#e3f2fd'; // Искатель — голубой
-    if (lvl >= 5 && lvl <= 9) return '#d4edda'; // Начинающий инвестор — зелёный
-    if (lvl >= 10 && lvl <= 14) return '#ffcdd2'; // Капитан активов — красный
-    if (lvl >= 15 && lvl <= 19) return '#fff9c4'; // Магнат инвестиций — жёлтый
-    if (lvl >= 20 && lvl <= 24) return '#b2ebf2'; // Титан финансов — синий
-    if (lvl === 25) return '#e1bee7'; // Творец — фиолетовый
+    if (lvl >= 1 && lvl <= 4) return '#e3f2fd'; // Ребенок — голубой
+    if (lvl >= 5 && lvl <= 9) return '#d4edda'; // Ученик — зелёный
+    if (lvl >= 10 && lvl <= 14) return '#ffcdd2'; // Начинающий инвестор — красный
+    if (lvl >= 15 && lvl <= 19) return '#fff9c4'; // Опытный инвестор — жёлтый
+    if (lvl >= 20 && lvl <= 24) return '#b2ebf2'; // Финансовый магнат — синий
+    if (lvl === 25) return '#e1bee7'; // Финансовая свобода — фиолетовый
     return '#f5f5f5';
+}
+
+// Функция для отображения прогресса "Путь к взрослости"
+function showAdulthoodProgress() {
+    if (!currentUser) return;
+    
+    const userRef = db.collection('users').doc(currentUser);
+    userRef.get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const currentLevel = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
+            const nextLevel = Math.min(currentLevel + 1, 25);
+            const progressToNext = currentLevel < 25 ? 
+                ((data.points - levelThresholds[currentLevel - 1]) / (levelThresholds[currentLevel] - levelThresholds[currentLevel - 1])) * 100 : 100;
+            
+            const progressHtml = `
+                <div class="adulthood-progress">
+                    <h3>🎯 Путь к взрослости</h3>
+                    <div class="current-stage">
+                        <div class="stage-emoji">${getLevelEmoji(currentLevel)}</div>
+                        <div class="stage-info">
+                            <div class="stage-title">${getLevelTitle(currentLevel)} ${currentLevel}</div>
+                            <div class="stage-description">${getLevelDescription(currentLevel)}</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressToNext}%; background: ${getLevelColor(currentLevel)};"></div>
+                    </div>
+                    <div class="next-stage">
+                        <span>Следующий уровень: ${getLevelTitle(nextLevel)} ${nextLevel}</span>
+                        <span>${Math.round(progressToNext)}% готово</span>
+                    </div>
+                </div>
+            `;
+            
+            // Добавляем в профиль
+            const profileCard = document.getElementById('profile-card');
+            if (profileCard) {
+                const existingProgress = profileCard.querySelector('.adulthood-progress');
+                if (existingProgress) {
+                    existingProgress.remove();
+                }
+                profileCard.insertAdjacentHTML('afterbegin', progressHtml);
+            }
+        }
+    });
 }
 
 // Регистрация
@@ -262,6 +328,10 @@ async function showProfile() {
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const lvlTitle = getLevelTitle(lvl);
         const lvlColor = getLevelColor(lvl);
+        
+        // Показываем прогресс "Путь к взрослости"
+        showAdulthoodProgress();
+        
         profileInfo.innerHTML = `
         <div class="profile-stats">
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
@@ -272,11 +342,7 @@ async function showProfile() {
         `;
         const profileHeader = document.getElementById('profile-header');
         if (profileHeader) {
-            let emoji = '🏅';
-            if (lvl === 25) emoji = '👑';
-            else if (lvl >= 20) emoji = '🥇';
-            else if (lvl >= 15) emoji = '🥈';
-            else if (lvl >= 10) emoji = '🥉';
+            let emoji = getLevelEmoji(lvl);
             profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:#1976d2;font-weight:600;padding:2px 10px 2px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-left:4px;'>${lvlTitle} ${lvl}</span>`;
         }
         // Топ-5 игроков

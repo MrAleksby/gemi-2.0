@@ -521,3 +521,163 @@ th {
   width: 100%;
   overflow-x: auto;
 } 
+
+/* Система "Путь к взрослости" */
+.adulthood-progress {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    animation: slideInUp 0.6s ease-out;
+}
+
+.adulthood-progress h3 {
+    text-align: center;
+    margin: 0 0 15px 0;
+    font-size: 1.4em;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.current-stage {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.stage-emoji {
+    font-size: 3em;
+    margin-right: 15px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.stage-info {
+    flex: 1;
+}
+
+.stage-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.stage-description {
+    font-size: 0.95em;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.progress-bar {
+    background: rgba(255,255,255,0.2);
+    border-radius: 25px;
+    height: 12px;
+    margin: 15px 0;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 25px;
+    transition: width 0.8s ease-in-out;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.next-stage {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-top: 10px;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 600px) {
+    .adulthood-progress {
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 15px;
+    }
+    
+    .adulthood-progress h3 {
+        font-size: 1.2em;
+    }
+    
+    .current-stage {
+        padding: 12px;
+        border-radius: 12px;
+    }
+    
+    .stage-emoji {
+        font-size: 2.5em;
+        margin-right: 12px;
+    }
+    
+    .stage-title {
+        font-size: 1.1em;
+    }
+    
+    .stage-description {
+        font-size: 0.9em;
+    }
+    
+    .next-stage {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+}
+
+/* Анимация при достижении нового уровня */
+.level-up-animation {
+    animation: levelUp 1s ease-out;
+}
+
+@keyframes levelUp {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255,215,0,0.6);
+    }
+    100% {
+        transform: scale(1);
+    }
+} 
