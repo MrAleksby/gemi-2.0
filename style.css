@@ -866,7 +866,7 @@ th {
     border-radius: 12px !important;
     cursor: pointer !important;
     font-size: 1.1rem !important;
-    margin-top: 8px !important;
+    margin: 8px 0 !important;
     width: 100% !important;
     transition: all 0.3s ease !important;
     font-weight: 600 !important;
@@ -885,7 +885,9 @@ th {
 .admin-row-btns {
     display: flex !important;
     gap: 10px !important;
-    margin-top: 8px !important;
+    margin: 8px 0 !important;
+    background: transparent !important;
+    border: none !important;
 }
 
 .admin-row-btns button {
@@ -898,12 +900,13 @@ th {
 #admin-message {
     background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
     color: white !important;
-    margin-top: 15px !important;
+    margin: 15px 0 !important;
     padding: 12px !important;
     border-radius: 12px !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3) !important;
     text-align: center !important;
+    border: none !important;
 }
 
 /* Стили для рейтинг-секции */
@@ -920,4 +923,113 @@ th {
     background-clip: text;
     text-align: center;
     font-weight: bold;
+}
+
+/* Принудительные стили для всех элементов админ-панели */
+#admin-section,
+#admin-section *,
+#admin-section input,
+#admin-section button,
+#admin-section h2,
+#admin-section p,
+#admin-section div {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 12px !important;
+    color: #333 !important;
+}
+
+#admin-section h2 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    border: none !important;
+    padding: 10px 0 !important;
+}
+
+#admin-section input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 2px solid rgba(102, 126, 234, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 15px 12px !important;
+    transition: all 0.3s ease !important;
+    color: #333 !important;
+    font-size: 1.1rem !important;
+    margin: 8px 0 !important;
+}
+
+#admin-section input:focus {
+    border: 2px solid #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    transform: translateY(-2px) !important;
+    outline: none !important;
+}
+
+#admin-section button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 15px 0 !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    font-size: 1.1rem !important;
+    margin: 8px 0 !important;
+    width: 100% !important;
+    transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+#admin-section button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+#admin-section button:active {
+    transform: translateY(0) !important;
+}
+
+.admin-row-btns {
+    display: flex !important;
+    gap: 10px !important;
+    margin: 8px 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.admin-row-btns button {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 0.95rem !important;
+    padding: 12px 0 !important;
+}
+
+#admin-message {
+    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
+    color: white !important;
+    margin: 15px 0 !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3) !important;
+    text-align: center !important;
+    border: none !important;
+}
+
+/* Убираем все желтые цвета */
+#admin-section * {
+    background-color: transparent !important;
+}
+
+#admin-section input,
+#admin-section button,
+#admin-section h2,
+#admin-section p,
+#admin-section div {
+    background-color: transparent !important;
 } 
