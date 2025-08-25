@@ -44,13 +44,15 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
     width: 100%;
     padding: 15px 12px;
     margin: 0;
-    border: 2px solid rgba(102, 126, 234, 0.2);
+    border: 2px solid rgba(102, 126, 234, 0.3);
     border-radius: 12px;
     font-size: 1.1rem;
     box-sizing: border-box;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(5px);
+    color: #333;
+    font-weight: 500;
 }
 
 input:focus {
@@ -58,6 +60,12 @@ input:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     transform: translateY(-2px);
+    background: #ffffff;
+}
+
+input::placeholder {
+    color: #666;
+    opacity: 0.8;
 }
 
 /* Обновленные кнопки */
@@ -88,7 +96,8 @@ button:active {
 p {
     margin: 10px 0 0 0;
     font-size: 1rem;
-    color: #555;
+    color: #333;
+    font-weight: 500;
 }
 
 a {
@@ -104,6 +113,13 @@ a {
 
 a:hover {
     text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Альтернативный стиль для ссылок */
+a.fallback {
+    color: #667eea;
+    background: none;
+    -webkit-text-fill-color: initial;
 }
 
 /* Обновленные таблицы */
@@ -223,45 +239,45 @@ th {
 
 /* Обновленные модальные окна */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0; width: 100vw; height: 100vh;
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.4);
-    justify-content: center;
-    align-items: center;
+  justify-content: center;
+  align-items: center;
     backdrop-filter: blur(5px);
 }
 
 .modal-content {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(15px);
-    margin: auto;
-    padding: 24px 16px;
+  margin: auto;
+  padding: 24px 16px;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    min-width: 280px;
-    max-width: 95vw;
-    min-height: 120px;
-    max-height: 90vh;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow-y: auto;
+  min-width: 280px;
+  max-width: 95vw;
+  min-height: 120px;
+  max-height: 90vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .close {
-    position: absolute;
-    right: 18px;
-    top: 12px;
-    font-size: 2rem;
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  font-size: 2rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    cursor: pointer;
+  cursor: pointer;
     transition: all 0.3s ease;
 }
 
@@ -279,6 +295,7 @@ th {
     border-radius: 12px;
     font-weight: 600;
     box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 /* Адаптивность для мобильных */
@@ -329,33 +346,33 @@ th {
         margin-right: 2vw;
     }
     
-    .modal-content {
-        min-width: 0;
-        width: 98vw;
-        max-width: 99vw;
+  .modal-content {
+    min-width: 0;
+    width: 98vw;
+    max-width: 99vw;
         padding: 15px 2vw 15px 2vw;
-        font-size: 1.12em;
+    font-size: 1.12em;
         border-radius: 15px;
-    }
+  }
     
-    .close {
-        right: 2vw;
-        top: 8px;
+  .close {
+    right: 2vw;
+    top: 8px;
         font-size: 2.5rem;
         background: rgba(255,255,255,0.9);
-        border-radius: 50%;
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1001;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
         box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         -webkit-text-fill-color: #333;
-    }
+  }
     
-    .close:hover {
-        background: #fff;
+  .close:hover {
+    background: #fff;
         -webkit-text-fill-color: #ff6b6b;
     }
 }
@@ -485,10 +502,10 @@ th {
 
 /* Обновленные стили для магазина */
 .shop-balance {
-    text-align: center;
-    font-size: 1.15em;
-    margin-bottom: 18px;
-    font-weight: bold;
+  text-align: center;
+  font-size: 1.15em;
+  margin-bottom: 18px;
+  font-weight: bold;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -496,10 +513,10 @@ th {
 }
 
 .shop-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
 }
 
 .shop-card {
@@ -507,13 +524,13 @@ th {
     backdrop-filter: blur(10px);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    padding: 18px 16px 14px 16px;
-    min-width: 170px;
-    max-width: 210px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 0;
+  padding: 18px 16px 14px 16px;
+  min-width: 170px;
+  max-width: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
 }
@@ -524,10 +541,10 @@ th {
 }
 
 .shop-title {
-    font-weight: bold;
-    font-size: 1.13em;
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
+  font-weight: bold;
+  font-size: 1.13em;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
 }
 
 .shop-title.savings { 
@@ -559,15 +576,15 @@ th {
 }
 
 .shop-progress {
-    font-size: 0.98em;
-    color: #666;
-    margin-bottom: 2px;
+  font-size: 0.98em;
+  color: #666;
+  margin-bottom: 2px;
 }
 
 .shop-value {
-    font-size: 1.25em;
-    font-weight: bold;
-    margin-bottom: 4px;
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-bottom: 4px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -575,24 +592,24 @@ th {
 }
 
 .shop-next {
-    font-size: 0.97em;
-    color: #444;
-    margin-bottom: 8px;
-    text-align: center;
+  font-size: 0.97em;
+  color: #444;
+  margin-bottom: 8px;
+  text-align: center;
 }
 
 .shop-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-    border: none;
+  color: #fff;
+  border: none;
     border-radius: 10px;
     padding: 10px 0;
-    width: 100%;
-    font-size: 1em;
+  width: 100%;
+  font-size: 1em;
     font-weight: 600;
-    margin-bottom: 0;
-    margin-top: 2px;
-    cursor: pointer;
+  margin-bottom: 0;
+  margin-top: 2px;
+  cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
@@ -604,43 +621,43 @@ th {
 
 .shop-btn:disabled {
     background: linear-gradient(135deg, #b2dfdb 0%, #a5d6a7 100%);
-    color: #888;
-    cursor: not-allowed;
+  color: #888;
+  cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
 .shop-hint {
     color: #ff6b6b;
-    font-size: 0.93em;
-    margin-top: 7px;
-    text-align: center;
+  font-size: 0.93em;
+  margin-top: 7px;
+  text-align: center;
     font-weight: 600;
 }
 
 /* Обновленные стили для рейтинга */
 #rating-section {
-    display: none;
-    transition: max-height 0.3s, opacity 0.3s;
-    overflow: hidden;
-    opacity: 0;
-    max-height: 0;
-    overflow-x: auto;
+  display: none;
+  transition: max-height 0.3s, opacity 0.3s;
+  overflow: hidden;
+  opacity: 0;
+  max-height: 0;
+  overflow-x: auto;
 }
 
 #rating-section.visible {
-    display: block;
-    opacity: 1;
-    max-height: 2000px;
+  display: block;
+  opacity: 1;
+  max-height: 2000px;
 }
 
 #toggle-rating-btn {
-    margin: 18px auto 0 auto;
-    width: 80%;
-    display: block;
+  margin: 18px auto 0 auto;
+  width: 80%;
+  display: block;
     border-radius: 15px;
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    font-size: 1.08em;
+  font-size: 1.08em;
     font-weight: 600;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     transition: all 0.3s ease;
@@ -717,11 +734,11 @@ th {
         text-align: center;
     }
     
-    #toggle-rating-btn {
-        width: 98%;
-        font-size: 1em;
-        margin-top: 12px;
-    }
+  #toggle-rating-btn {
+    width: 98%;
+    font-size: 1em;
+    margin-top: 12px;
+  }
     
     .shop-cards {
         flex-direction: column;
@@ -738,79 +755,79 @@ th {
 
 /* Обновленные стили для таблиц рейтинга */
 #rating-table {
-    min-width: 0 !important;
-    width: 100%;
-    font-size: 0.98em;
+  min-width: 0 !important;
+  width: 100%;
+  font-size: 0.98em;
 }
 
 #rating-table th, #rating-table td {
     padding: 6px 8px !important;
-    font-size: 0.98em !important;
-    border-radius: 0 !important;
+  font-size: 0.98em !important;
+  border-radius: 0 !important;
 }
 
 #rating-table th {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-size: 1em !important;
-    min-width: 0 !important;
+  font-size: 1em !important;
+  min-width: 0 !important;
     font-weight: 600;
 }
 
 #rating-table td {
-    min-width: 0 !important;
+  min-width: 0 !important;
 }
 
 #rating-table .level-badge {
-    min-width: 0 !important;
+  min-width: 0 !important;
     padding: 4px 8px !important;
-    font-size: 0.97em !important;
+  font-size: 0.97em !important;
     border-radius: 10px !important;
-    margin: 0 0 0 2px !important;
+  margin: 0 0 0 2px !important;
 }
 
 #rating-table .profile-badge {
-    min-width: 0 !important;
+  min-width: 0 !important;
     padding: 2px 6px !important;
-    font-size: 1em !important;
+  font-size: 1em !important;
     border-radius: 8px !important;
-    box-shadow: none !important;
+  box-shadow: none !important;
 }
 
 .top5-table, .top5-table tr, .top5-table td, .top5-table th, .top5-table .profile-badge {
-    vertical-align: middle !important;
-    white-space: nowrap !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
 }
 
 .top5-table th, .top5-table td {
     padding: 4px 6px !important;
-    font-size: 0.95em !important;
-    border-radius: 0 !important;
+  font-size: 0.95em !important;
+  border-radius: 0 !important;
 }
 
 .top5-table {
-    overflow-x: auto;
-    display: block;
+  overflow-x: auto;
+  display: block;
 }
 
 #top5-container {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100%;
-    overflow-x: auto;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+  overflow-x: auto;
 }
 
 .top5-table {
-    width: 100% !important;
-    table-layout: fixed !important;
-    min-width: 0 !important;
-    margin: 0 !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  min-width: 0 !important;
+  margin: 0 !important;
 }
 
 .top5-table th, .top5-table td {
-    width: 1%;
-    min-width: 0 !important;
-    max-width: none !important;
+  width: 1%;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 
 /* Обновленные стили для профиль-бейджей */
@@ -825,211 +842,4 @@ th {
         width: 22px;
         height: 22px;
     }
-}
-
-/* Специальные стили для админ-секции */
-#admin-section {
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-#admin-section h2 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-align: center;
-    font-weight: bold;
-}
-
-#admin-section input {
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(5px) !important;
-    border: 2px solid rgba(102, 126, 234, 0.2) !important;
-    border-radius: 12px !important;
-    padding: 15px 12px !important;
-    transition: all 0.3s ease !important;
-}
-
-#admin-section input:focus {
-    border: 2px solid #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-    transform: translateY(-2px) !important;
-}
-
-#admin-section button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    color: #fff !important;
-    border: none !important;
-    padding: 15px 0 !important;
-    border-radius: 12px !important;
-    cursor: pointer !important;
-    font-size: 1.1rem !important;
-    margin: 8px 0 !important;
-    width: 100% !important;
-    transition: all 0.3s ease !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-#admin-section button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-}
-
-#admin-section button:active {
-    transform: translateY(0) !important;
-}
-
-.admin-row-btns {
-    display: flex !important;
-    gap: 10px !important;
-    margin: 8px 0 !important;
-    background: transparent !important;
-    border: none !important;
-}
-
-.admin-row-btns button {
-    flex: 1 !important;
-    min-width: 0 !important;
-    font-size: 0.95rem !important;
-    padding: 12px 0 !important;
-}
-
-#admin-message {
-    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
-    color: white !important;
-    margin: 15px 0 !important;
-    padding: 12px !important;
-    border-radius: 12px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3) !important;
-    text-align: center !important;
-    border: none !important;
-}
-
-/* Стили для рейтинг-секции */
-#rating-section {
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-#rating-section h2 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-align: center;
-    font-weight: bold;
-}
-
-/* Принудительные стили для всех элементов админ-панели */
-#admin-section,
-#admin-section *,
-#admin-section input,
-#admin-section button,
-#admin-section h2,
-#admin-section p,
-#admin-section div {
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 12px !important;
-    color: #333 !important;
-}
-
-#admin-section h2 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    text-align: center !important;
-    font-weight: bold !important;
-    border: none !important;
-    padding: 10px 0 !important;
-}
-
-#admin-section input {
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(5px) !important;
-    border: 2px solid rgba(102, 126, 234, 0.2) !important;
-    border-radius: 12px !important;
-    padding: 15px 12px !important;
-    transition: all 0.3s ease !important;
-    color: #333 !important;
-    font-size: 1.1rem !important;
-    margin: 8px 0 !important;
-}
-
-#admin-section input:focus {
-    border: 2px solid #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-    transform: translateY(-2px) !important;
-    outline: none !important;
-}
-
-#admin-section button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    color: #fff !important;
-    border: none !important;
-    padding: 15px 0 !important;
-    border-radius: 12px !important;
-    cursor: pointer !important;
-    font-size: 1.1rem !important;
-    margin: 8px 0 !important;
-    width: 100% !important;
-    transition: all 0.3s ease !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-#admin-section button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-}
-
-#admin-section button:active {
-    transform: translateY(0) !important;
-}
-
-.admin-row-btns {
-    display: flex !important;
-    gap: 10px !important;
-    margin: 8px 0 !important;
-    background: transparent !important;
-    border: none !important;
-}
-
-.admin-row-btns button {
-    flex: 1 !important;
-    min-width: 0 !important;
-    font-size: 0.95rem !important;
-    padding: 12px 0 !important;
-}
-
-#admin-message {
-    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
-    color: white !important;
-    margin: 15px 0 !important;
-    padding: 12px !important;
-    border-radius: 12px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3) !important;
-    text-align: center !important;
-    border: none !important;
-}
-
-/* Убираем все желтые цвета */
-#admin-section * {
-    background-color: transparent !important;
-}
-
-#admin-section input,
-#admin-section button,
-#admin-section h2,
-#admin-section p,
-#admin-section div {
-    background-color: transparent !important;
 } 
