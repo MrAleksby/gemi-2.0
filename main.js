@@ -948,26 +948,20 @@ if (adminWithdrawMoney) {
             }
             
             const userData = userDoc.data();
-            const currentCoins = userData.coins || 0;
-            const coinsToWithdraw = Math.ceil(amount / 350); // 1 монета = 350 сумов
-            
-            if (coinsToWithdraw > currentCoins) {
-                alert(`Недостаточно монет! У пользователя ${currentCoins} монет, нужно ${coinsToWithdraw} монет для ${amount} сумов.`);
-                return;
-            }
-            
             const currentMoney = userData.money || 0;
+            
             if (amount > currentMoney) {
                 alert(`Недостаточно денег! У пользователя ${currentMoney} сумов, нужно ${amount} сумов.`);
                 return;
             }
+            
+
             
             // Создаем транзакцию снятия
             const transaction = {
                 userId: userDoc.id,
                 userName: userData.name,
                 type: 'withdrawal',
-                coins: coinsToWithdraw,
                 sum: amount,
                 date: new Date(),
                 status: 'approved',
@@ -976,13 +970,12 @@ if (adminWithdrawMoney) {
             
             await db.collection('transactions').add(transaction);
             
-            // Снимаем монеты и деньги
+            // Снимаем только деньги
             await userDoc.ref.update({
-                coins: currentCoins - coinsToWithdraw,
                 money: Math.max(0, currentMoney - amount) // Не может быть меньше 0
             });
             
-            adminMessage.textContent = `Снято ${coinsToWithdraw} монет (${amount} сумов) у пользователя ${userName} для ${reason}`;
+            adminMessage.textContent = `Снято ${amount} сумов у пользователя ${userName} для ${reason}`;
             
             // Очищаем поля
             adminWithdrawUser.value = '';
