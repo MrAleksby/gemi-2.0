@@ -379,7 +379,7 @@ async function showProfile() {
         if (profileHeader) {
             let emoji = getLevelEmoji(lvl);
             // Используем белый текст для лучшей контрастности
-            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:white;font-weight:600;padding:2px 6px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-left:3px;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.9em;'>${lvlTitle} ${lvl}</span>`;
+            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:white;font-weight:600;padding:1px 4px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.1);margin-left:2px;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.8em;'>${lvlTitle} ${lvl}</span>`;
         }
         // Топ-5 игроков
         const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
