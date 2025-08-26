@@ -291,7 +291,10 @@ registerForm.onsubmit = async (e) => {
         showProfile();
         showRating();
         if (username.toLowerCase() === adminName.toLowerCase()) {
-            if (adminSection) adminSection.style.display = '';
+            if (adminSection) {
+                adminSection.style.display = '';
+                updateUsersList(); // Обновляем список пользователей
+            }
         } else {
             if (adminSection) adminSection.style.display = 'none';
         }
@@ -317,7 +320,10 @@ loginForm.onsubmit = async (e) => {
         // Получаем имя для проверки админа
         const doc = await db.collection('users').doc(currentUser).get();
         if (doc.exists && doc.data().name && doc.data().name.toLowerCase() === adminName.toLowerCase()) {
-            if (adminSection) adminSection.style.display = '';
+            if (adminSection) {
+                adminSection.style.display = '';
+                updateUsersList(); // Обновляем список пользователей
+            }
         } else {
             if (adminSection) adminSection.style.display = 'none';
         }
@@ -470,6 +476,7 @@ adminAddPointsBtn.onclick = async () => {
         });
         adminMessage.textContent = `Начислено ${points} баллов пользователю ${user}`;
         adminPointsInput.value = '';
+        updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             showProfile();
             showRating();
@@ -495,6 +502,7 @@ adminAddCoinsBtn.onclick = async () => {
         });
         adminMessage.textContent = `Начислено ${coins} монет пользователю ${user}`;
         adminPointsInput.value = '';
+        updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             showProfile();
             showRating();
@@ -532,6 +540,7 @@ adminResetUserBtn.onclick = async () => {
             realty: '-'
         });
         adminMessage.textContent = `Баллы, монеты и магазин пользователя ${user} обнулены!`;
+        updateUsersList(); // Обновляем список пользователей
         if (userDoc.id === currentUser) showProfile();
         showRating();
         showProfile();
@@ -568,6 +577,7 @@ adminResetAllBtn.onclick = async () => {
     });
     await batch.commit();
     adminMessage.textContent = 'Баллы и монеты у всех участников обнулены!';
+    updateUsersList(); // Обновляем список пользователей
     showRating();
     showProfile();
     if (typeof renderShop === 'function') renderShop();
@@ -614,6 +624,7 @@ if (adminResetWinsBtn) {
         if (userDoc) {
             await userDoc.ref.update({ wins: 0 });
             adminMessage.textContent = `Победы пользователя ${user} сброшены!`;
+            updateUsersList(); // Обновляем список пользователей
             setTimeout(() => {
                 if (typeof showProfile === 'function') showProfile();
                 if (typeof showRating === 'function') showRating();
@@ -634,6 +645,7 @@ if (adminResetGamesBtn) {
         if (userDoc) {
             await userDoc.ref.update({ games: 0 });
             adminMessage.textContent = `Игры пользователя ${user} сброшены!`;
+            updateUsersList(); // Обновляем список пользователей
             setTimeout(() => {
                 if (typeof showProfile === 'function') showProfile();
                 if (typeof showRating === 'function') showRating();
@@ -654,6 +666,7 @@ if (adminResetAllWinsBtn) {
         });
         await batch.commit();
         adminMessage.textContent = 'Победы у всех участников сброшены!';
+        updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             if (typeof showProfile === 'function') showProfile();
             if (typeof showRating === 'function') showRating();
@@ -670,6 +683,7 @@ if (adminResetAllGamesBtn) {
         });
         await batch.commit();
         adminMessage.textContent = 'Игры у всех участников сброшены!';
+        updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             if (typeof showProfile === 'function') showProfile();
             if (typeof showRating === 'function') showRating();
@@ -677,7 +691,37 @@ if (adminResetAllGamesBtn) {
     };
 }
 
+// Функция для загрузки списка пользователей в datalist
+async function loadUsersList() {
+    try {
+        const usersSnap = await db.collection('users').get();
+        const usersList = document.getElementById('users-list');
+        if (usersList) {
+            usersList.innerHTML = '';
+            usersSnap.forEach(doc => {
+                const userData = doc.data();
+                if (userData.name && userData.name.trim() !== '') {
+                    const option = document.createElement('option');
+                    option.value = userData.name;
+                    usersList.appendChild(option);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки списка пользователей:', error);
+    }
+}
+
+// Функция для обновления списка пользователей при показе админ-панели
+function updateUsersList() {
+    if (adminSection && adminSection.style.display !== 'none') {
+        loadUsersList();
+    }
+}
+
 // Вызываем рейтинг при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     showRating();
+    // Загружаем список пользователей при загрузке страницы
+    loadUsersList();
 }); 

@@ -60,7 +60,10 @@
     <div id="admin-section" style="display:none;">
         <h2>Админ-панель</h2>
         <p id="admin-message"></p>
-        <input type="text" id="admin-user" placeholder="Имя участника">
+        <input type="text" id="admin-user" placeholder="Имя участника" list="users-list">
+        <datalist id="users-list">
+            <!-- Список пользователей будет загружаться динамически -->
+        </datalist>
         <input type="number" id="admin-points" placeholder="Баллы для начисления">
         <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
             <button id="admin-add-points" style="flex:1; min-width:0;">Начислить баллы</button>

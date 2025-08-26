@@ -19,6 +19,7 @@ async function adminAddWins(username, wins) {
         adminMessage.textContent = `Начислено ${wins} побед пользователю ${username}`;
         adminUserInput.value = '';
         adminPointsInput.value = '';
+        if (typeof updateUsersList === 'function') updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             if (typeof showProfile === 'function') showProfile();
             if (typeof showRating === 'function') showRating();
@@ -44,6 +45,7 @@ async function adminAddGames(username, games) {
         adminMessage.textContent = `Начислено ${games} игр пользователю ${username}`;
         adminUserInput.value = '';
         adminPointsInput.value = '';
+        if (typeof updateUsersList === 'function') updateUsersList(); // Обновляем список пользователей
         setTimeout(() => {
             if (typeof showProfile === 'function') showProfile();
             if (typeof showRating === 'function') showRating();
