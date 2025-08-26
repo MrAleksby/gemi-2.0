@@ -729,6 +729,128 @@ function updateUsersList() {
 
 
 
+// Система обмена монет на деньги
+const exchangeModal = document.getElementById('exchange-modal');
+const exchangeClose = document.getElementById('exchange-close');
+const exchangeCoinsBtn = document.getElementById('exchange-coins-btn');
+const exchangeAmount = document.getElementById('exchange-amount');
+const exchangeResult = document.getElementById('exchange-result');
+const userCoinsBalance = document.getElementById('user-coins-balance');
+const confirmExchange = document.getElementById('confirm-exchange');
+
+// Открытие модального окна обмена
+if (exchangeCoinsBtn && exchangeModal) {
+    exchangeCoinsBtn.onclick = () => {
+        exchangeModal.style.display = 'flex';
+        updateExchangeInfo();
+    };
+}
+
+// Закрытие модального окна обмена
+if (exchangeClose && exchangeModal) {
+    exchangeClose.onclick = () => {
+        exchangeModal.style.display = 'none';
+        exchangeAmount.value = '';
+        exchangeResult.textContent = '0';
+    };
+}
+
+// Закрытие по клику вне окна
+if (exchangeModal) {
+    exchangeModal.onclick = (e) => {
+        if (e.target === exchangeModal) {
+            exchangeModal.style.display = 'none';
+            exchangeAmount.value = '';
+            exchangeResult.textContent = '0';
+        }
+    };
+}
+
+// Обновление информации об обмене
+function updateExchangeInfo() {
+    if (!currentUser) return;
+    
+    db.collection('users').doc(currentUser).get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const coins = data.coins || 0;
+            userCoinsBalance.textContent = coins;
+        }
+    });
+}
+
+// Расчет суммы обмена
+if (exchangeAmount) {
+    exchangeAmount.oninput = () => {
+        const amount = parseInt(exchangeAmount.value) || 0;
+        const result = amount * 350; // 1 монета = 350 сумов
+        exchangeResult.textContent = result.toLocaleString();
+    };
+}
+
+// Подтверждение обмена
+if (confirmExchange) {
+    confirmExchange.onclick = async () => {
+        const amount = parseInt(exchangeAmount.value) || 0;
+        if (amount <= 0) {
+            alert('Введите корректное количество монет!');
+            return;
+        }
+        
+        if (!currentUser) {
+            alert('Ошибка: пользователь не найден!');
+            return;
+        }
+        
+        try {
+            const userRef = db.collection('users').doc(currentUser);
+            const doc = await userRef.get();
+            
+            if (doc.exists) {
+                const data = doc.data();
+                const currentCoins = data.coins || 0;
+                
+                if (amount > currentCoins) {
+                    alert('Недостаточно монет для обмена!');
+                    return;
+                }
+                
+                // Создаем запись в истории транзакций
+                const transaction = {
+                    userId: currentUser,
+                    userName: data.name,
+                    type: 'exchange',
+                    coins: amount,
+                    sum: amount * 350,
+                    date: new Date(),
+                    status: 'pending', // pending, approved, rejected
+                    description: 'Обмен монет на деньги'
+                };
+                
+                // Добавляем транзакцию в коллекцию
+                await db.collection('transactions').add(transaction);
+                
+                // Обновляем баланс пользователя
+                await userRef.update({
+                    coins: currentCoins - amount
+                });
+                
+                alert(`Заявка на обмен ${amount} монет (${amount * 350} сумов) отправлена! Ожидайте подтверждения от администратора.`);
+                
+                // Закрываем модальное окно
+                exchangeModal.style.display = 'none';
+                exchangeAmount.value = '';
+                exchangeResult.textContent = '0';
+                
+                // Обновляем профиль
+                showProfile();
+            }
+        } catch (error) {
+            alert('Ошибка при обмене: ' + error.message);
+        }
+    };
+}
+
 // Вызываем рейтинг при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     showRating();

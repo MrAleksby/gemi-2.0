@@ -1091,6 +1091,48 @@ th {
   max-width: none !important;
 }
 
+/* Стили для модального окна обмена */
+.exchange-info {
+    background: rgba(0, 212, 170, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+.exchange-info p {
+    margin: 8px 0;
+    color: #333;
+    font-weight: 500;
+}
+
+.exchange-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.exchange-form label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.exchange-preview {
+    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+}
+
+.exchange-preview p {
+    margin: 0;
+    font-size: 1.1em;
+}
+
 /* Обновленные стили для профиль-бейджей */
 .profile-badge img {
     width: 26px;
