@@ -1133,6 +1133,134 @@ th {
     font-size: 1.1em;
 }
 
+/* Стили для транзакций в админ-панели */
+.transactions-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.transaction-item {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 4px solid #00d4aa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.transaction-item.pending {
+    border-left-color: #ff9800;
+}
+
+.transaction-item.approved {
+    border-left-color: #4caf50;
+}
+
+.transaction-item.rejected {
+    border-left-color: #f44336;
+}
+
+.transaction-item.withdrawal {
+    border-left-color: #667eea;
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.transaction-user {
+    font-weight: 600;
+    color: #333;
+}
+
+.transaction-date {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.transaction-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.transaction-amount {
+    font-weight: 600;
+    color: #00d4aa;
+}
+
+.transaction-type {
+    font-size: 0.9em;
+    color: #666;
+    text-transform: capitalize;
+}
+
+.transaction-description {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.transaction-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.transaction-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.transaction-btn.approve {
+    background: #4caf50;
+    color: white;
+}
+
+.transaction-btn.reject {
+    background: #f44336;
+    color: white;
+}
+
+.transaction-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.transaction-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.transaction-status.pending {
+    background: #fff3e0;
+    color: #ff9800;
+}
+
+.transaction-status.approved {
+    background: #e8f5e8;
+    color: #4caf50;
+}
+
+.transaction-status.rejected {
+    background: #ffebee;
+    color: #f44336;
+}
+
 /* Обновленные стили для профиль-бейджей */
 .profile-badge img {
     width: 26px;

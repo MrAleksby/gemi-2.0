@@ -294,6 +294,7 @@ registerForm.onsubmit = async (e) => {
             if (adminSection) {
                 adminSection.style.display = '';
                 updateUsersList(); // Обновляем список пользователей
+                updateTransactionsLists(); // Обновляем списки транзакций
             }
         } else {
             if (adminSection) adminSection.style.display = 'none';
@@ -322,6 +323,7 @@ loginForm.onsubmit = async (e) => {
             if (adminSection) {
                 adminSection.style.display = '';
                 updateUsersList(); // Обновляем список пользователей
+                updateTransactionsLists(); // Обновляем списки транзакций
             }
         } else {
             if (adminSection) adminSection.style.display = 'none';
@@ -849,6 +851,231 @@ if (confirmExchange) {
             alert('Ошибка при обмене: ' + error.message);
         }
     };
+}
+
+// Админ-панель для управления транзакциями
+const pendingTransactions = document.getElementById('pending-transactions');
+const transactionsHistory = document.getElementById('transactions-history');
+const adminWithdrawUser = document.getElementById('admin-withdraw-user');
+const adminWithdrawAmount = document.getElementById('admin-withdraw-amount');
+const adminWithdrawReason = document.getElementById('admin-withdraw-reason');
+const adminWithdrawMoney = document.getElementById('admin-withdraw-money');
+
+// Загрузка заявок на обмен
+async function loadPendingTransactions() {
+    if (!pendingTransactions) return;
+    
+    try {
+        const transactionsSnap = await db.collection('transactions')
+            .where('status', '==', 'pending')
+            .orderBy('date', 'desc')
+            .get();
+        
+        pendingTransactions.innerHTML = '';
+        
+        if (transactionsSnap.empty) {
+            pendingTransactions.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Нет заявок на обмен</p>';
+            return;
+        }
+        
+        transactionsSnap.forEach(doc => {
+            const transaction = doc.data();
+            const date = transaction.date.toDate().toLocaleString('ru-RU');
+            
+            const transactionHtml = `
+                <div class="transaction-item pending">
+                    <div class="transaction-header">
+                        <span class="transaction-user">${transaction.userName}</span>
+                        <span class="transaction-status pending">Ожидает</span>
+                    </div>
+                    <div class="transaction-details">
+                        <span class="transaction-amount">${transaction.coins} монет → ${transaction.sum} сумов</span>
+                        <span class="transaction-type">${transaction.type}</span>
+                    </div>
+                    <div class="transaction-description">${transaction.description}</div>
+                    <div class="transaction-date">${date}</div>
+                    <div class="transaction-actions">
+                        <button class="transaction-btn approve" onclick="approveTransaction('${doc.id}')">✅ Подтвердить</button>
+                        <button class="transaction-btn reject" onclick="rejectTransaction('${doc.id}')">❌ Отклонить</button>
+                    </div>
+                </div>
+            `;
+            
+            pendingTransactions.innerHTML += transactionHtml;
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки заявок:', error);
+    }
+}
+
+// Загрузка истории транзакций
+async function loadTransactionsHistory() {
+    if (!transactionsHistory) return;
+    
+    try {
+        const transactionsSnap = await db.collection('transactions')
+            .orderBy('date', 'desc')
+            .limit(20)
+            .get();
+        
+        transactionsHistory.innerHTML = '';
+        
+        if (transactionsSnap.empty) {
+            transactionsHistory.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">История транзакций пуста</p>';
+            return;
+        }
+        
+        transactionsSnap.forEach(doc => {
+            const transaction = doc.data();
+            const date = transaction.date.toDate().toLocaleString('ru-RU');
+            const statusClass = transaction.status;
+            const statusText = {
+                'pending': 'Ожидает',
+                'approved': 'Подтверждено',
+                'rejected': 'Отклонено'
+            }[transaction.status];
+            
+            const transactionHtml = `
+                <div class="transaction-item ${transaction.type === 'withdrawal' ? 'withdrawal' : statusClass}">
+                    <div class="transaction-header">
+                        <span class="transaction-user">${transaction.userName}</span>
+                        <span class="transaction-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="transaction-details">
+                        <span class="transaction-amount">${transaction.type === 'withdrawal' ? '-' : '+'}${transaction.sum} сумов</span>
+                        <span class="transaction-type">${transaction.type === 'withdrawal' ? 'Снятие' : 'Обмен'}</span>
+                    </div>
+                    <div class="transaction-description">${transaction.description || ''}</div>
+                    <div class="transaction-date">${date}</div>
+                </div>
+            `;
+            
+            transactionsHistory.innerHTML += transactionHtml;
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки истории:', error);
+    }
+}
+
+// Подтверждение транзакции
+async function approveTransaction(transactionId) {
+    try {
+        await db.collection('transactions').doc(transactionId).update({
+            status: 'approved'
+        });
+        
+        adminMessage.textContent = 'Транзакция подтверждена!';
+        loadPendingTransactions();
+        loadTransactionsHistory();
+    } catch (error) {
+        alert('Ошибка при подтверждении: ' + error.message);
+    }
+}
+
+// Отклонение транзакции
+async function rejectTransaction(transactionId) {
+    try {
+        const transactionDoc = await db.collection('transactions').doc(transactionId).get();
+        const transaction = transactionDoc.data();
+        
+        // Возвращаем монеты пользователю
+        const userRef = db.collection('users').doc(transaction.userId);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        
+        await userRef.update({
+            coins: (userData.coins || 0) + transaction.coins
+        });
+        
+        // Обновляем статус транзакции
+        await db.collection('transactions').doc(transactionId).update({
+            status: 'rejected'
+        });
+        
+        adminMessage.textContent = 'Транзакция отклонена, монеты возвращены!';
+        loadPendingTransactions();
+        loadTransactionsHistory();
+    } catch (error) {
+        alert('Ошибка при отклонении: ' + error.message);
+    }
+}
+
+// Снятие денег для донатов
+if (adminWithdrawMoney) {
+    adminWithdrawMoney.onclick = async () => {
+        const userName = adminWithdrawUser.value.trim();
+        const amount = parseInt(adminWithdrawAmount.value, 10);
+        const reason = adminWithdrawReason.value.trim();
+        
+        if (!userName || isNaN(amount) || amount <= 0 || !reason) {
+            alert('Заполните все поля корректно!');
+            return;
+        }
+        
+        try {
+            // Находим пользователя
+            const usersSnap = await db.collection('users').get();
+            const userDoc = usersSnap.docs.find(doc => 
+                doc.data().name && doc.data().name.trim().toLowerCase() === userName.trim().toLowerCase()
+            );
+            
+            if (!userDoc) {
+                alert('Пользователь не найден!');
+                return;
+            }
+            
+            const userData = userDoc.data();
+            const currentCoins = userData.coins || 0;
+            const coinsToWithdraw = Math.ceil(amount / 350); // 1 монета = 350 сумов
+            
+            if (coinsToWithdraw > currentCoins) {
+                alert(`Недостаточно монет! У пользователя ${currentCoins} монет, нужно ${coinsToWithdraw} монет для ${amount} сумов.`);
+                return;
+            }
+            
+            // Создаем транзакцию снятия
+            const transaction = {
+                userId: userDoc.id,
+                userName: userData.name,
+                type: 'withdrawal',
+                coins: coinsToWithdraw,
+                sum: amount,
+                date: new Date(),
+                status: 'approved',
+                description: reason
+            };
+            
+            await db.collection('transactions').add(transaction);
+            
+            // Снимаем монеты
+            await userDoc.ref.update({
+                coins: currentCoins - coinsToWithdraw
+            });
+            
+            adminMessage.textContent = `Снято ${coinsToWithdraw} монет (${amount} сумов) у пользователя ${userName} для ${reason}`;
+            
+            // Очищаем поля
+            adminWithdrawUser.value = '';
+            adminWithdrawAmount.value = '';
+            adminWithdrawReason.value = '';
+            
+            // Обновляем списки
+            loadPendingTransactions();
+            loadTransactionsHistory();
+            updateUsersList();
+            
+        } catch (error) {
+            alert('Ошибка при снятии денег: ' + error.message);
+        }
+    };
+}
+
+// Обновляем списки транзакций при показе админ-панели
+function updateTransactionsLists() {
+    if (adminSection && adminSection.style.display !== 'none') {
+        loadPendingTransactions();
+        loadTransactionsHistory();
+    }
 }
 
 // Вызываем рейтинг при загрузке страницы

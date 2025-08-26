@@ -90,6 +90,28 @@
             <button id="admin-add-games" style="flex:1; min-width:0;">Начислить игры</button>
             <button id="admin-reset-games" style="flex:1; min-width:0;">Сбросить игры</button>
         </div>
+        
+        <hr style="margin: 30px 0; border: 1px solid rgba(102, 126, 234, 0.2);">
+        
+        <h3 style="color: #00d4aa; margin-bottom: 15px;">💰 Управление транзакциями</h3>
+        
+        <div class="admin-transactions-section">
+            <h4>Заявки на обмен монет:</h4>
+            <div id="pending-transactions" class="transactions-list">
+                <!-- Заявки будут загружаться сюда -->
+            </div>
+            
+            <h4 style="margin-top: 25px;">Снятие денег для донатов:</h4>
+            <input type="text" id="admin-withdraw-user" placeholder="Имя пользователя" list="users-list">
+            <input type="number" id="admin-withdraw-amount" placeholder="Сумма в сумах">
+            <input type="text" id="admin-withdraw-reason" placeholder="Причина (например: донат в Standoff 2)">
+            <button id="admin-withdraw-money" class="main-btn" style="margin-top: 10px;">Снять деньги</button>
+        </div>
+        
+        <h4 style="margin-top: 25px; color: #667eea;">📊 История транзакций:</h4>
+        <div id="transactions-history" class="transactions-list">
+            <!-- История будет загружаться сюда -->
+        </div>
     </div>
     <div id="shop-modal" class="modal" style="display: none;">
         <div class="modal-content">
