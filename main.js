@@ -719,76 +719,7 @@ function updateUsersList() {
     }
 }
 
-// Анимация логотипа при клике
-function animateLogo() {
-    const logo = document.getElementById('main-logo');
-    if (!logo) return;
-    
-    // Добавляем класс для анимации
-    logo.classList.add('clicked');
-    
-    // Создаем эффект частиц
-    createLogoParticles(logo);
-    
-    // Убираем класс через время анимации
-    setTimeout(() => {
-        logo.classList.remove('clicked');
-    }, 600);
-}
 
-// Создание сердечек вокруг логотипа
-function createLogoParticles(logo) {
-    const rect = logo.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    // Создаем контейнер для частиц
-    let particlesContainer = document.querySelector('.logo-particles');
-    if (!particlesContainer) {
-        particlesContainer = document.createElement('div');
-        particlesContainer.className = 'logo-particles';
-        document.body.appendChild(particlesContainer);
-    }
-    
-    // Массив разных сердечек
-    const hearts = ['❤️', '💖', '💝', '💕', '💗', '💓', '💞', '💘'];
-    
-    // Создаем 12 сердечек
-    for (let i = 0; i < 12; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'logo-particle';
-        particle.textContent = hearts[Math.floor(Math.random() * hearts.length)];
-        
-        // Случайное направление разлетания
-        const angle = Math.random() * 360;
-        const distance = 20 + Math.random() * 40;
-        const x = centerX + Math.cos(angle * Math.PI / 180) * distance;
-        const y = centerY + Math.sin(angle * Math.PI / 180) * distance;
-        
-        particle.style.left = x + 'px';
-        particle.style.top = y + 'px';
-        
-        // Случайная задержка для более естественного эффекта
-        particle.style.animationDelay = Math.random() * 0.3 + 's';
-        
-        particlesContainer.appendChild(particle);
-        
-        // Удаляем сердечко после анимации
-        setTimeout(() => {
-            if (particle.parentNode) {
-                particle.parentNode.removeChild(particle);
-            }
-        }, 2000);
-    }
-}
-
-// Добавляем обработчик клика на логотип
-document.addEventListener('DOMContentLoaded', () => {
-    const logo = document.getElementById('main-logo');
-    if (logo) {
-        logo.addEventListener('click', animateLogo);
-    }
-});
 
 // Вызываем рейтинг при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
