@@ -870,6 +870,7 @@ const adminWithdrawUser = document.getElementById('admin-withdraw-user');
 const adminWithdrawAmount = document.getElementById('admin-withdraw-amount');
 const adminWithdrawReason = document.getElementById('admin-withdraw-reason');
 const adminWithdrawMoney = document.getElementById('admin-withdraw-money');
+const clearTransactionsBtn = document.getElementById('clear-transactions-btn');
 
 // Загрузка истории транзакций
 async function loadTransactionsHistory() {
@@ -994,6 +995,42 @@ if (adminWithdrawMoney) {
             
         } catch (error) {
             alert('Ошибка при снятии денег: ' + error.message);
+        }
+    };
+}
+
+// Очистка истории транзакций
+if (clearTransactionsBtn) {
+    clearTransactionsBtn.onclick = async () => {
+        if (!confirm('Вы уверены, что хотите очистить всю историю транзакций? Это действие нельзя отменить.')) {
+            return;
+        }
+        
+        try {
+            // Получаем все транзакции
+            const transactionsSnap = await db.collection('transactions').get();
+            
+            if (transactionsSnap.empty) {
+                adminMessage.textContent = 'История транзакций уже пуста!';
+                return;
+            }
+            
+            // Создаем batch для удаления
+            const batch = db.batch();
+            transactionsSnap.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            // Выполняем удаление
+            await batch.commit();
+            
+            adminMessage.textContent = `Удалено ${transactionsSnap.size} транзакций из истории!`;
+            
+            // Обновляем отображение
+            loadTransactionsHistory();
+            
+        } catch (error) {
+            alert('Ошибка при очистке истории: ' + error.message);
         }
     };
 }
