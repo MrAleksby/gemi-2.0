@@ -650,6 +650,22 @@ if (adminResetAllGamesBtn) {
     };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    showRating();
-}); 
+// Тестовая функция для проверки расчета уровней
+function testLevelCalculation() {
+    console.log('=== ТЕСТ РАСЧЕТА УРОВНЕЙ ===');
+    console.log('Пороги уровней:', levelThresholds);
+    
+    const testPoints = [0, 15, 38, 68, 100, 105, 150, 405, 893, 1568, 2430];
+    
+    testPoints.forEach(points => {
+        const level = getLevelByPoints(points);
+        const title = getLevelTitle(level);
+        const emoji = getLevelEmoji(level);
+        console.log(`${points} очков → Уровень ${level} (${emoji} ${title})`);
+    });
+    
+    console.log('=== КОНЕЦ ТЕСТА ===');
+}
+
+// Вызываем тест при загрузке страницы
+document.addEventListener('DOMContentLoaded', testLevelCalculation); 
