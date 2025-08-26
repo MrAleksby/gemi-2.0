@@ -455,6 +455,12 @@ function createParticleEffect(element) {
 
 if (shopBtn && shopModal && shopClose) {
     shopBtn.onclick = async () => {
+        // Проверяем, заблокирована ли кнопка
+        if (shopBtn.disabled || shopBtn.classList.contains('disabled')) {
+            alert('Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.');
+            return;
+        }
+        
         // Проверяем уровень пользователя
         const user = firebase.auth().currentUser;
         if (!user) {

@@ -411,12 +411,16 @@ function updateShopButton(userLevel) {
         shopBtn.style.background = 'linear-gradient(135deg, #ccc, #999)';
         shopBtn.style.cursor = 'not-allowed';
         shopBtn.style.opacity = '0.7';
+        shopBtn.disabled = true; // Блокируем кнопку
+        shopBtn.classList.add('disabled'); // Добавляем класс для стилизации
     } else {
         shopBtn.innerHTML = '🛒 Магазин';
         shopBtn.title = 'Открыть магазин инвестиций';
         shopBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         shopBtn.style.cursor = 'pointer';
         shopBtn.style.opacity = '1';
+        shopBtn.disabled = false; // Разблокируем кнопку
+        shopBtn.classList.remove('disabled'); // Убираем класс блокировки
     }
 }
 
