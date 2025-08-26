@@ -736,7 +736,7 @@ function animateLogo() {
     }, 600);
 }
 
-// Создание частиц вокруг логотипа
+// Создание сердечек вокруг логотипа
 function createLogoParticles(logo) {
     const rect = logo.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -750,28 +750,35 @@ function createLogoParticles(logo) {
         document.body.appendChild(particlesContainer);
     }
     
-    // Создаем 8 частиц
-    for (let i = 0; i < 8; i++) {
+    // Массив разных сердечек
+    const hearts = ['❤️', '💖', '💝', '💕', '💗', '💓', '💞', '💘'];
+    
+    // Создаем 12 сердечек
+    for (let i = 0; i < 12; i++) {
         const particle = document.createElement('div');
         particle.className = 'logo-particle';
+        particle.textContent = hearts[Math.floor(Math.random() * hearts.length)];
         
-        // Случайное направление
-        const angle = (i * 45) + Math.random() * 30;
-        const distance = 30 + Math.random() * 20;
+        // Случайное направление разлетания
+        const angle = Math.random() * 360;
+        const distance = 20 + Math.random() * 40;
         const x = centerX + Math.cos(angle * Math.PI / 180) * distance;
         const y = centerY + Math.sin(angle * Math.PI / 180) * distance;
         
         particle.style.left = x + 'px';
         particle.style.top = y + 'px';
         
+        // Случайная задержка для более естественного эффекта
+        particle.style.animationDelay = Math.random() * 0.3 + 's';
+        
         particlesContainer.appendChild(particle);
         
-        // Удаляем частицу после анимации
+        // Удаляем сердечко после анимации
         setTimeout(() => {
             if (particle.parentNode) {
                 particle.parentNode.removeChild(particle);
             }
-        }, 1500);
+        }, 2000);
     }
 }
 
