@@ -311,6 +311,11 @@ th {
     color: white;
 }
 
+.profile-badge.cf {
+    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+    color: white;
+}
+
 /* Обновленные модальные окна */
 .modal {
   display: none;

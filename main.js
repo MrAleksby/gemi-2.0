@@ -367,14 +367,11 @@ async function showProfile() {
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
           <span class="profile-badge wins"><span style="font-size:1.2em;">🏆</span> ${data.wins ?? 0}</span>
           <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
+          <span class="profile-badge cf"><span style="font-size:1.2em;">💎</span> ${data.money ?? 0}</span>
         </div>
         `;
         
-        // Обновляем отображение начисленных денег
-        const userMoneyAmount = document.getElementById('user-money-amount');
-        if (userMoneyAmount) {
-            userMoneyAmount.textContent = (data.money || 0).toLocaleString();
-        }
+
         const profileHeader = document.getElementById('profile-header');
         if (profileHeader) {
             let emoji = getLevelEmoji(lvl);
