@@ -48,14 +48,17 @@
         </div>
         <button id="toggle-rating-btn" class="main-btn" style="margin: 18px auto 0 auto; width: 80%; display: block;">Показать рейтинг</button>
     </div>
-    <div id="rating-section" style="display:none;">
-        <h2>Рейтинг участников</h2>
-        <table id="rating-table">
-            <thead>
-                <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th><th>Победы</th><th>Игры</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <div id="rating-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="rating-close">&times;</span>
+            <h2>🏆 Рейтинг участников</h2>
+            <table id="rating-table">
+                <thead>
+                    <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th><th>Победы</th><th>Игры</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
     <div id="admin-section" style="display:none;">
         <h2>Админ-панель</h2>

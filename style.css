@@ -912,21 +912,6 @@ th {
 }
 
 /* Обновленные стили для рейтинга */
-#rating-section {
-  display: none;
-  transition: max-height 0.3s, opacity 0.3s;
-  overflow: hidden;
-  opacity: 0;
-  max-height: 0;
-  overflow-x: auto;
-}
-
-#rating-section.visible {
-  display: block;
-  opacity: 1;
-  max-height: 2000px;
-}
-
 #toggle-rating-btn {
   margin: 18px auto 0 auto;
   width: 80%;

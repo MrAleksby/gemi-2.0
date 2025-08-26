@@ -17,7 +17,7 @@ const adminName = "admin"; // Измените на ваше имя админа
 const loginSection = document.getElementById('login-section');
 const registerSection = document.getElementById('register-section');
 const profileSection = document.getElementById('profile-section');
-const ratingSection = document.getElementById('rating-section');
+
 const adminSection = document.getElementById('admin-section');
 
 const showRegister = document.getElementById('show-register');
@@ -300,7 +300,6 @@ registerForm.onsubmit = async (e) => {
         }
         if (registerSection) registerSection.style.display = 'none';
         if (profileCard) profileCard.style.display = '';
-        if (ratingSection) ratingSection.style.display = '';
     } catch (err) {
         alert('Ошибка регистрации: ' + err.message);
     }
@@ -330,7 +329,6 @@ loginForm.onsubmit = async (e) => {
         if (loginSection) loginSection.style.display = 'none';
         // Показываем новый профиль
         if (profileCard) profileCard.style.display = '';
-        if (ratingSection) ratingSection.style.display = '';
     } catch (err) {
         alert('Ошибка входа: ' + err.message);
     }
@@ -344,7 +342,6 @@ logoutBtn.onclick = async () => {
     if (registerSection) registerSection.style.display = 'none';
     // Скрываем новый профиль
     if (profileCard) profileCard.style.display = 'none';
-    if (ratingSection) ratingSection.style.display = 'none';
     if (adminSection) adminSection.style.display = 'none';
 };
 
@@ -598,20 +595,31 @@ if (adminAddGamesBtn) {
     };
 }
 
+// Модальное окно рейтинга
+const ratingModal = document.getElementById('rating-modal');
+const ratingClose = document.getElementById('rating-close');
 const toggleRatingBtn = document.getElementById('toggle-rating-btn');
-if (toggleRatingBtn && ratingSection) {
+
+if (toggleRatingBtn && ratingModal) {
     toggleRatingBtn.onclick = () => {
-        if (ratingSection.classList.contains('visible')) {
-            ratingSection.classList.remove('visible');
-            toggleRatingBtn.textContent = 'Показать рейтинг';
-        } else {
-            ratingSection.classList.add('visible');
-            toggleRatingBtn.textContent = 'Скрыть рейтинг';
+        ratingModal.style.display = 'flex';
+        showRating(); // Обновляем данные рейтинга при открытии
+    };
+}
+
+if (ratingClose && ratingModal) {
+    ratingClose.onclick = () => {
+        ratingModal.style.display = 'none';
+    };
+}
+
+// Закрытие модального окна при клике вне его
+if (ratingModal) {
+    ratingModal.onclick = (e) => {
+        if (e.target === ratingModal) {
+            ratingModal.style.display = 'none';
         }
     };
-    // По умолчанию скрываем рейтинг
-    ratingSection.classList.remove('visible');
-    toggleRatingBtn.textContent = 'Показать рейтинг';
 }
 
 if (adminResetWinsBtn) {
