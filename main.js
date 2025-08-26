@@ -394,6 +394,29 @@ async function showProfile() {
         });
         top5Html += `</tbody></table>`;
         document.getElementById('top5-container').innerHTML = top5Html;
+        
+        // Обновляем кнопку магазина в зависимости от уровня
+        updateShopButton(lvl);
+    }
+}
+
+// Функция для обновления кнопки магазина
+function updateShopButton(userLevel) {
+    const shopBtn = document.getElementById('shop-btn');
+    if (!shopBtn) return;
+    
+    if (userLevel < 5) {
+        shopBtn.innerHTML = '🔒 Магазин (5 уровень)';
+        shopBtn.title = 'Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.';
+        shopBtn.style.background = 'linear-gradient(135deg, #ccc, #999)';
+        shopBtn.style.cursor = 'not-allowed';
+        shopBtn.style.opacity = '0.7';
+    } else {
+        shopBtn.innerHTML = '🛒 Магазин';
+        shopBtn.title = 'Открыть магазин инвестиций';
+        shopBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        shopBtn.style.cursor = 'pointer';
+        shopBtn.style.opacity = '1';
     }
 }
 

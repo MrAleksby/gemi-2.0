@@ -77,7 +77,28 @@ async function renderShop() {
     const doc = await userRef.get();
     if (!doc.exists) return;
     const data = doc.data();
+    const userLevel = data.level || 1;
     const coins = data.coins || 0;
+    
+    // Проверяем уровень пользователя
+    if (userLevel < 5) {
+        shopItems.innerHTML = `
+            <div class="shop-locked-message">
+                <div class="lock-icon">🔒</div>
+                <h3>Магазин заблокирован</h3>
+                <p>Магазин доступен только с 5 уровня!</p>
+                <p>Станьте <strong>Учеником</strong>, чтобы получить доступ к инвестициям.</p>
+                <div class="level-requirement">
+                    <span>Требуется уровень: 5</span>
+                    <span>Ваш уровень: ${userLevel}</span>
+                </div>
+                <div class="progress-to-unlock">
+                    <p>До разблокировки: ${5 - userLevel} уровней</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
     // --- Сбережения ---
     const savingsLevel = data.savingsLevel || 0;
     const savings = data.savings || 0;
@@ -433,7 +454,29 @@ function createParticleEffect(element) {
 }
 
 if (shopBtn && shopModal && shopClose) {
-    shopBtn.onclick = () => {
+    shopBtn.onclick = async () => {
+        // Проверяем уровень пользователя
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            alert('Войдите в аккаунт, чтобы пользоваться магазином.');
+            return;
+        }
+        
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+        const doc = await userRef.get();
+        if (!doc.exists) {
+            alert('Ошибка загрузки данных пользователя.');
+            return;
+        }
+        
+        const data = doc.data();
+        const userLevel = data.level || 1;
+        
+        if (userLevel < 5) {
+            alert('Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.');
+            return;
+        }
+        
         shopModal.style.display = 'block';
         renderShop();
     };
