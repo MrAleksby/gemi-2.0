@@ -195,13 +195,15 @@ async function renderShop() {
     // --- обработчик savings ---
     if (nextUpgrade && canUpgrade) {
         document.getElementById('upgrade-savings-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-savings-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshLevel = freshData.savingsLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshLevel !== savingsLevel || freshCoins < nextUpgrade.cost || freshCharLevel < (freshLevel + 1)) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -209,20 +211,23 @@ async function renderShop() {
                 savingsLevel: freshLevel + 1,
                 savings: nextUpgrade.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик twobig ---
     if (nextTwobig && canUpgradeTwobig) {
         document.getElementById('upgrade-twobig-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-twobig-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshTwobigLevel = freshData.twobigLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshTwobigLevel !== twobigLevel || freshCoins < nextTwobig.cost || freshCharLevel < nextTwobig.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -230,20 +235,23 @@ async function renderShop() {
                 twobigLevel: freshTwobigLevel + 1,
                 twobig: nextTwobig.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик ok4u ---
     if (nextOk4u && canUpgradeOk4u) {
         document.getElementById('upgrade-ok4u-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-ok4u-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshOk4uLevel = freshData.ok4uLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshOk4uLevel !== ok4uLevel || freshCoins < nextOk4u.cost || freshCharLevel < nextOk4u.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -251,20 +259,23 @@ async function renderShop() {
                 ok4uLevel: freshOk4uLevel + 1,
                 ok4u: nextOk4u.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик myt4u ---
     if (nextMyt4u && canUpgradeMyt4u) {
         document.getElementById('upgrade-myt4u-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-myt4u-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshMyt4uLevel = freshData.myt4uLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshMyt4uLevel !== myt4uLevel || freshCoins < nextMyt4u.cost || freshCharLevel < nextMyt4u.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -272,20 +283,23 @@ async function renderShop() {
                 myt4uLevel: freshMyt4uLevel + 1,
                 myt4u: nextMyt4u.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик percents ---
     if (nextPercents && canUpgradePercents) {
         document.getElementById('upgrade-percents-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-percents-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshPercentsLevel = freshData.percentsLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshPercentsLevel !== percentsLevel || freshCoins < nextPercents.cost || freshCharLevel < nextPercents.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -293,20 +307,23 @@ async function renderShop() {
                 percentsLevel: freshPercentsLevel + 1,
                 percents: nextPercents.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик passives ---
     if (nextPassives && canUpgradePassives) {
         document.getElementById('upgrade-passives-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-passives-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshPassivesLevel = freshData.passivesLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshPassivesLevel !== passivesLevel || freshCoins < nextPassives.cost || freshCharLevel < nextPassives.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -314,20 +331,23 @@ async function renderShop() {
                 passivesLevel: freshPassivesLevel + 1,
                 passives: nextPassives.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
     }
     // --- обработчик realty ---
     if (nextRealty && canUpgradeRealty) {
         document.getElementById('upgrade-realty-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-realty-btn');
             const freshDoc = await userRef.get();
             const freshData = freshDoc.data();
             const freshRealtyLevel = freshData.realtyLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
             if (freshRealtyLevel !== realtyLevel || freshCoins < nextRealty.cost || freshCharLevel < nextRealty.charLevel) {
-                renderShop();
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
                 return;
             }
             await userRef.update({
@@ -335,9 +355,80 @@ async function renderShop() {
                 realtyLevel: freshRealtyLevel + 1,
                 realty: nextRealty.reward
             });
+            animatePurchase(button, true);
             if (typeof showProfile === 'function') showProfile();
-            renderShop();
+            setTimeout(() => renderShop(), 1500);
         };
+    }
+}
+
+// Функция для анимации покупки
+function animatePurchase(button, success = true) {
+    const originalText = button.innerHTML;
+    const originalBackground = button.style.background;
+    
+    if (success) {
+        button.innerHTML = '<span class="btn-icon">✅</span><span class="btn-text">Куплено!</span>';
+        button.style.background = 'linear-gradient(135deg, #4caf50, #66bb6a)';
+        button.style.transform = 'scale(1.05)';
+        
+        // Добавляем эффект частиц
+        createParticleEffect(button);
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.background = originalBackground;
+            button.style.transform = '';
+        }, 1500);
+    } else {
+        button.innerHTML = '<span class="btn-icon">❌</span><span class="btn-text">Недостаточно монет!</span>';
+        button.style.background = 'linear-gradient(135deg, #f44336, #e53935)';
+        button.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.background = originalBackground;
+            button.style.transform = '';
+        }, 1000);
+    }
+}
+
+// Функция для создания эффекта частиц
+function createParticleEffect(element) {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'fixed';
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.width = '8px';
+        particle.style.height = '8px';
+        particle.style.background = '#4caf50';
+        particle.style.borderRadius = '50%';
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '9999';
+        particle.style.transition = 'all 0.6s ease-out';
+        
+        document.body.appendChild(particle);
+        
+        const angle = (i / 8) * Math.PI * 2;
+        const distance = 50;
+        const targetX = centerX + Math.cos(angle) * distance;
+        const targetY = centerY + Math.sin(angle) * distance;
+        
+        setTimeout(() => {
+            particle.style.left = targetX + 'px';
+            particle.style.top = targetY + 'px';
+            particle.style.opacity = '0';
+            particle.style.transform = 'scale(0)';
+        }, 50);
+        
+        setTimeout(() => {
+            document.body.removeChild(particle);
+        }, 650);
     }
 }
 
