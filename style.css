@@ -399,6 +399,8 @@ th {
         gap: 6px;
         margin-left: 2vw;
         margin-right: 2vw;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .profile-badge {
@@ -407,6 +409,11 @@ th {
         min-width: 0;
         margin-left: 0.5vw;
         margin-right: 0.5vw;
+    }
+    
+    .profile-badge.cf {
+        background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+        color: white;
     }
     
     .main-btn, button {
@@ -954,6 +961,11 @@ th {
         padding: 12px 0;
         border-radius: 12px;
         margin-top: 8px;
+    }
+    
+    .profile-badge.cf {
+        background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+        color: white;
     }
     
     .shop-title, .shop-progress, .shop-value, .shop-next {
