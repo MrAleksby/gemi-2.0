@@ -120,7 +120,9 @@ async function renderShop() {
     const twobigLevel = data.twobigLevel || 0;
     const twobig = data.twobig || 0;
     let nextTwobig = twobigUpgrades[twobigLevel];
-    let canUpgradeTwobig = nextTwobig && coins >= nextTwobig.cost && (data.level || 1) >= nextTwobig.charLevel && twobigLevel < ((data.level || 1) / 5);
+    const userWins = data.wins || 0;
+    const needsWinForLevel3Twobig = twobigLevel === 2 && userWins < 1;
+    let canUpgradeTwobig = nextTwobig && coins >= nextTwobig.cost && (data.level || 1) >= nextTwobig.charLevel && twobigLevel < ((data.level || 1) / 5) && !needsWinForLevel3Twobig;
     let twobigLimitReached = !nextTwobig || (data.level || 1) < nextTwobig.charLevel;
     let twobigMaxed = twobigLevel >= 5;
     let twobigCard = `
@@ -130,13 +132,14 @@ async function renderShop() {
         <div class="shop-value">${twobig}</div>
         <div class="shop-next">+${nextTwobig ? nextTwobig.reward : '-'} за ${nextTwobig ? nextTwobig.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-twobig-btn" ${canUpgradeTwobig ? '' : 'disabled'}>Прокачать</button>
-        ${twobigMaxed ? '<div class="shop-hint" style="color:#d32f2f;">MAX</div>' : (twobigLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${twobigMaxed ? '<div class="shop-hint" style="color:#d32f2f;">MAX</div>' : (twobigLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Twobig ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     // --- OK4U ---
     const ok4uLevel = data.ok4uLevel || 0;
     const ok4u = data.ok4u || 0;
     let nextOk4u = ok4uUpgrades[ok4uLevel];
-    let canUpgradeOk4u = nextOk4u && coins >= nextOk4u.cost && (data.level || 1) >= nextOk4u.charLevel && ok4uLevel < ((data.level || 1) / 5);
+    const needsWinForLevel3Ok4u = ok4uLevel === 2 && userWins < 1;
+    let canUpgradeOk4u = nextOk4u && coins >= nextOk4u.cost && (data.level || 1) >= nextOk4u.charLevel && ok4uLevel < ((data.level || 1) / 5) && !needsWinForLevel3Ok4u;
     let ok4uLimitReached = !nextOk4u || (data.level || 1) < nextOk4u.charLevel;
     let ok4uMaxed = ok4uLevel >= 5;
     let ok4uCard = `
@@ -146,13 +149,14 @@ async function renderShop() {
         <div class="shop-value">${ok4u}</div>
         <div class="shop-next">+${nextOk4u ? nextOk4u.reward : '-'} за ${nextOk4u ? nextOk4u.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-ok4u-btn" ${canUpgradeOk4u ? '' : 'disabled'}>Прокачать</button>
-        ${ok4uMaxed ? '<div class="shop-hint" style="color:#1976d2;">MAX</div>' : (ok4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${ok4uMaxed ? '<div class="shop-hint" style="color:#1976d2;">MAX</div>' : (ok4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Ok4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     // --- MYT4U ---
     const myt4uLevel = data.myt4uLevel || 0;
     const myt4u = data.myt4u || 0;
     let nextMyt4u = myt4uUpgrades[myt4uLevel];
-    let canUpgradeMyt4u = nextMyt4u && coins >= nextMyt4u.cost && (data.level || 1) >= nextMyt4u.charLevel && myt4uLevel < ((data.level || 1) / 5);
+    const needsWinForLevel3Myt4u = myt4uLevel === 2 && userWins < 1;
+    let canUpgradeMyt4u = nextMyt4u && coins >= nextMyt4u.cost && (data.level || 1) >= nextMyt4u.charLevel && myt4uLevel < ((data.level || 1) / 5) && !needsWinForLevel3Myt4u;
     let myt4uLimitReached = !nextMyt4u || (data.level || 1) < nextMyt4u.charLevel;
     let myt4uMaxed = myt4uLevel >= 5;
     let myt4uCard = `
@@ -162,13 +166,14 @@ async function renderShop() {
         <div class="shop-value">${myt4u}</div>
         <div class="shop-next">+${nextMyt4u ? nextMyt4u.reward : '-'} за ${nextMyt4u ? nextMyt4u.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-myt4u-btn" ${canUpgradeMyt4u ? '' : 'disabled'}>Прокачать</button>
-        ${myt4uMaxed ? '<div class="shop-hint" style="color:#fbc02d;">MAX</div>' : (myt4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${myt4uMaxed ? '<div class="shop-hint" style="color:#fbc02d;">MAX</div>' : (myt4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Myt4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     // --- Проценты ---
     const percentsLevel = data.percentsLevel || 0;
     const percents = data.percents || '-';
     let nextPercents = percentsUpgrades[percentsLevel];
-    let canUpgradePercents = nextPercents && coins >= nextPercents.cost && (data.level || 1) >= nextPercents.charLevel && percentsLevel < ((data.level || 1) / 5);
+    const needsWinForLevel3Percents = percentsLevel === 2 && userWins < 1;
+    let canUpgradePercents = nextPercents && coins >= nextPercents.cost && (data.level || 1) >= nextPercents.charLevel && percentsLevel < ((data.level || 1) / 5) && !needsWinForLevel3Percents;
     let percentsLimitReached = !nextPercents || (data.level || 1) < nextPercents.charLevel;
     let percentsMaxed = percentsLevel >= 5;
     let percentsCard = `
@@ -178,13 +183,14 @@ async function renderShop() {
         <div class="shop-value">${percents}</div>
         <div class="shop-next">${nextPercents ? nextPercents.reward : '-'} за ${nextPercents ? nextPercents.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-percents-btn" ${canUpgradePercents ? '' : 'disabled'}>Прокачать</button>
-        ${percentsMaxed ? '<div class="shop-hint" style="color:#6a1b9a;">MAX</div>' : (percentsLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${percentsMaxed ? '<div class="shop-hint" style="color:#6a1b9a;">MAX</div>' : (percentsLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Percents ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     // --- Уменьшение пассивов ---
     const passivesLevel = data.passivesLevel || 0;
     const passives = data.passives || '-';
     let nextPassives = passivesUpgrades[passivesLevel];
-    let canUpgradePassives = nextPassives && coins >= nextPassives.cost && (data.level || 1) >= nextPassives.charLevel && passivesLevel < ((data.level || 1) / 5);
+    const needsWinForLevel3Passives = passivesLevel === 2 && userWins < 1;
+    let canUpgradePassives = nextPassives && coins >= nextPassives.cost && (data.level || 1) >= nextPassives.charLevel && passivesLevel < ((data.level || 1) / 5) && !needsWinForLevel3Passives;
     let passivesLimitReached = !nextPassives || (data.level || 1) < nextPassives.charLevel;
     let passivesMaxed = passivesLevel >= 5;
     let passivesCard = `
@@ -194,13 +200,14 @@ async function renderShop() {
         <div class="shop-value">${passives}</div>
         <div class="shop-next">${nextPassives ? nextPassives.reward : '-'} за ${nextPassives ? nextPassives.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-passives-btn" ${canUpgradePassives ? '' : 'disabled'}>Прокачать</button>
-        ${passivesMaxed ? '<div class="shop-hint" style="color:#388e3c;">MAX</div>' : (passivesLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${passivesMaxed ? '<div class="shop-hint" style="color:#388e3c;">MAX</div>' : (passivesLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Passives ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     // --- Недвижимость ---
     const realtyLevel = data.realtyLevel || 0;
     const realty = data.realty || '-';
     let nextRealty = realtyUpgrades[realtyLevel];
-    let canUpgradeRealty = nextRealty && coins >= nextRealty.cost && (data.level || 1) >= nextRealty.charLevel && realtyLevel < ((data.level || 1) / 5);
+    const needsWinForLevel3Realty = realtyLevel === 2 && userWins < 1;
+    let canUpgradeRealty = nextRealty && coins >= nextRealty.cost && (data.level || 1) >= nextRealty.charLevel && realtyLevel < ((data.level || 1) / 5) && !needsWinForLevel3Realty;
     let realtyLimitReached = !nextRealty || (data.level || 1) < nextRealty.charLevel;
     let realtyMaxed = realtyLevel >= 5;
     let realtyCard = `
@@ -210,7 +217,7 @@ async function renderShop() {
         <div class="shop-value">${realty}</div>
         <div class="shop-next">${nextRealty ? nextRealty.reward : '-'} за ${nextRealty ? nextRealty.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-realty-btn" ${canUpgradeRealty ? '' : 'disabled'}>Прокачать</button>
-        ${realtyMaxed ? '<div class="shop-hint" style="color:#ff9800;">MAX</div>' : (realtyLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+        ${realtyMaxed ? '<div class="shop-hint" style="color:#ff9800;">MAX</div>' : (realtyLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Realty ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : ''))}
       </div>`;
     shopItems.innerHTML = `<div class="shop-balance">Ваши монеты: <b>${coins}</b></div><div class="shop-cards">${savingsCard}${twobigCard}${ok4uCard}${myt4uCard}${percentsCard}${passivesCard}${realtyCard}</div>`;
     // --- обработчик savings ---
