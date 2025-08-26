@@ -951,7 +951,7 @@ if (adminWithdrawMoney) {
             const currentMoney = userData.money || 0;
             
             if (amount > currentMoney) {
-                alert(`Недостаточно денег! У пользователя ${currentMoney} сумов, нужно ${amount} сумов.`);
+                alert(`Недостаточно CF! У пользователя ${currentMoney} CF, нужно ${amount} CF.`);
                 return;
             }
             
@@ -975,7 +975,7 @@ if (adminWithdrawMoney) {
                 money: Math.max(0, currentMoney - amount) // Не может быть меньше 0
             });
             
-            adminMessage.textContent = `Снято ${amount} сумов у пользователя ${userName} для ${reason}`;
+            adminMessage.textContent = `Снято ${amount} CF у пользователя ${userName} для ${reason}`;
             
             // Очищаем поля
             adminWithdrawUser.value = '';
