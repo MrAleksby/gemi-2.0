@@ -369,6 +369,12 @@ async function showProfile() {
           <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
         </div>
         `;
+        
+        // Обновляем отображение начисленных денег
+        const userMoneyAmount = document.getElementById('user-money-amount');
+        if (userMoneyAmount) {
+            userMoneyAmount.textContent = (data.money || 0).toLocaleString();
+        }
         const profileHeader = document.getElementById('profile-header');
         if (profileHeader) {
             let emoji = getLevelEmoji(lvl);
@@ -836,8 +842,10 @@ if (confirmExchange) {
                 console.log('Транзакция создана с ID:', transactionRef.id);
                 
                 // Обновляем баланс пользователя
+                const currentMoney = data.money || 0;
                 await userRef.update({
-                    coins: currentCoins - amount
+                    coins: currentCoins - amount,
+                    money: currentMoney + (amount * 350) // Добавляем деньги
                 });
                 
                 alert(`Обмен ${amount} монет на ${amount * 350} сумов выполнен успешно!`);
@@ -947,6 +955,12 @@ if (adminWithdrawMoney) {
                 return;
             }
             
+            const currentMoney = userData.money || 0;
+            if (amount > currentMoney) {
+                alert(`Недостаточно денег! У пользователя ${currentMoney} сумов, нужно ${amount} сумов.`);
+                return;
+            }
+            
             // Создаем транзакцию снятия
             const transaction = {
                 userId: userDoc.id,
@@ -961,9 +975,10 @@ if (adminWithdrawMoney) {
             
             await db.collection('transactions').add(transaction);
             
-            // Снимаем монеты
+            // Снимаем монеты и деньги
             await userDoc.ref.update({
-                coins: currentCoins - coinsToWithdraw
+                coins: currentCoins - coinsToWithdraw,
+                money: Math.max(0, currentMoney - amount) // Не может быть меньше 0
             });
             
             adminMessage.textContent = `Снято ${coinsToWithdraw} монет (${amount} сумов) у пользователя ${userName} для ${reason}`;
