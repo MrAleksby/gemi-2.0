@@ -829,8 +829,11 @@ if (confirmExchange) {
                     description: 'Обмен монет на деньги'
                 };
                 
+                console.log('Создаем транзакцию:', transaction);
+                
                 // Добавляем транзакцию в коллекцию
-                await db.collection('transactions').add(transaction);
+                const transactionRef = await db.collection('transactions').add(transaction);
+                console.log('Транзакция создана с ID:', transactionRef.id);
                 
                 // Обновляем баланс пользователя
                 await userRef.update({
@@ -866,11 +869,13 @@ async function loadPendingTransactions() {
     if (!pendingTransactions) return;
     
     try {
+        console.log('Загружаем pending транзакции...');
         const transactionsSnap = await db.collection('transactions')
             .where('status', '==', 'pending')
             .orderBy('date', 'desc')
             .get();
         
+        console.log('Найдено транзакций:', transactionsSnap.size);
         pendingTransactions.innerHTML = '';
         
         if (transactionsSnap.empty) {
@@ -958,7 +963,7 @@ async function loadTransactionsHistory() {
 }
 
 // Подтверждение транзакции
-async function approveTransaction(transactionId) {
+window.approveTransaction = async function(transactionId) {
     try {
         await db.collection('transactions').doc(transactionId).update({
             status: 'approved'
@@ -973,7 +978,7 @@ async function approveTransaction(transactionId) {
 }
 
 // Отклонение транзакции
-async function rejectTransaction(transactionId) {
+window.rejectTransaction = async function(transactionId) {
     try {
         const transactionDoc = await db.collection('transactions').doc(transactionId).get();
         const transaction = transactionDoc.data();
