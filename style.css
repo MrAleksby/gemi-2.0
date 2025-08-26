@@ -1057,11 +1057,11 @@ th {
 }
 
 #rating-table .level-badge {
-  min-width: 0 !important;
-    padding: 4px 8px !important;
-  font-size: 0.97em !important;
-    border-radius: 10px !important;
-  margin: 0 0 0 2px !important;
+  min-width: 0;
+    padding: 4px 8px;
+  font-size: 0.97em;
+    border-radius: 10px;
+  margin: 0 0 0 2px;
 }
 
 #rating-table .profile-badge {

@@ -451,7 +451,7 @@ async function showRating() {
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const lvlTitle = getLevelTitle(lvl);
         const lvlColor = getLevelColor(lvl);
-        const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor};\">${lvlTitle} ${lvl}</span>`;
+        const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor};color:white;font-weight:600;padding:2px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);text-shadow:0 1px 2px rgba(0,0,0,0.3);\">${lvlTitle} ${lvl}</span>`;
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td><td>${data.wins ?? 0}</td><td>${data.games ?? 0}</td>`;
         ratingTableBody.appendChild(tr);
