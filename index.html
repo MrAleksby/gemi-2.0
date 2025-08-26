@@ -41,7 +41,7 @@
         <p id="profile-info"></p>
         <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
         <div id="money-balance" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: white; padding: 12px; border-radius: 12px; margin: 10px 0; text-align: center; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);">
-            <span style="font-size: 1.2em;">💎</span> CF: <span id="user-money-amount">0</span> сумов
+            <span style="font-size: 1.2em;">💎</span> CF: <span id="user-money-amount">0</span>
         </div>
         <button id="exchange-coins-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);">💰 Обменять монеты на CF</button>
         <div id="transfer-form-container" style="display:none;"></div>
@@ -101,7 +101,7 @@
         <div class="admin-transactions-section">
             <h4>Снятие CF для донатов:</h4>
             <input type="text" id="admin-withdraw-user" placeholder="Имя пользователя" list="users-list">
-            <input type="number" id="admin-withdraw-amount" placeholder="Сумма в сумах">
+            <input type="number" id="admin-withdraw-amount" placeholder="Сумма в CF">
             <input type="text" id="admin-withdraw-reason" placeholder="Причина (например: донат в Standoff 2)">
             <button id="admin-withdraw-money" class="main-btn" style="margin-top: 10px;">Снять CF</button>
         </div>
@@ -130,7 +130,7 @@
             <span class="close" id="exchange-close">&times;</span>
             <h2>💰 Обмен монет на CF</h2>
             <div class="exchange-info">
-                <p><strong>Курс обмена:</strong> 1 монета = 350 сумов</p>
+                <p><strong>Курс обмена:</strong> 1 монета = 350 CF</p>
                 <p><strong>Ваш баланс:</strong> <span id="user-coins-balance">0</span> монет</p>
             </div>
             <div class="exchange-form">

@@ -791,7 +791,7 @@ function updateExchangeInfo() {
 if (exchangeAmount) {
     exchangeAmount.oninput = () => {
         const amount = parseInt(exchangeAmount.value) || 0;
-        const result = amount * 350; // 1 монета = 350 сумов
+                    const result = amount * 350; // 1 монета = 350 CF
         exchangeResult.textContent = result.toLocaleString();
     };
 }
