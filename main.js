@@ -825,7 +825,7 @@ if (confirmExchange) {
                     coins: amount,
                     sum: amount * 350,
                     date: new Date(),
-                    status: 'pending', // pending, approved, rejected
+                    status: 'approved', // Сразу одобряем
                     description: 'Обмен монет на деньги'
                 };
                 
@@ -840,7 +840,7 @@ if (confirmExchange) {
                     coins: currentCoins - amount
                 });
                 
-                alert(`Заявка на обмен ${amount} монет (${amount * 350} сумов) отправлена! Ожидайте подтверждения от администратора.`);
+                alert(`Обмен ${amount} монет на ${amount * 350} сумов выполнен успешно!`);
                 
                 // Закрываем модальное окно
                 exchangeModal.style.display = 'none';
@@ -857,61 +857,11 @@ if (confirmExchange) {
 }
 
 // Админ-панель для управления транзакциями
-const pendingTransactions = document.getElementById('pending-transactions');
 const transactionsHistory = document.getElementById('transactions-history');
 const adminWithdrawUser = document.getElementById('admin-withdraw-user');
 const adminWithdrawAmount = document.getElementById('admin-withdraw-amount');
 const adminWithdrawReason = document.getElementById('admin-withdraw-reason');
 const adminWithdrawMoney = document.getElementById('admin-withdraw-money');
-
-// Загрузка заявок на обмен
-async function loadPendingTransactions() {
-    if (!pendingTransactions) return;
-    
-    try {
-        console.log('Загружаем pending транзакции...');
-        const transactionsSnap = await db.collection('transactions')
-            .where('status', '==', 'pending')
-            .orderBy('date', 'desc')
-            .get();
-        
-        console.log('Найдено транзакций:', transactionsSnap.size);
-        pendingTransactions.innerHTML = '';
-        
-        if (transactionsSnap.empty) {
-            pendingTransactions.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Нет заявок на обмен</p>';
-            return;
-        }
-        
-        transactionsSnap.forEach(doc => {
-            const transaction = doc.data();
-            const date = transaction.date.toDate().toLocaleString('ru-RU');
-            
-            const transactionHtml = `
-                <div class="transaction-item pending">
-                    <div class="transaction-header">
-                        <span class="transaction-user">${transaction.userName}</span>
-                        <span class="transaction-status pending">Ожидает</span>
-                    </div>
-                    <div class="transaction-details">
-                        <span class="transaction-amount">${transaction.coins} монет → ${transaction.sum} сумов</span>
-                        <span class="transaction-type">${transaction.type}</span>
-                    </div>
-                    <div class="transaction-description">${transaction.description}</div>
-                    <div class="transaction-date">${date}</div>
-                    <div class="transaction-actions">
-                        <button class="transaction-btn approve" onclick="approveTransaction('${doc.id}')">✅ Подтвердить</button>
-                        <button class="transaction-btn reject" onclick="rejectTransaction('${doc.id}')">❌ Отклонить</button>
-                    </div>
-                </div>
-            `;
-            
-            pendingTransactions.innerHTML += transactionHtml;
-        });
-    } catch (error) {
-        console.error('Ошибка загрузки заявок:', error);
-    }
-}
 
 // Загрузка истории транзакций
 async function loadTransactionsHistory() {
@@ -962,48 +912,7 @@ async function loadTransactionsHistory() {
     }
 }
 
-// Подтверждение транзакции
-window.approveTransaction = async function(transactionId) {
-    try {
-        await db.collection('transactions').doc(transactionId).update({
-            status: 'approved'
-        });
-        
-        adminMessage.textContent = 'Транзакция подтверждена!';
-        loadPendingTransactions();
-        loadTransactionsHistory();
-    } catch (error) {
-        alert('Ошибка при подтверждении: ' + error.message);
-    }
-}
 
-// Отклонение транзакции
-window.rejectTransaction = async function(transactionId) {
-    try {
-        const transactionDoc = await db.collection('transactions').doc(transactionId).get();
-        const transaction = transactionDoc.data();
-        
-        // Возвращаем монеты пользователю
-        const userRef = db.collection('users').doc(transaction.userId);
-        const userDoc = await userRef.get();
-        const userData = userDoc.data();
-        
-        await userRef.update({
-            coins: (userData.coins || 0) + transaction.coins
-        });
-        
-        // Обновляем статус транзакции
-        await db.collection('transactions').doc(transactionId).update({
-            status: 'rejected'
-        });
-        
-        adminMessage.textContent = 'Транзакция отклонена, монеты возвращены!';
-        loadPendingTransactions();
-        loadTransactionsHistory();
-    } catch (error) {
-        alert('Ошибка при отклонении: ' + error.message);
-    }
-}
 
 // Снятие денег для донатов
 if (adminWithdrawMoney) {
@@ -1065,7 +974,6 @@ if (adminWithdrawMoney) {
             adminWithdrawReason.value = '';
             
             // Обновляем списки
-            loadPendingTransactions();
             loadTransactionsHistory();
             updateUsersList();
             
@@ -1078,7 +986,6 @@ if (adminWithdrawMoney) {
 // Обновляем списки транзакций при показе админ-панели
 function updateTransactionsLists() {
     if (adminSection && adminSection.style.display !== 'none') {
-        loadPendingTransactions();
         loadTransactionsHistory();
     }
 }
