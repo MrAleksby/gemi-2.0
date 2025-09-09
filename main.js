@@ -444,9 +444,9 @@ async function showRating() {
         <th><span style='font-size:1.1em;'>🎯</span></th>
         <th><span class='profile-badge points'><span style='font-size:1.1em;'>⭐</span></span></th>
         <th><span class='profile-badge coins'><span style='font-size:1.1em;'>💰</span></span></th>
-        <th><span class='profile-badge cf'><span style='font-size:1.1em;'>💎</span></span></th>
-        <th><span class='profile-badge wins'><span style='font-size:1.1em;'>🏆</span></span></th>
-        <th><span class='profile-badge games'><span style='font-size:1.1em;'>🎮</span></span></th>
+        <th><span class='profile-badge cf'><span style='font-size:1.1em;'>🏆</span></span></th>
+        <th><span class='profile-badge wins'><span style='font-size:1.1em;'>🎮</span></span></th>
+        <th><span class='profile-badge games'><span style='font-size:1.1em;'>💎</span></span></th>
     </tr>`;
     usersSnap.forEach(doc => {
         const data = doc.data();
