@@ -321,6 +321,11 @@ th {
     color: white;
 }
 
+.profile-badge.kd {
+    background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+    color: white;
+}
+
 .profile-badge.cf {
     background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
     color: white;
@@ -419,6 +424,11 @@ th {
         min-width: 0;
         margin-left: 0.5vw;
         margin-right: 0.5vw;
+    }
+    
+    .profile-badge.kd {
+        background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
     }
     
     .profile-badge.cf {
@@ -971,6 +981,11 @@ th {
         padding: 12px 0;
         border-radius: 12px;
         margin-top: 8px;
+    }
+    
+    .profile-badge.kd {
+        background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
     }
     
     .profile-badge.cf {
