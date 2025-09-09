@@ -258,6 +258,17 @@ th {
     box-shadow: 0 12px 40px rgba(0,0,0,0.2);
 }
 
+/* Логотип как иконка CF */
+.cf-logo-icon {
+    width: 1.2em;
+    height: 1.2em;
+    object-fit: cover;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
 
 
 /* Обновленные профиль-бейджи */
