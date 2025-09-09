@@ -96,13 +96,11 @@ auth.onAuthStateChanged(async (user) => {
         if (loginSection) loginSection.style.display = 'none';
         if (registerSection) registerSection.style.display = 'none';
         if (profileCard) profileCard.style.display = '';
-        if (ratingSection) ratingSection.style.display = '';
     } else {
         currentUser = null;
         if (loginSection) loginSection.style.display = '';
         if (registerSection) registerSection.style.display = 'none';
         if (profileCard) profileCard.style.display = 'none';
-        if (ratingSection) ratingSection.style.display = 'none';
         if (adminSection) adminSection.style.display = 'none';
     }
 });
