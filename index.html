@@ -41,6 +41,7 @@
         <p id="profile-info"></p>
         <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
         <button id="exchange-coins-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);">💰 Обменять монеты на CF</button>
+        <button id="deposits-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);">🏦 Депозиты</button>
         <div id="transfer-form-container" style="display:none;"></div>
         <div id="top5-container"></div>
         <div id="profile-buttons" style="display: flex; gap: 12px; margin-top: 12px;">
@@ -137,6 +138,42 @@
                     <p>Вы получите: <span id="exchange-result">0</span> сумов</p>
                 </div>
                 <button id="confirm-exchange" class="main-btn">Подтвердить обмен</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно депозитов -->
+    <div id="deposits-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="deposits-close">&times;</span>
+            <h2>🏦 Депозиты</h2>
+            
+            <!-- Информация о депозитах -->
+            <div class="deposits-info">
+                <p><strong>Доступно для депозита:</strong> <span id="available-cf">0</span> CF</p>
+                <p><strong>В депозитах:</strong> <span id="total-deposits">0</span> CF</p>
+            </div>
+            
+            <!-- Создание нового депозита -->
+            <div class="create-deposit-section">
+                <h3>Создать депозит</h3>
+                <div class="deposit-form">
+                    <label for="deposit-amount">Сумма депозита (минимум 100 CF):</label>
+                    <input type="number" id="deposit-amount" placeholder="Введите сумму" min="100">
+                    <div class="deposit-preview">
+                        <p><strong>Процентная ставка:</strong> <span id="deposit-rate">0</span>% годовых</p>
+                        <p><strong>Доход в день:</strong> <span id="daily-income">0</span> CF</p>
+                    </div>
+                    <button id="create-deposit-btn" class="main-btn">Создать депозит</button>
+                </div>
+            </div>
+            
+            <!-- Активные депозиты -->
+            <div class="active-deposits-section">
+                <h3>Активные депозиты</h3>
+                <div id="deposits-list" class="deposits-list">
+                    <!-- Список депозитов будет загружаться сюда -->
+                </div>
             </div>
         </div>
     </div>

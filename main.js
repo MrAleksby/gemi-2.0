@@ -46,6 +46,16 @@ const adminResetAllGamesBtn = document.getElementById('admin-reset-all-games');
 
 const auth = firebase.auth();
 
+// Функции для депозитов
+function getDepositRate(level) {
+    if (level < 10) return 0;
+    return Math.min(5 + (level - 10), 20); // От 5% до 20%
+}
+
+function calculateDailyIncome(amount, rate) {
+    return (amount * rate / 100 / 365).toFixed(2);
+}
+
 // Убираем проверку градиентного текста, так как теперь используем обычные цвета
 // function checkGradientTextSupport() {
 //     const testElement = document.createElement('div');
@@ -1044,6 +1054,206 @@ if (clearTransactionsBtn) {
 function updateTransactionsLists() {
     if (adminSection && adminSection.style.display !== 'none') {
         loadTransactionsHistory();
+    }
+}
+
+// Логика депозитов
+const depositsBtn = document.getElementById('deposits-btn');
+const depositsModal = document.getElementById('deposits-modal');
+const depositsClose = document.getElementById('deposits-close');
+const depositAmount = document.getElementById('deposit-amount');
+const depositRate = document.getElementById('deposit-rate');
+const dailyIncome = document.getElementById('daily-income');
+const createDepositBtn = document.getElementById('create-deposit-btn');
+const availableCF = document.getElementById('available-cf');
+const totalDeposits = document.getElementById('total-deposits');
+const depositsList = document.getElementById('deposits-list');
+
+// Открытие модального окна депозитов
+depositsBtn.onclick = async () => {
+    if (!currentUser) return;
+    
+    // Получаем данные пользователя
+    const userRef = db.collection('users').doc(currentUser);
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+    
+    // Рассчитываем депозиты
+    const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
+    let totalDepositsAmount = 0;
+    depositsSnap.forEach(deposit => {
+        totalDepositsAmount += deposit.data().amount;
+    });
+    
+    const totalCF = userData.money ?? 0;
+    const availableCFAmount = totalCF - totalDepositsAmount;
+    
+    // Обновляем информацию
+    availableCF.textContent = availableCFAmount;
+    totalDeposits.textContent = totalDepositsAmount;
+    
+    // Обновляем процентную ставку
+    const level = Math.max(1, Math.min(getLevelByPoints(userData.points), 25));
+    const rate = getDepositRate(level);
+    depositRate.textContent = rate;
+    
+    // Обновляем доход при изменении суммы
+    depositAmount.oninput = () => {
+        const amount = parseInt(depositAmount.value) || 0;
+        const income = calculateDailyIncome(amount, rate);
+        dailyIncome.textContent = income;
+    };
+    
+    // Загружаем активные депозиты
+    await loadActiveDeposits();
+    
+    depositsModal.style.display = 'flex';
+};
+
+// Закрытие модального окна
+depositsClose.onclick = () => {
+    depositsModal.style.display = 'none';
+};
+
+// Создание депозита
+createDepositBtn.onclick = async () => {
+    const amount = parseInt(depositAmount.value);
+    if (!amount || amount < 100) {
+        alert('Минимальная сумма депозита: 100 CF');
+        return;
+    }
+    
+    if (!currentUser) return;
+    
+    try {
+        // Получаем данные пользователя
+        const userRef = db.collection('users').doc(currentUser);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        
+        // Проверяем уровень
+        const level = Math.max(1, Math.min(getLevelByPoints(userData.points), 25));
+        if (level < 10) {
+            alert('Депозиты доступны с 10 уровня!');
+            return;
+        }
+        
+        // Проверяем баланс
+        const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
+        let totalDepositsAmount = 0;
+        depositsSnap.forEach(deposit => {
+            totalDepositsAmount += deposit.data().amount;
+        });
+        
+        const totalCF = userData.money ?? 0;
+        const availableCFAmount = totalCF - totalDepositsAmount;
+        
+        if (amount > availableCFAmount) {
+            alert(`Недостаточно CF! Доступно: ${availableCFAmount} CF`);
+            return;
+        }
+        
+        // Создаем депозит
+        const rate = getDepositRate(level);
+        await db.collection('deposits').add({
+            userId: currentUser,
+            amount: amount,
+            interestRate: rate,
+            startDate: new Date(),
+            status: 'active',
+            level: level
+        });
+        
+        alert(`Депозит на ${amount} CF создан! Процентная ставка: ${rate}% годовых`);
+        
+        // Обновляем интерфейс
+        depositAmount.value = '';
+        dailyIncome.textContent = '0';
+        await loadActiveDeposits();
+        showProfile(); // Обновляем профиль
+        
+    } catch (error) {
+        alert('Ошибка при создании депозита: ' + error.message);
+    }
+};
+
+// Загрузка активных депозитов
+async function loadActiveDeposits() {
+    if (!currentUser) return;
+    
+    const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
+    
+    depositsList.innerHTML = '';
+    
+    if (depositsSnap.empty) {
+        depositsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Нет активных депозитов</p>';
+        return;
+    }
+    
+    depositsSnap.forEach(doc => {
+        const deposit = doc.data();
+        const startDate = deposit.startDate.toDate();
+        const daysActive = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
+        const dailyIncomeAmount = calculateDailyIncome(deposit.amount, deposit.interestRate);
+        const totalIncome = (dailyIncomeAmount * daysActive).toFixed(2);
+        
+        const depositItem = document.createElement('div');
+        depositItem.className = 'deposit-item';
+        depositItem.innerHTML = `
+            <div class="deposit-info">
+                <h4>${deposit.amount} CF</h4>
+                <p>Ставка: ${deposit.interestRate}% годовых</p>
+                <p>Дней активен: ${daysActive}</p>
+                <p>Доход: ${totalIncome} CF</p>
+            </div>
+            <div class="deposit-actions">
+                <button class="deposit-close-btn" onclick="closeDeposit('${doc.id}')">Закрыть</button>
+            </div>
+        `;
+        depositsList.appendChild(depositItem);
+    });
+}
+
+// Закрытие депозита
+async function closeDeposit(depositId) {
+    if (!confirm('Вы уверены, что хотите закрыть депозит?')) return;
+    
+    try {
+        const depositRef = db.collection('deposits').doc(depositId);
+        const depositDoc = await depositRef.get();
+        const deposit = depositDoc.data();
+        
+        // Рассчитываем доход
+        const startDate = deposit.startDate.toDate();
+        const daysActive = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
+        const dailyIncomeAmount = calculateDailyIncome(deposit.amount, deposit.interestRate);
+        const totalIncome = parseFloat(dailyIncomeAmount * daysActive);
+        const totalAmount = deposit.amount + totalIncome;
+        
+        // Возвращаем деньги пользователю
+        const userRef = db.collection('users').doc(currentUser);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        
+        await userRef.update({
+            money: (userData.money ?? 0) + totalAmount
+        });
+        
+        // Закрываем депозит
+        await depositRef.update({
+            status: 'completed',
+            endDate: new Date(),
+            totalReturn: totalAmount
+        });
+        
+        alert(`Депозит закрыт! Получено: ${totalAmount.toFixed(2)} CF (включая доход: ${totalIncome.toFixed(2)} CF)`);
+        
+        // Обновляем интерфейс
+        await loadActiveDeposits();
+        showProfile();
+        
+    } catch (error) {
+        alert('Ошибка при закрытии депозита: ' + error.message);
     }
 }
 

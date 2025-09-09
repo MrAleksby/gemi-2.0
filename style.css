@@ -336,6 +336,101 @@ th {
     color: white;
 }
 
+/* Стили для депозитов */
+.deposits-info {
+    background: rgba(108, 92, 231, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(108, 92, 231, 0.2);
+}
+
+.deposits-info p {
+    margin: 5px 0;
+    color: #333;
+}
+
+.create-deposit-section {
+    margin-bottom: 25px;
+}
+
+.deposit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.deposit-form label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.deposit-preview {
+    background: rgba(0, 212, 170, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+.deposit-preview p {
+    margin: 5px 0;
+    color: #333;
+}
+
+.deposits-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.deposit-item {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(108, 92, 231, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.deposit-info {
+    flex: 1;
+}
+
+.deposit-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.deposit-info p {
+    margin: 2px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.deposit-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.deposit-close-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.deposit-close-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
 /* Обновленные модальные окна */
 .modal {
   display: none;
