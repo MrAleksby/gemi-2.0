@@ -326,6 +326,11 @@ th {
     color: white;
 }
 
+.profile-badge.deposits {
+    background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
+    color: white;
+}
+
 .profile-badge.cf {
     background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
     color: white;
@@ -428,6 +433,11 @@ th {
     
     .profile-badge.kd {
         background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
+    }
+    
+    .profile-badge.deposits {
+        background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
         color: white;
     }
     
@@ -985,6 +995,11 @@ th {
     
     .profile-badge.kd {
         background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
+    }
+    
+    .profile-badge.deposits {
+        background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);
         color: white;
     }
     

@@ -358,6 +358,16 @@ async function showProfile() {
         const lvlTitle = getLevelTitle(lvl);
         const lvlColor = getLevelColor(lvl);
         
+        // Рассчитываем депозиты
+        const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
+        let totalDeposits = 0;
+        depositsSnap.forEach(deposit => {
+            totalDeposits += deposit.data().amount;
+        });
+        
+        const totalCF = data.money ?? 0;
+        const availableCF = totalCF - totalDeposits;
+        
         // Показываем прогресс "Путь к взрослости"
         showAdulthoodProgress();
         
@@ -368,7 +378,8 @@ async function showProfile() {
           <span class="profile-badge wins"><span style="font-size:1.2em;">🏆</span> ${data.wins ?? 0}</span>
           <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
           <span class="profile-badge kd"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
-          <span class="profile-badge cf"><img src="logo.jpg" class="cf-logo-icon" alt="CF"> ${data.money ?? 0}</span>
+          <span class="profile-badge cf"><img src="logo.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
+          <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
         </div>
         `;
         
