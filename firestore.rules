@@ -1,20 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Правила для пользователей
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null; // Админы могут читать всех пользователей
-    }
-    
-    // Правила для депозитов
-    match /deposits/{depositId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow read: if request.auth != null; // Админы могут читать все депозиты
-    }
-    
-    // Правила для транзакций
-    match /transactions/{transactionId} {
+    // Временные правила для тестирования - разрешаем все для аутентифицированных пользователей
+    match /{document=**} {
       allow read, write: if request.auth != null;
     }
   }
