@@ -511,8 +511,8 @@ async function showProfile() {
             totalDeposits += deposit.data().amount;
         });
         
-        const totalCF = data.money ?? 0;
-        const availableCF = totalCF - totalDeposits;
+        const totalCF = Math.floor((data.money ?? 0) / 1000000); // Показываем CF в миллионах
+        const availableCF = totalCF - Math.floor(totalDeposits / 1000000);
         
         // Показываем прогресс "Путь к взрослости"
         showAdulthoodProgress();
