@@ -1243,10 +1243,10 @@ depositsBtn.onclick = async () => {
     });
     
     const totalCF = userData.money ?? 0;
-    const availableCFAmount = totalCF - totalDepositsAmount;
+    const availableCFAmount = totalCF; // Доступно для депозита = текущий баланс CF
     
     // Обновляем информацию
-    availableCF.textContent = availableCFAmount;
+    availableCF.textContent = availableCFAmount.toFixed(2);
     totalDeposits.textContent = totalDepositsAmount;
     
     // Обновляем процентную ставку
@@ -1303,10 +1303,10 @@ createDepositBtn.onclick = async () => {
         });
         
         const totalCF = userData.money ?? 0;
-        const availableCFAmount = totalCF - totalDepositsAmount;
+        const availableCFAmount = totalCF; // Доступно для депозита = текущий баланс CF
         
         if (amount > availableCFAmount) {
-            alert(`Недостаточно CF! Доступно: ${availableCFAmount} CF`);
+            alert(`Недостаточно CF! Доступно: ${availableCFAmount.toFixed(2)} CF`);
             return;
         }
         
