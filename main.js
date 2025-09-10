@@ -57,6 +57,76 @@ function calculateDailyIncome(amount, rate) {
     return (amount * rate / 100 / 365).toFixed(2);
 }
 
+// Функция для показа деталей KD
+function showKDDetails(wins, games) {
+    const kd = games > 0 ? (wins / games).toFixed(2) : '0.00';
+    
+    // Создаем всплывающее сообщение
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        min-width: 250px;
+        border: 2px solid rgba(255,255,255,0.2);
+    `;
+    
+    tooltip.innerHTML = `
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">🎯 Статистика KD</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>🏆 Побед:</span>
+            <span style="font-weight: bold;">${wins}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>🎮 Игр:</span>
+            <span style="font-weight: bold;">${games}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <span>🎯 KD:</span>
+            <span style="font-weight: bold; color: #ffeb3b;">${kd}</span>
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
+    `;
+    
+    // Добавляем затемнение фона
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+    `;
+    
+    // Функция для закрытия
+    const closeTooltip = () => {
+        document.body.removeChild(tooltip);
+        document.body.removeChild(overlay);
+    };
+    
+    // Обработчики кликов
+    tooltip.onclick = closeTooltip;
+    overlay.onclick = closeTooltip;
+    
+    // Добавляем элементы на страницу
+    document.body.appendChild(overlay);
+    document.body.appendChild(tooltip);
+    
+    // Автоматическое закрытие через 5 секунд
+    setTimeout(closeTooltip, 5000);
+}
+
 // Убираем проверку градиентного текста, так как теперь используем обычные цвета
 // function checkGradientTextSupport() {
 //     const testElement = document.createElement('div');
@@ -384,7 +454,7 @@ async function showProfile() {
         <div class="profile-stats">
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
-          <span class="profile-badge kd"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
+          <span class="profile-badge kd" onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
           <span class="profile-badge cf"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
           <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
         </div>
