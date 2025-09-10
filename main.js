@@ -386,7 +386,7 @@ async function showProfile() {
           <span class="profile-badge wins"><span style="font-size:1.2em;">🏆</span> ${data.wins ?? 0}</span>
           <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
           <span class="profile-badge kd"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
-          <span class="profile-badge cf"><img src="logo.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
+          <span class="profile-badge cf"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
           <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
         </div>
         `;
@@ -467,7 +467,7 @@ async function showRating() {
         <th><span class='profile-badge wins'><span style='font-size:1.1em;'>🏆</span></span></th>
         <th><span class='profile-badge games'><span style='font-size:1.1em;'>🎮</span></span></th>
         <th><span class='profile-badge kd'><span style='font-size:1.1em;'>🎯</span></span></th>
-        <th><span class='profile-badge cf'><img src="logo.jpg" class="cf-logo-icon" alt="CF" style="width:1.1em;height:1.1em;"></span></th>
+        <th><span class='profile-badge cf'><img src="logo2.jpg" class="cf-logo-icon" alt="CF" style="width:1.1em;height:1.1em;"></span></th>
     </tr>`;
     usersSnap.forEach(doc => {
         const data = doc.data();
