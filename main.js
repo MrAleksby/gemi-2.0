@@ -52,6 +52,7 @@ function getDepositRate(level) {
     return Math.min(5 + (level - 10), 20); // От 5% до 20%
 }
 
+
 function calculateDailyIncome(amount, rate) {
     return (amount * rate / 100 / 365).toFixed(2);
 }
@@ -383,8 +384,6 @@ async function showProfile() {
         <div class="profile-stats">
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
-          <span class="profile-badge wins"><span style="font-size:1.2em;">🏆</span> ${data.wins ?? 0}</span>
-          <span class="profile-badge games"><span style="font-size:1.2em;">🎮</span> ${data.games ?? 0}</span>
           <span class="profile-badge kd"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
           <span class="profile-badge cf"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
           <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
