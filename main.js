@@ -127,6 +127,73 @@ function showKDDetails(wins, games) {
     setTimeout(closeTooltip, 5000);
 }
 
+// Функция для показа конвертации CF в сумы
+function showCFConversion(cfAmount) {
+    const sumAmount = (cfAmount * 350).toFixed(2);
+    
+    // Создаем всплывающее сообщение
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        min-width: 280px;
+        border: 2px solid rgba(255,255,255,0.2);
+    `;
+    
+    tooltip.innerHTML = `
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">💰 Конвертация CF</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>CF:</span>
+            <span style="font-weight: bold;">${cfAmount}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <span>Сум:</span>
+            <span style="font-weight: bold; color: #ffeb3b;">${sumAmount}</span>
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">Курс: 1 CF = 350 сум</div>
+        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
+    `;
+    
+    // Добавляем затемнение фона
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+    `;
+    
+    // Функция для закрытия
+    const closeTooltip = () => {
+        document.body.removeChild(tooltip);
+        document.body.removeChild(overlay);
+    };
+    
+    // Обработчики кликов
+    tooltip.onclick = closeTooltip;
+    overlay.onclick = closeTooltip;
+    
+    // Добавляем элементы на страницу
+    document.body.appendChild(overlay);
+    document.body.appendChild(tooltip);
+    
+    // Автоматическое закрытие через 5 секунд
+    setTimeout(closeTooltip, 5000);
+}
+
 // Убираем проверку градиентного текста, так как теперь используем обычные цвета
 // function checkGradientTextSupport() {
 //     const testElement = document.createElement('div');
@@ -455,7 +522,7 @@ async function showProfile() {
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
           <span class="profile-badge kd" onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
-          <span class="profile-badge cf"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
+          <span class="profile-badge cf" onclick="showCFConversion(${availableCF})" style="cursor: pointer;" title="Кликните для конвертации в сумы"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${availableCF}</span>
           <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
         </div>
         `;
