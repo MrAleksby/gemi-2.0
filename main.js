@@ -511,8 +511,8 @@ async function showProfile() {
             totalDeposits += deposit.data().amount;
         });
         
-        const totalCF = Math.floor((data.money ?? 0) / 1000000); // Показываем CF в миллионах
-        const availableCF = totalCF - Math.floor(totalDeposits / 1000000);
+        const totalCF = data.money ?? 0; // Показываем CF как есть
+        const availableCF = totalCF - totalDeposits;
         
         // Показываем прогресс "Путь к взрослости"
         showAdulthoodProgress();
@@ -998,10 +998,10 @@ if (confirmExchange) {
                 const currentMoney = data.money || 0;
                 await userRef.update({
                     coins: currentCoins - amount,
-                    money: currentMoney + (amount * 350) // Добавляем деньги
+                    money: currentMoney + amount // Добавляем CF (1 монета = 1 CF)
                 });
                 
-                alert(`Обмен ${amount} монет на ${amount * 350} сумов выполнен успешно!`);
+                alert(`Обмен ${amount} монет на ${amount} CF выполнен успешно!`);
                 
                 // Закрываем модальное окно
                 exchangeModal.style.display = 'none';
