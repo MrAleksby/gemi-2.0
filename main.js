@@ -543,7 +543,6 @@ async function showProfile() {
             <th><span style='font-size:1.1em;'>👤</span></th>
             <th><span style='font-size:1.1em;'>🎯</span></th>
             <th><span style='font-size:1.1em;'>⭐</span></th>
-            <th><span style='font-size:1.1em;'>💰</span></th>
             <th><span style='font-size:1.1em;'>🎯</span></th>
         </tr></thead><tbody>`;
         let place = 1;
@@ -554,7 +553,7 @@ async function showProfile() {
             const title = getLevelTitle(l);
             const color = getLevelColor(l);
             const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
-            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};color:white;border-radius:6px;padding:1px 6px;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.85em;'>${title} ${l}</span></td><td>${d.points}</td><td>${d.coins ?? 0}</td><td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td></tr>`;
+            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};color:white;border-radius:6px;padding:1px 6px;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.85em;'>${title} ${l}</span></td><td>${d.points}</td><td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td></tr>`;
             place++;
         });
         top5Html += `</tbody></table>`;
