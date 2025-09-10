@@ -1311,7 +1311,7 @@ createDepositBtn.onclick = async () => {
             return;
         }
         
-        // Создаем депозит
+        // Создаем депозит и списываем CF с баланса
         const rate = getDepositRate(level);
         await db.collection('deposits').add({
             userId: currentUser,
@@ -1320,6 +1320,11 @@ createDepositBtn.onclick = async () => {
             startDate: new Date(),
             status: 'active',
             level: level
+        });
+        
+        // Списываем CF с баланса пользователя
+        await userRef.update({
+            money: totalCF - amount
         });
         
         alert(`Депозит на ${amount} CF создан! Процентная ставка: ${rate}% годовых`);
@@ -1388,7 +1393,7 @@ async function closeDeposit(depositId) {
         const totalIncome = parseFloat(dailyIncomeAmount * daysActive);
         const totalAmount = deposit.amount + totalIncome;
         
-        // Возвращаем деньги пользователю
+        // Возвращаем деньги пользователю (основная сумма + доход)
         const userRef = db.collection('users').doc(currentUser);
         const userDoc = await userRef.get();
         const userData = userDoc.data();
