@@ -522,7 +522,7 @@ async function showProfile() {
           <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
           <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
           <span class="profile-badge kd" onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
-          <span class="profile-badge cf" onclick="showCFConversion(${totalCF})" style="cursor: pointer;" title="Кликните для конвертации в сумы"><img src="logo.jpg" class="cf-logo-icon" alt="CF"> ${totalCF}</span>
+          <span class="profile-badge cf" onclick="showCFConversion(${totalCF})" style="cursor: pointer;" title="Кликните для конвертации в сумы"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${totalCF}</span>
           <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
         </div>
         `;
