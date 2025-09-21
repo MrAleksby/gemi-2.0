@@ -1287,6 +1287,12 @@ th {
   box-shadow: none !important;
 }
 
+#rating-table .profile-badge.cf {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
 .top5-table, .top5-table tr, .top5-table td, .top5-table th, .top5-table .profile-badge {
   vertical-align: middle !important;
   white-space: nowrap !important;
