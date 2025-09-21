@@ -40,7 +40,6 @@
         <h2 id="profile-header"></h2>
         <p id="profile-info"></p>
         <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
-        <button id="exchange-coins-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);">💰 Обменять монеты на CF</button>
         <button id="deposits-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);">🏦 Депозиты</button>
         <div id="transfer-form-container" style="display:none;"></div>
         <div id="top5-container"></div>
@@ -147,24 +146,6 @@
         </div>
     </div>
     
-    <div id="exchange-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" id="exchange-close">&times;</span>
-            <h2>💰 Обмен монет на CF</h2>
-            <div class="exchange-info">
-                <p><strong>Курс обмена:</strong> 1 монета = 1 CF</p>
-                <p><strong>Ваш баланс:</strong> <span id="user-coins-balance">0</span> монет</p>
-            </div>
-            <div class="exchange-form">
-                <label for="exchange-amount">Количество монет для обмена:</label>
-                <input type="number" id="exchange-amount" placeholder="Введите количество монет" min="1">
-                <div class="exchange-preview">
-                    <p>Вы получите: <span id="exchange-result">0</span> CF</p>
-                </div>
-                <button id="confirm-exchange" class="main-btn">Подтвердить обмен</button>
-            </div>
-        </div>
-    </div>
     
     <!-- Модальное окно депозитов -->
     <div id="deposits-modal" class="modal" style="display: none;">
