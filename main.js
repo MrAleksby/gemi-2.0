@@ -130,7 +130,7 @@ function showKDDetails(wins, games) {
 
 // Функция для показа конвертации CF в сумы
 function showCFConversion(cfAmount) {
-    const sumAmount = (cfAmount * 350).toFixed(2);
+    const sumAmount = (cfAmount * 500).toFixed(2);
     
     // Создаем всплывающее сообщение
     const tooltip = document.createElement('div');
@@ -161,7 +161,7 @@ function showCFConversion(cfAmount) {
             <span>Сум:</span>
             <span style="font-weight: bold; color: #ffeb3b;">${sumAmount}</span>
         </div>
-        <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">Курс: 1 CF = 350 сум</div>
+        <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">Курс: 1 CF = 500 сум</div>
         <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
     `;
     
