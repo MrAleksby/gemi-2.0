@@ -608,7 +608,7 @@ async function showRating() {
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const lvlTitle = getLevelTitle(lvl);
         const lvlColor = getLevelColor(lvl);
-        const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor} !important;color:white !important;font-weight:600 !important;padding:1px 6px !important;border-radius:6px !important;box-shadow:0 2px 6px rgba(0,0,0,0.1) !important;text-shadow:0 1px 2px rgba(0,0,0,0.3) !important;font-size:0.85em !important;\">${lvl}</span>`;
+        const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor} !important;color:white !important;font-weight:600 !important;padding:1px 4px !important;border-radius:6px !important;box-shadow:0 2px 6px rgba(0,0,0,0.1) !important;text-shadow:0 1px 2px rgba(0,0,0,0.3) !important;font-size:0.8em !important;\">${lvl}</span>`;
         const tr = document.createElement('tr');
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td><td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td>`;

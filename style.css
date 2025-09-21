@@ -1273,10 +1273,10 @@ th {
 
 #rating-table .level-badge {
   min-width: 0;
-    padding: 4px 8px;
-  font-size: 0.97em;
-    border-radius: 10px;
-  margin: 0 0 0 2px;
+    padding: 2px 4px;
+  font-size: 0.85em;
+    border-radius: 8px;
+  margin: 0;
 }
 
 #rating-table .profile-badge {
