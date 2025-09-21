@@ -1102,45 +1102,60 @@ const availableCF = document.getElementById('available-cf');
 const totalDeposits = document.getElementById('total-deposits');
 const depositsList = document.getElementById('deposits-list');
 
-// Открытие модального окна депозитов
-depositsBtn.onclick = async () => {
-    if (!currentUser) return;
+// Открытие модального окна депозитов - В РАЗРАБОТКЕ
+depositsBtn.onclick = () => {
+    // Показываем сообщение "В РАЗРАБОТКЕ"
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        min-width: 300px;
+        border: 2px solid rgba(255,255,255,0.2);
+    `;
     
-    // Получаем данные пользователя
-    const userRef = db.collection('users').doc(currentUser);
-    const userDoc = await userRef.get();
-    const userData = userDoc.data();
+    tooltip.innerHTML = `
+        <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 15px;">🚧 В РАЗРАБОТКЕ</div>
+        <div style="font-size: 1.1em; margin-bottom: 20px;">Функция депозитов находится в разработке</div>
+        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
+    `;
     
-    // Рассчитываем депозиты
-    const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
-    let totalDepositsAmount = 0;
-    depositsSnap.forEach(deposit => {
-        totalDepositsAmount += deposit.data().amount;
-    });
+    // Добавляем затемнение фона
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+    `;
     
-    const totalCF = userData.money ?? 0;
-    const availableCFAmount = totalCF; // Доступно для депозита = текущий баланс CF
+    document.body.appendChild(overlay);
+    document.body.appendChild(tooltip);
     
-    // Обновляем информацию
-    availableCF.textContent = availableCFAmount.toFixed(2);
-    totalDeposits.textContent = totalDepositsAmount;
-    
-    // Обновляем процентную ставку
-    const level = Math.max(1, Math.min(getLevelByPoints(userData.points), 25));
-    const rate = getDepositRate(level);
-    depositRate.textContent = rate;
-    
-    // Обновляем доход при изменении суммы
-    depositAmount.oninput = () => {
-        const amount = parseInt(depositAmount.value) || 0;
-        const income = calculateDailyIncome(amount, rate);
-        dailyIncome.textContent = income;
+    // Функция закрытия
+    const closeTooltip = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(tooltip);
     };
     
-    // Загружаем активные депозиты
-    await loadActiveDeposits();
+    // Закрытие по клику
+    overlay.onclick = closeTooltip;
+    tooltip.onclick = closeTooltip;
     
-    depositsModal.style.display = 'flex';
+    // Автоматическое закрытие через 3 секунды
+    setTimeout(closeTooltip, 3000);
 };
 
 // Закрытие модального окна
