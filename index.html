@@ -97,11 +97,14 @@
         <h3 style="color: #00d4aa; margin-bottom: 15px;">💰 Управление транзакциями</h3>
         
         <div class="admin-transactions-section">
-            <h4>Снятие CF для донатов:</h4>
-            <input type="text" id="admin-withdraw-user" placeholder="Имя пользователя" list="users-list">
-            <input type="number" id="admin-withdraw-amount" placeholder="Сумма в CF">
-            <input type="text" id="admin-withdraw-reason" placeholder="Причина (например: донат в Standoff 2)">
-            <button id="admin-withdraw-money" class="main-btn" style="margin-top: 10px;">Снять CF</button>
+            <h4>Управление CF пользователей:</h4>
+            <input type="text" id="admin-transaction-user" placeholder="Имя пользователя" list="users-list">
+            <input type="number" id="admin-transaction-amount" placeholder="Сумма в CF">
+            <input type="text" id="admin-transaction-reason" placeholder="Причина (например: донат в Standoff 2)">
+            <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:10px;">
+                <button id="admin-add-cf" class="main-btn" style="flex:1; min-width:0; background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);">➕ Добавить CF</button>
+                <button id="admin-withdraw-cf" class="main-btn" style="flex:1; min-width:0; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);">➖ Снять CF</button>
+            </div>
         </div>
         
         <h4 style="margin-top: 25px; color: #667eea;">📊 История транзакций:</h4>

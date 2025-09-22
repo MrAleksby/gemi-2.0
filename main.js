@@ -921,10 +921,11 @@ function updateUsersList() {
 
 // Админ-панель для управления транзакциями
 const transactionsHistory = document.getElementById('transactions-history');
-const adminWithdrawUser = document.getElementById('admin-withdraw-user');
-const adminWithdrawAmount = document.getElementById('admin-withdraw-amount');
-const adminWithdrawReason = document.getElementById('admin-withdraw-reason');
-const adminWithdrawMoney = document.getElementById('admin-withdraw-money');
+const adminTransactionUser = document.getElementById('admin-transaction-user');
+const adminTransactionAmount = document.getElementById('admin-transaction-amount');
+const adminTransactionReason = document.getElementById('admin-transaction-reason');
+const adminAddCFBtn = document.getElementById('admin-add-cf');
+const adminWithdrawCFBtn = document.getElementById('admin-withdraw-cf');
 const clearTransactionsBtn = document.getElementById('clear-transactions-btn');
 
 // Загрузка истории транзакций
@@ -978,72 +979,36 @@ async function loadTransactionsHistory() {
 
 
 
-// Снятие денег для донатов
-if (adminWithdrawMoney) {
-    adminWithdrawMoney.onclick = async () => {
-        const userName = adminWithdrawUser.value.trim();
-        const amount = parseInt(adminWithdrawAmount.value, 10);
-        const reason = adminWithdrawReason.value.trim();
+// Обработчики для управления CF
+if (adminAddCFBtn) {
+    adminAddCFBtn.onclick = async () => {
+        const userName = adminTransactionUser.value.trim();
+        const amount = parseInt(adminTransactionAmount.value, 10);
+        const reason = adminTransactionReason.value.trim();
         
-        if (!userName || isNaN(amount) || amount <= 0 || !reason) {
+        if (!userName || isNaN(amount) || amount <= 0) {
             alert('Заполните все поля корректно!');
             return;
         }
         
-        try {
-            // Находим пользователя
-            const usersSnap = await db.collection('users').get();
-            const userDoc = usersSnap.docs.find(doc => 
-                doc.data().name && doc.data().name.trim().toLowerCase() === userName.trim().toLowerCase()
-            );
-            
-            if (!userDoc) {
-                alert('Пользователь не найден!');
-                return;
-            }
-            
-            const userData = userDoc.data();
-            const currentMoney = userData.money || 0;
-            
-            if (amount > currentMoney) {
-                alert(`Недостаточно CF! У пользователя ${currentMoney} CF, нужно ${amount} CF.`);
-                return;
-            }
-            
+        await adminAddCF(userName, amount, reason);
+        loadTransactionsHistory();
+    };
+}
 
-            
-            // Создаем транзакцию снятия
-            const transaction = {
-                userId: userDoc.id,
-                userName: userData.name,
-                type: 'withdrawal',
-                sum: amount,
-                date: new Date(),
-                status: 'approved',
-                description: reason
-            };
-            
-            await db.collection('transactions').add(transaction);
-            
-            // Снимаем только деньги
-            await userDoc.ref.update({
-                money: Math.max(0, currentMoney - amount) // Не может быть меньше 0
-            });
-            
-            adminMessage.textContent = `Снято ${amount} CF у пользователя ${userName} для ${reason}`;
-            
-            // Очищаем поля
-            adminWithdrawUser.value = '';
-            adminWithdrawAmount.value = '';
-            adminWithdrawReason.value = '';
-            
-            // Обновляем списки
-            loadTransactionsHistory();
-            updateUsersList();
-            
-        } catch (error) {
-            alert('Ошибка при снятии денег: ' + error.message);
+if (adminWithdrawCFBtn) {
+    adminWithdrawCFBtn.onclick = async () => {
+        const userName = adminTransactionUser.value.trim();
+        const amount = parseInt(adminTransactionAmount.value, 10);
+        const reason = adminTransactionReason.value.trim();
+        
+        if (!userName || isNaN(amount) || amount <= 0) {
+            alert('Заполните все поля корректно!');
+            return;
         }
+        
+        await adminWithdrawCF(userName, amount, reason);
+        loadTransactionsHistory();
     };
 }
 

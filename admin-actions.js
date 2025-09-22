@@ -55,6 +55,122 @@ async function adminAddGames(username, games) {
     }
 }
 
+/**
+ * Добавить CF пользователю
+ * @param {string} username - Имя пользователя
+ * @param {number} amount - Количество CF для добавления
+ * @param {string} reason - Причина операции
+ */
+async function adminAddCF(username, amount, reason) {
+    if (!username || isNaN(amount) || amount <= 0) {
+        adminMessage.textContent = 'Введите корректное имя пользователя и сумму больше 0';
+        return;
+    }
+    
+    const usersSnap = await db.collection('users').get();
+    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === username.trim().toLowerCase());
+    
+    if (userDoc) {
+        const userData = userDoc.data();
+        const oldCF = userData.cf || 0;
+        const newCF = oldCF + amount;
+        
+        await userDoc.ref.update({ cf: newCF });
+        
+        // Добавляем запись в историю транзакций
+        await addTransactionRecord(username, amount, 'add', reason);
+        
+        adminMessage.textContent = `Добавлено ${amount} CF пользователю ${username}. Новый баланс: ${newCF} CF`;
+        clearTransactionInputs();
+        
+        if (typeof updateUsersList === 'function') updateUsersList();
+        setTimeout(() => {
+            if (typeof showProfile === 'function') showProfile();
+            if (typeof showRating === 'function') showRating();
+        }, 500);
+    } else {
+        adminMessage.textContent = `Пользователь ${username} не найден.`;
+    }
+}
+
+/**
+ * Снять CF у пользователя
+ * @param {string} username - Имя пользователя
+ * @param {number} amount - Количество CF для снятия
+ * @param {string} reason - Причина операции
+ */
+async function adminWithdrawCF(username, amount, reason) {
+    if (!username || isNaN(amount) || amount <= 0) {
+        adminMessage.textContent = 'Введите корректное имя пользователя и сумму больше 0';
+        return;
+    }
+    
+    const usersSnap = await db.collection('users').get();
+    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === username.trim().toLowerCase());
+    
+    if (userDoc) {
+        const userData = userDoc.data();
+        const oldCF = userData.cf || 0;
+        
+        if (oldCF < amount) {
+            adminMessage.textContent = `У пользователя ${username} недостаточно CF. Доступно: ${oldCF} CF`;
+            return;
+        }
+        
+        const newCF = oldCF - amount;
+        await userDoc.ref.update({ cf: newCF });
+        
+        // Добавляем запись в историю транзакций
+        await addTransactionRecord(username, amount, 'withdraw', reason);
+        
+        adminMessage.textContent = `Снято ${amount} CF у пользователя ${username}. Новый баланс: ${newCF} CF`;
+        clearTransactionInputs();
+        
+        if (typeof updateUsersList === 'function') updateUsersList();
+        setTimeout(() => {
+            if (typeof showProfile === 'function') showProfile();
+            if (typeof showRating === 'function') showRating();
+        }, 500);
+    } else {
+        adminMessage.textContent = `Пользователь ${username} не найден.`;
+    }
+}
+
+/**
+ * Добавить запись в историю транзакций
+ * @param {string} username - Имя пользователя
+ * @param {number} amount - Сумма операции
+ * @param {string} type - Тип операции ('add' или 'withdraw')
+ * @param {string} reason - Причина операции
+ */
+async function addTransactionRecord(username, amount, type, reason) {
+    const transaction = {
+        username: username,
+        amount: amount,
+        type: type,
+        reason: reason || 'Не указано',
+        timestamp: new Date(),
+        admin: true
+    };
+    
+    await db.collection('transactions').add(transaction);
+}
+
+/**
+ * Очистить поля ввода транзакций
+ */
+function clearTransactionInputs() {
+    const userInput = document.getElementById('admin-transaction-user');
+    const amountInput = document.getElementById('admin-transaction-amount');
+    const reasonInput = document.getElementById('admin-transaction-reason');
+    
+    if (userInput) userInput.value = '';
+    if (amountInput) amountInput.value = '';
+    if (reasonInput) reasonInput.value = '';
+}
+
 // Экспортируем функции для использования в main.js
 window.adminAddWins = adminAddWins;
-window.adminAddGames = adminAddGames; 
+window.adminAddGames = adminAddGames;
+window.adminAddCF = adminAddCF;
+window.adminWithdrawCF = adminWithdrawCF; 
