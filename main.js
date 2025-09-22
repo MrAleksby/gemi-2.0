@@ -682,7 +682,6 @@ adminResetUserBtn.onclick = async () => {
         await userDoc.ref.update({
             points: 0,
             coins: 0,
-            cf: 0,
             level: 1,
             savingsLevel: 0,
             savings: 0,
@@ -718,7 +717,6 @@ adminResetAllBtn.onclick = async () => {
         batch.update(doc.ref, {
             points: 0,
             coins: 0,
-            cf: 0,
             level: 1,
             savingsLevel: 0,
             savings: 0,
