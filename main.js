@@ -512,7 +512,7 @@ async function showProfile() {
             totalDeposits += deposit.data().amount;
         });
         
-        const totalCF = data.money ?? 0; // Показываем CF как есть
+        const totalCF = data.cf ?? 0; // Показываем CF как есть
         const availableCF = totalCF - totalDeposits;
         
         // Показываем прогресс "Путь к взрослости"
@@ -612,7 +612,7 @@ async function showRating() {
         const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor} !important;color:white !important;font-weight:600 !important;padding:1px 4px !important;border-radius:6px !important;box-shadow:0 2px 6px rgba(0,0,0,0.1) !important;text-shadow:0 1px 2px rgba(0,0,0,0.3) !important;font-size:0.8em !important;\">${lvl}</span>`;
         const tr = document.createElement('tr');
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
-        const cfAmount = (data.money ?? 0).toFixed(2);
+        const cfAmount = (data.cf ?? 0).toFixed(2);
         tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td><td>${cfAmount}</td><td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td>`;
         ratingTableBody.appendChild(tr);
     });
@@ -683,6 +683,7 @@ adminResetUserBtn.onclick = async () => {
         await userDoc.ref.update({
             points: 0,
             coins: 0,
+            cf: 0,
             level: 1,
             savingsLevel: 0,
             savings: 0,
@@ -718,6 +719,7 @@ adminResetAllBtn.onclick = async () => {
         batch.update(doc.ref, {
             points: 0,
             coins: 0,
+            cf: 0,
             level: 1,
             savingsLevel: 0,
             savings: 0,
@@ -758,7 +760,7 @@ adminResetCFBtn.onclick = async () => {
     
     if (userDoc) {
         await userDoc.ref.update({
-            money: 0
+            cf: 0
         });
         adminMessage.textContent = `CF у пользователя ${user} сброшены!`;
         updateUsersList(); // Обновляем список пользователей
@@ -1158,7 +1160,7 @@ createDepositBtn.onclick = async () => {
             totalDepositsAmount += deposit.data().amount;
         });
         
-        const totalCF = userData.money ?? 0;
+        const totalCF = userData.cf ?? 0;
         const availableCFAmount = totalCF; // Доступно для депозита = текущий баланс CF
         
         if (amount > availableCFAmount) {
@@ -1179,7 +1181,7 @@ createDepositBtn.onclick = async () => {
         
         // Списываем CF с баланса пользователя
         await userRef.update({
-            money: totalCF - amount
+            cf: totalCF - amount
         });
         
         alert(`Депозит на ${amount} CF создан! Процентная ставка: ${rate}% годовых`);
@@ -1254,7 +1256,7 @@ async function closeDeposit(depositId) {
         const userData = userDoc.data();
         
         await userRef.update({
-            money: (userData.money ?? 0) + totalAmount
+            cf: (userData.cf ?? 0) + totalAmount
         });
         
         // Закрываем депозит
