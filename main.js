@@ -33,7 +33,6 @@ const adminPointsInput = document.getElementById('admin-points');
 const adminMessage = document.getElementById('admin-message');
 const adminResetUserBtn = document.getElementById('admin-reset-user');
 const adminResetAllBtn = document.getElementById('admin-reset-all');
-const adminResetCFBtn = document.getElementById('admin-reset-cf');
 const profileCard = document.getElementById('profile-card');
 const adminAddCoinsBtn = document.getElementById('admin-add-coins');
 const adminAddWinsBtn = document.getElementById('admin-add-wins');
@@ -745,31 +744,6 @@ adminResetAllBtn.onclick = async () => {
     if (typeof renderShop === 'function') renderShop();
 };
 
-// Админ: сброс CF у пользователя
-adminResetCFBtn.onclick = async () => {
-    const user = adminUserInput.value.trim();
-    if (!user) {
-        adminMessage.textContent = 'Введите имя пользователя!';
-        return;
-    }
-    if (!confirm(`Сбросить CF у пользователя ${user}?`)) return;
-    
-    // Поиск пользователя по имени без учёта регистра и пробелов
-    const usersSnap = await db.collection('users').get();
-    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-    
-    if (userDoc) {
-        await userDoc.ref.update({
-            cf: 0
-        });
-        adminMessage.textContent = `CF у пользователя ${user} сброшены!`;
-        updateUsersList(); // Обновляем список пользователей
-        if (userDoc.id === currentUser) showProfile();
-        showRating();
-    } else {
-        adminMessage.textContent = `Пользователь ${user} не найден.`;
-    }
-};
 
 if (adminAddWinsBtn) {
     adminAddWinsBtn.onclick = () => {
