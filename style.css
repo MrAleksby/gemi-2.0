@@ -1287,6 +1287,16 @@ th {
     border-left-color: #667eea;
 }
 
+.transaction-item.admin-transaction {
+    border-left-color: #9c27b0;
+    background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);
+}
+
+.transaction-item.admin-transaction .transaction-amount {
+    font-weight: bold;
+    color: #9c27b0;
+}
+
 .transaction-header {
     display: flex;
     justify-content: space-between;

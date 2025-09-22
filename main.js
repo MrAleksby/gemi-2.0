@@ -910,7 +910,7 @@ async function loadTransactionsHistory() {
     
     try {
         const transactionsSnap = await db.collection('transactions')
-            .orderBy('date', 'desc')
+            .orderBy('timestamp', 'desc')
             .limit(20)
             .get();
         
@@ -923,25 +923,58 @@ async function loadTransactionsHistory() {
         
         transactionsSnap.forEach(doc => {
             const transaction = doc.data();
-            const date = transaction.date.toDate().toLocaleString('ru-RU');
-            const statusClass = transaction.status;
-            const statusText = {
-                'pending': 'Ожидает',
-                'approved': 'Подтверждено',
-                'rejected': 'Отклонено'
-            }[transaction.status];
+            const date = transaction.timestamp ? transaction.timestamp.toDate().toLocaleString('ru-RU') : 
+                        (transaction.date ? transaction.date.toDate().toLocaleString('ru-RU') : 'Неизвестно');
+            
+            // Определяем тип транзакции и стиль
+            let transactionClass = 'transaction-item';
+            let amountText = '';
+            let typeText = '';
+            let statusText = '';
+            
+            if (transaction.admin) {
+                // Админские операции с CF
+                transactionClass += ' admin-transaction';
+                if (transaction.type === 'add') {
+                    amountText = `+${transaction.amount} CF`;
+                    typeText = 'Начисление CF';
+                    statusText = 'Подтверждено';
+                } else if (transaction.type === 'withdraw') {
+                    amountText = `-${transaction.amount} CF`;
+                    typeText = 'Снятие CF';
+                    statusText = 'Подтверждено';
+                }
+            } else {
+                // Старые транзакции (для совместимости)
+                const statusClass = transaction.status;
+                statusText = {
+                    'pending': 'Ожидает',
+                    'approved': 'Подтверждено',
+                    'rejected': 'Отклонено'
+                }[transaction.status] || 'Неизвестно';
+                
+                if (transaction.type === 'withdrawal') {
+                    amountText = `-${transaction.sum} сумов`;
+                    typeText = 'Снятие';
+                    transactionClass += ' withdrawal';
+                } else {
+                    amountText = `+${transaction.sum} сумов`;
+                    typeText = 'Обмен';
+                    transactionClass += ` ${statusClass}`;
+                }
+            }
             
             const transactionHtml = `
-                <div class="transaction-item ${transaction.type === 'withdrawal' ? 'withdrawal' : statusClass}">
+                <div class="${transactionClass}">
                     <div class="transaction-header">
-                        <span class="transaction-user">${transaction.userName}</span>
-                        <span class="transaction-status ${statusClass}">${statusText}</span>
+                        <span class="transaction-user">${transaction.username || transaction.userName}</span>
+                        <span class="transaction-status">${statusText}</span>
                     </div>
                     <div class="transaction-details">
-                        <span class="transaction-amount">${transaction.type === 'withdrawal' ? '-' : '+'}${transaction.sum} сумов</span>
-                        <span class="transaction-type">${transaction.type === 'withdrawal' ? 'Снятие' : 'Обмен'}</span>
+                        <span class="transaction-amount">${amountText}</span>
+                        <span class="transaction-type">${typeText}</span>
                     </div>
-                    <div class="transaction-description">${transaction.description || ''}</div>
+                    <div class="transaction-description">${transaction.reason || transaction.description || ''}</div>
                     <div class="transaction-date">${date}</div>
                 </div>
             `;
