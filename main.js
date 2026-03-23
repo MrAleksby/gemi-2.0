@@ -11,283 +11,82 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUser = null;
-const adminName = "admin"; // Измените на ваше имя админа
+const adminName = "admin";
 
 // DOM элементы
 const loginSection = document.getElementById('login-section');
 const registerSection = document.getElementById('register-section');
-const profileSection = document.getElementById('profile-section');
-
 const adminSection = document.getElementById('admin-section');
-
-const showRegister = document.getElementById('show-register');
-const showLogin = document.getElementById('show-login');
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const logoutBtn = document.getElementById('logout-btn');
+const adminMessage = document.getElementById('admin-message');
+const profileCard = document.getElementById('profile-card');
 const profileInfo = document.getElementById('profile-info');
 const ratingTableBody = document.querySelector('#rating-table tbody');
-const adminAddPointsBtn = document.getElementById('admin-add-points');
-const adminUserInput = document.getElementById('admin-user');
-const adminPointsInput = document.getElementById('admin-points');
-const adminMessage = document.getElementById('admin-message');
-const adminResetUserBtn = document.getElementById('admin-reset-user');
-const adminResetAllBtn = document.getElementById('admin-reset-all');
-const profileCard = document.getElementById('profile-card');
-const adminAddCoinsBtn = document.getElementById('admin-add-coins');
-const adminAddWinsBtn = document.getElementById('admin-add-wins');
-const adminWinsInput = document.getElementById('admin-wins');
-const adminAddGamesBtn = document.getElementById('admin-add-games');
-const adminGamesInput = document.getElementById('admin-games');
-const adminResetWinsBtn = document.getElementById('admin-reset-wins');
-const adminResetGamesBtn = document.getElementById('admin-reset-games');
-const adminResetAllWinsBtn = document.getElementById('admin-reset-all-wins');
-const adminResetAllGamesBtn = document.getElementById('admin-reset-all-games');
-
 const auth = firebase.auth();
 
-// Функции для депозитов
-function getDepositRate(level) {
-    if (level < 10) return 0;
-    return Math.min(5 + (level - 10), 20); // От 5% до 20%
+// Unsubscribe функции для Firestore слушателей
+let unsubPlayerRequests = null;
+let unsubAdminRequests = null;
+
+// ─── Утилиты ─────────────────────────────────────────────────────────────────
+
+async function findUserByName(username) {
+    const usersSnap = await db.collection('users').get();
+    return usersSnap.docs.find(doc =>
+        doc.data().name && doc.data().name.trim().toLowerCase() === username.trim().toLowerCase()
+    ) || null;
 }
 
+// ─── KD детали ────────────────────────────────────────────────────────────────
 
-function calculateDailyIncome(amount, rate) {
-    return (amount * rate / 100 / 365).toFixed(2);
-}
-
-// Функция для показа деталей KD
 function showKDDetails(wins, games) {
     const kd = games > 0 ? (wins / games).toFixed(2) : '0.00';
-    
-    // Создаем всплывающее сообщение
-    const tooltip = document.createElement('div');
-    tooltip.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        text-align: center;
-        min-width: 250px;
-        border: 2px solid rgba(255,255,255,0.2);
-    `;
-    
-    tooltip.innerHTML = `
-        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">🎯 Статистика KD</div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span>🏆 Побед:</span>
-            <span style="font-weight: bold;">${wins}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span>🎮 Игр:</span>
-            <span style="font-weight: bold;">${games}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <span>🎯 KD:</span>
-            <span style="font-weight: bold; color: #ffeb3b;">${kd}</span>
-        </div>
-        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
-    `;
-    
-    // Добавляем затемнение фона
     const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999;
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup';
+    popup.innerHTML = `
+        <div class="popup-title">🎯 Статистика KD</div>
+        <div class="popup-row"><span>🏆 Побед:</span><strong>${wins}</strong></div>
+        <div class="popup-row"><span>🎮 Игр:</span><strong>${games}</strong></div>
+        <div class="popup-row"><span>🎯 KD:</span><strong class="highlight">${kd}</strong></div>
+        <div class="popup-hint">Кликните для закрытия</div>
     `;
-    
-    // Функция для закрытия
-    const closeTooltip = () => {
-        document.body.removeChild(tooltip);
-        document.body.removeChild(overlay);
-    };
-    
-    // Обработчики кликов
-    tooltip.onclick = closeTooltip;
-    overlay.onclick = closeTooltip;
-    
-    // Добавляем элементы на страницу
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    popup.onclick = close;
     document.body.appendChild(overlay);
-    document.body.appendChild(tooltip);
-    
-    // Автоматическое закрытие через 5 секунд
-    setTimeout(closeTooltip, 5000);
+    document.body.appendChild(popup);
+    setTimeout(close, 5000);
 }
 
-// Функция для показа конвертации CF в сумы
+// ─── CF конвертация ───────────────────────────────────────────────────────────
+
 function showCFConversion(cfAmount) {
-    const sumAmount = (cfAmount * 500).toFixed(2);
-    
-    // Создаем всплывающее сообщение
-    const tooltip = document.createElement('div');
-    tooltip.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        text-align: center;
-        min-width: 280px;
-        border: 2px solid rgba(255,255,255,0.2);
-    `;
-    
-    tooltip.innerHTML = `
-        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">💰 Конвертация CF</div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span>CF:</span>
-            <span style="font-weight: bold;">${cfAmount}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <span>Сум:</span>
-            <span style="font-weight: bold; color: #ffeb3b;">${sumAmount}</span>
-        </div>
-        <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 10px;">Курс: 1 CF = 500 сум</div>
-        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
-    `;
-    
-    // Добавляем затемнение фона
+    const sumAmount = (cfAmount * 1000).toLocaleString('ru-RU');
     const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999;
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup cf-popup';
+    popup.innerHTML = `
+        <div class="popup-title">💰 Конвертация CF</div>
+        <div class="popup-row"><span>CF:</span><strong>${cfAmount}</strong></div>
+        <div class="popup-row"><span>Сум:</span><strong class="highlight">${sumAmount}</strong></div>
+        <div class="popup-rate">Курс: 1 CF = 1000 сум</div>
+        <div class="popup-hint">Кликните для закрытия</div>
     `;
-    
-    // Функция для закрытия
-    const closeTooltip = () => {
-        document.body.removeChild(tooltip);
-        document.body.removeChild(overlay);
-    };
-    
-    // Обработчики кликов
-    tooltip.onclick = closeTooltip;
-    overlay.onclick = closeTooltip;
-    
-    // Добавляем элементы на страницу
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    popup.onclick = close;
     document.body.appendChild(overlay);
-    document.body.appendChild(tooltip);
-    
-    // Автоматическое закрытие через 5 секунд
-    setTimeout(closeTooltip, 5000);
+    document.body.appendChild(popup);
+    setTimeout(close, 5000);
 }
 
-// Убираем проверку градиентного текста, так как теперь используем обычные цвета
-// function checkGradientTextSupport() {
-//     const testElement = document.createElement('div');
-//     testElement.style.background = 'linear-gradient(45deg, red, blue)';
-//     testElement.style.webkitBackgroundClip = 'text';
-//     testElement.style.webkitTextFillColor = 'transparent';
-//     
-//     // Если градиентный текст не поддерживается, применяем fallback стили
-//     if (!testElement.style.webkitBackgroundClip) {
-//         document.body.classList.add('no-gradient-text');
-//         
-//         // Применяем fallback стили к заголовкам
-//         const headings = document.querySelectorAll('h2');
-//         headings.forEach(h => h.classList.add('fallback'));
-//         
-//         // Применяем fallback стили к ссылкам
-//         const links = document.querySelectorAll('a');
-//         links.forEach(a => a.classList.add('fallback'));
-//     }
-// }
+// ─── Уровни ───────────────────────────────────────────────────────────────────
 
-// Вызываем проверку при загрузке страницы
-// document.addEventListener('DOMContentLoaded', checkGradientTextSupport);
-
-// Глобальный обработчик авторизации
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        currentUser = user.uid;
-        await showProfile();
-        await showRating();
-        // Проверка на админа
-        const doc = await db.collection('users').doc(currentUser).get();
-        if (doc.exists && doc.data().name && doc.data().name.toLowerCase() === adminName.toLowerCase()) {
-            if (adminSection) adminSection.style.display = '';
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
-        }
-        if (loginSection) loginSection.style.display = 'none';
-        if (registerSection) registerSection.style.display = 'none';
-        if (profileCard) profileCard.style.display = '';
-    } else {
-        currentUser = null;
-        if (loginSection) loginSection.style.display = '';
-        if (registerSection) registerSection.style.display = 'none';
-        if (profileCard) profileCard.style.display = 'none';
-        if (adminSection) adminSection.style.display = 'none';
-    }
-});
-
-// Переключение между формами
-showRegister.onclick = (e) => {
-    e.preventDefault();
-    loginSection.style.display = 'none';
-    registerSection.style.display = '';
-};
-showLogin.onclick = (e) => {
-    e.preventDefault();
-    registerSection.style.display = 'none';
-    loginSection.style.display = '';
-};
-
-// Массив уровней с концепцией "Путь к взрослости"
-const levels = [
-  { name: "Ребенок", color: "#e3f2fd", emoji: "👶", description: "Только начинаешь изучать деньги" }, // 0
-  { name: "Уровень 1", emoji: "👶" },
-  { name: "Уровень 2", emoji: "👶" },
-  { name: "Уровень 3", emoji: "👶" },
-  { name: "Уровень 4", emoji: "👶" },
-  { name: "Ученик", color: "#d4edda", emoji: "👨‍🎓", description: "Изучаешь основы инвестиций" },           // 5
-  { name: "Уровень 6", emoji: "👨‍🎓" },
-  { name: "Уровень 7", emoji: "👨‍🎓" },
-  { name: "Уровень 8", emoji: "👨‍🎓" },
-  { name: "Уровень 9", emoji: "👨‍🎓" },
-  { name: "Начинающий инвестор", color: "#ffcdd2", emoji: "💼", description: "Делаешь первые инвестиции" },   // 10
-  { name: "Уровень 11", emoji: "💼" },
-  { name: "Уровень 12", emoji: "💼" },
-  { name: "Уровень 13", emoji: "💼" },
-  { name: "Уровень 14", emoji: "💼" },
-  { name: "Опытный инвестор", color: "#fff9c4", emoji: "🏢", description: "Строишь инвестиционный портфель" }, // 15
-  { name: "Уровень 16", emoji: "🏢" },
-  { name: "Уровень 17", emoji: "🏢" },
-  { name: "Уровень 18", emoji: "🏢" },
-  { name: "Уровень 19", emoji: "🏢" },
-  { name: "Финансовый магнат", color: "#b2ebf2", emoji: "👑", description: "Создаешь финансовую империю" },    // 20
-  { name: "Уровень 21", emoji: "👑" },
-  { name: "Уровень 22", emoji: "👑" },
-  { name: "Уровень 23", emoji: "👑" },
-  { name: "Уровень 24", emoji: "👑" },
-  { name: "Финансовая свобода", color: "#e1bee7", emoji: "🌟", description: "Достиг финансовой независимости" }             // 25
-];
-
-// Границы баллов для уровней (индекс = уровень - 1) - увеличены на 50%
 const levelThresholds = [
-  0, 15, 38, 68, 105, 150, 203, 263, 330, 405, 488, 578, 675, 780, 893, 1013, 1140, 1275, 1418, 1568, 1725, 1890, 2063, 2243, 2430
+  0, 15, 38, 68, 105, 150, 203, 263, 330, 405, 488, 578, 675, 780, 893,
+  1013, 1140, 1275, 1418, 1568, 1725, 1890, 2063, 2243, 2430
 ];
 
 function getLevelByPoints(points) {
@@ -328,964 +127,633 @@ function getLevelDescription(lvl) {
 }
 
 function getLevelColor(lvl) {
-    if (lvl >= 1 && lvl <= 4) return '#e3f2fd'; // Ребенок — голубой
-    if (lvl >= 5 && lvl <= 9) return '#d4edda'; // Ученик — зелёный
-    if (lvl >= 10 && lvl <= 14) return '#ffcdd2'; // Начинающий инвестор — красный
-    if (lvl >= 15 && lvl <= 19) return '#fff9c4'; // Опытный инвестор — жёлтый
-    if (lvl >= 20 && lvl <= 24) return '#b2ebf2'; // Финансовый магнат — синий
-    if (lvl === 25) return '#e1bee7'; // Финансовая свобода — фиолетовый
-    return '#f5f5f5';
+    if (lvl >= 1 && lvl <= 4) return '#5c9bd6';
+    if (lvl >= 5 && lvl <= 9) return '#4caf7a';
+    if (lvl >= 10 && lvl <= 14) return '#e07070';
+    if (lvl >= 15 && lvl <= 19) return '#c9a227';
+    if (lvl >= 20 && lvl <= 24) return '#5b8dd9';
+    if (lvl === 25) return '#9c5fd6';
+    return '#888';
 }
 
-// Функция для отображения прогресса "Путь к взрослости"
+// ─── Прогресс уровня ──────────────────────────────────────────────────────────
+
 function showAdulthoodProgress() {
     if (!currentUser) return;
-    
-    const userRef = db.collection('users').doc(currentUser);
-    userRef.get().then(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            const currentLevel = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
-            const nextLevel = Math.min(currentLevel + 1, 25);
-            const progressToNext = currentLevel < 25 ? 
-                ((data.points - levelThresholds[currentLevel - 1]) / (levelThresholds[currentLevel] - levelThresholds[currentLevel - 1])) * 100 : 100;
-            
-            const progressHtml = `
-                <div class="adulthood-progress">
-                    <h3>🎯 Путь к взрослости</h3>
-                    <div class="current-stage">
-                        <div class="stage-emoji">${getLevelEmoji(currentLevel)}</div>
-                        <div class="stage-info">
-                            <div class="stage-title">${getLevelTitle(currentLevel)} ${currentLevel}</div>
-                            <div class="stage-description">${getLevelDescription(currentLevel)}</div>
-                        </div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progressToNext}%; background: ${getLevelColor(currentLevel)};"></div>
-                    </div>
-                    <div class="next-stage">
-                        <span>Следующий уровень: ${getLevelTitle(nextLevel)} ${nextLevel}</span>
-                        <span>${Math.round(progressToNext)}% готово</span>
+    db.collection('users').doc(currentUser).get().then(doc => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
+        const nextLvl = Math.min(lvl + 1, 25);
+        const progress = lvl < 25
+            ? ((data.points - levelThresholds[lvl - 1]) / (levelThresholds[lvl] - levelThresholds[lvl - 1])) * 100
+            : 100;
+
+        const html = `
+            <div class="adulthood-progress">
+                <h3>🎯 Путь к взрослости</h3>
+                <div class="current-stage">
+                    <div class="stage-emoji">${getLevelEmoji(lvl)}</div>
+                    <div class="stage-info">
+                        <div class="stage-title">${getLevelTitle(lvl)} ${lvl}</div>
+                        <div class="stage-description">${getLevelDescription(lvl)}</div>
                     </div>
                 </div>
-            `;
-            
-            // Добавляем в профиль
-            const profileCard = document.getElementById('profile-card');
-            if (profileCard) {
-                const existingProgress = profileCard.querySelector('.adulthood-progress');
-                if (existingProgress) {
-                    existingProgress.remove();
-                }
-                profileCard.insertAdjacentHTML('afterbegin', progressHtml);
-            }
-        }
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${progress}%; background:${getLevelColor(lvl)};"></div>
+                </div>
+                <div class="next-stage">
+                    <span>Следующий: ${getLevelTitle(nextLvl)} ${nextLvl}</span>
+                    <span>${Math.round(progress)}%</span>
+                </div>
+            </div>
+        `;
+
+        const card = document.getElementById('profile-card');
+        if (!card) return;
+        const existing = card.querySelector('.adulthood-progress');
+        if (existing) existing.remove();
+        card.insertAdjacentHTML('afterbegin', html);
     });
 }
 
-// Регистрация
-registerForm.onsubmit = async (e) => {
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+auth.onAuthStateChanged(async (user) => {
+    // Отписываемся от старых слушателей
+    if (unsubPlayerRequests) { unsubPlayerRequests(); unsubPlayerRequests = null; }
+    if (unsubAdminRequests) { unsubAdminRequests(); unsubAdminRequests = null; }
+
+    if (user) {
+        currentUser = user.uid;
+        loginSection.style.display = 'none';
+        registerSection.style.display = 'none';
+        profileCard.style.display = '';
+        await showProfile();
+        await showRating();
+
+        const doc = await db.collection('users').doc(currentUser).get();
+        const isAdmin = doc.exists && doc.data().name &&
+            doc.data().name.toLowerCase() === adminName.toLowerCase();
+
+        if (isAdmin) {
+            adminSection.style.display = '';
+            loadUsersList();
+            updateTransactionsLists();
+            setupAdminRequestsListener();
+        } else {
+            adminSection.style.display = 'none';
+        }
+        setupPlayerRequestListener();
+    } else {
+        currentUser = null;
+        loginSection.style.display = '';
+        registerSection.style.display = 'none';
+        profileCard.style.display = 'none';
+        adminSection.style.display = 'none';
+    }
+});
+
+// ─── Переключение форм ────────────────────────────────────────────────────────
+
+document.getElementById('show-register').onclick = (e) => {
     e.preventDefault();
-    const submitBtn = registerForm.querySelector('button[type="submit"]');
+    loginSection.style.display = 'none';
+    registerSection.style.display = '';
+};
+document.getElementById('show-login').onclick = (e) => {
+    e.preventDefault();
+    registerSection.style.display = 'none';
+    loginSection.style.display = '';
+};
+
+// ─── Регистрация ──────────────────────────────────────────────────────────────
+
+document.getElementById('register-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     const username = document.getElementById('register-username').value.trim();
     const email = document.getElementById('register-email').value.trim();
     const password = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
-    if (!username) {
-        alert('Поле "Имя пользователя" обязательно для заполнения!');
-        submitBtn.disabled = false;
-        return;
-    }
-    if (password !== passwordConfirm) {
-        alert('Пароли не совпадают!');
-        submitBtn.disabled = false;
-        return;
-    }
-    // Проверка уникальности имени в коллекции usernames
+
+    if (!username) { alert('Введите имя пользователя!'); submitBtn.disabled = false; return; }
+    if (password !== passwordConfirm) { alert('Пароли не совпадают!'); submitBtn.disabled = false; return; }
+
     const usernameDoc = await db.collection('usernames').doc(username.toLowerCase()).get();
-    if (usernameDoc.exists) {
-        alert('Пользователь с таким именем уже существует!');
-        submitBtn.disabled = false;
-        return;
-    }
+    if (usernameDoc.exists) { alert('Пользователь с таким именем уже существует!'); submitBtn.disabled = false; return; }
+
     try {
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         await new Promise(resolve => {
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                if (user) {
-                    unsubscribe();
-                    resolve();
-                }
-            });
+            const unsub = auth.onAuthStateChanged(u => { if (u) { unsub(); resolve(); } });
         });
         const uid = auth.currentUser.uid;
-        // Добавляем имя в коллекцию usernames
-        await db.collection('usernames').doc(username.toLowerCase()).set({
-            uid: uid
-        });
-        // Создаём профиль пользователя
+        await db.collection('usernames').doc(username.toLowerCase()).set({ uid });
         await db.collection('users').doc(uid).set({
-            name: username,
-            email: email,
-            level: 1,
-            experience: 0,
-            points: 0,
-            coins: 0
+            name: username, email, level: 1, experience: 0, points: 0, coins: 0, cf: 0, wins: 0, games: 0
         });
         currentUser = uid;
+        registerSection.style.display = 'none';
+        profileCard.style.display = '';
         showProfile();
         showRating();
+
         if (username.toLowerCase() === adminName.toLowerCase()) {
-            if (adminSection) {
-                adminSection.style.display = '';
-                updateUsersList(); // Обновляем список пользователей
-                updateTransactionsLists(); // Обновляем списки транзакций
-            }
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
+            adminSection.style.display = '';
+            loadUsersList();
+            updateTransactionsLists();
         }
-        if (registerSection) registerSection.style.display = 'none';
-        if (profileCard) profileCard.style.display = '';
     } catch (err) {
         alert('Ошибка регистрации: ' + err.message);
     }
     submitBtn.disabled = false;
 };
 
-// Вход
-loginForm.onsubmit = async (e) => {
+// ─── Вход ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('login-form').onsubmit = async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     try {
         const cred = await auth.signInWithEmailAndPassword(email, password);
         currentUser = cred.user.uid;
-        showProfile();
-        showRating();
-        // Получаем имя для проверки админа
-        const doc = await db.collection('users').doc(currentUser).get();
-        if (doc.exists && doc.data().name && doc.data().name.toLowerCase() === adminName.toLowerCase()) {
-            if (adminSection) {
-                adminSection.style.display = '';
-                updateUsersList(); // Обновляем список пользователей
-                updateTransactionsLists(); // Обновляем списки транзакций
-            }
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
-        }
-        if (loginSection) loginSection.style.display = 'none';
-        // Показываем новый профиль
-        if (profileCard) profileCard.style.display = '';
     } catch (err) {
         alert('Ошибка входа: ' + err.message);
     }
 };
 
-// Выход
-logoutBtn.onclick = async () => {
+// ─── Выход ────────────────────────────────────────────────────────────────────
+
+document.getElementById('logout-btn').onclick = async () => {
     await auth.signOut();
-    currentUser = null;
-    if (loginSection) loginSection.style.display = '';
-    if (registerSection) registerSection.style.display = 'none';
-    // Скрываем новый профиль
-    if (profileCard) profileCard.style.display = 'none';
-    if (adminSection) adminSection.style.display = 'none';
 };
 
-// Показ профиля
+// ─── Профиль ──────────────────────────────────────────────────────────────────
+
 async function showProfile() {
     if (!currentUser) return;
-    const userRef = db.collection('users').doc(currentUser);
-    const doc = await userRef.get();
-    if (doc.exists) {
-        const data = doc.data();
-        const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
-        const lvlTitle = getLevelTitle(lvl);
-        const lvlColor = getLevelColor(lvl);
-        
-        // Рассчитываем депозиты
-        const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
-        let totalDeposits = 0;
-        depositsSnap.forEach(deposit => {
-            totalDeposits += deposit.data().amount;
-        });
-        
-        const totalCF = data.cf ?? 0; // Показываем CF как есть
-        const availableCF = totalCF - totalDeposits;
-        
-        // Показываем прогресс "Путь к взрослости"
-        showAdulthoodProgress();
-        
-        profileInfo.innerHTML = `
-        <div class="profile-stats">
-          <span class="profile-badge points"><span style="font-size:1.2em;">⭐</span> ${data.points}</span>
-          <span class="profile-badge coins"><span style="font-size:1.2em;">💰</span> ${data.coins ?? 0}</span>
-          <span class="profile-badge kd" onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей"><span style="font-size:1.2em;">🎯</span> ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}</span>
-          <span class="profile-badge cf" onclick="showCFConversion(${totalCF})" style="cursor: pointer;" title="Кликните для конвертации в сумы"><img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${totalCF.toFixed(2)}</span>
-          <span class="profile-badge deposits"><span style="font-size:1.2em;">🏦</span> ${totalDeposits}</span>
-        </div>
-        `;
-        
+    const doc = await db.collection('users').doc(currentUser).get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
+    const lvlTitle = getLevelTitle(lvl);
+    const lvlColor = getLevelColor(lvl);
+    const totalCF = data.cf ?? 0;
 
-        const profileHeader = document.getElementById('profile-header');
-        if (profileHeader) {
-            let emoji = getLevelEmoji(lvl);
-            // Используем белый текст для лучшей контрастности
-            profileHeader.innerHTML = `<span style="font-size:1.3em;">${emoji}</span> <b style='font-size:1.18em;'>${data.name}</b> <span style='background:${lvlColor};color:white;font-weight:600;padding:1px 4px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.1);margin-left:2px;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.8em;'>${lvlTitle} ${lvl}</span>`;
-        }
-        // Топ-5 игроков
-        const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
-        let top5Html = `<div class="top5-title" style="margin:14px 0 4px 0;font-weight:600;color:#1976d2;">🏆 Топ-5 игроков</div>`;
-        top5Html += `<table class="top5-table" style="width:100%;font-size:0.98em;background:#f7fbfc;border-radius:10px;overflow:hidden;"><thead><tr>
-            <th><span style='font-size:1.1em;'>🏅</span></th>
-            <th><span style='font-size:1.1em;'>👤</span></th>
-            <th><span style='font-size:1.1em;'>🎯</span></th>
-            <th><span style='font-size:1.1em;'>⭐</span></th>
-            <th><span style='font-size:1.1em;'>🎯</span></th>
-        </tr></thead><tbody>`;
-        let place = 1;
-        top5Snap.forEach(doc => {
-            const d = doc.data();
-            if (!d.name || d.name.trim() === "") return;
-            const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
-            const title = getLevelTitle(l);
-            const color = getLevelColor(l);
-            const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
-            top5Html += `<tr><td style='font-weight:bold;'>${place}</td><td>${d.name}</td><td><span style='background:${color};color:white;border-radius:6px;padding:1px 6px;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,0.3);font-size:0.85em;'>${title} ${l}</span></td><td>${d.points}</td><td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td></tr>`;
-            place++;
-        });
-        top5Html += `</tbody></table>`;
-        document.getElementById('top5-container').innerHTML = top5Html;
-        
-        // Обновляем кнопку магазина в зависимости от уровня
-        updateShopButton(lvl);
+    showAdulthoodProgress();
+
+    profileInfo.innerHTML = `
+    <div class="profile-stats">
+      <span class="profile-badge points">⭐ ${data.points}</span>
+      <span class="profile-badge coins">💰 ${data.coins ?? 0}</span>
+      <span class="profile-badge kd"
+            onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})"
+            style="cursor:pointer" title="Нажмите для подробностей">
+        🎯 ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}
+      </span>
+      <span class="profile-badge cf"
+            onclick="showCFConversion(${totalCF})"
+            style="cursor:pointer" title="Нажмите для конвертации">
+        <img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${totalCF.toFixed(2)}
+      </span>
+    </div>
+    `;
+
+    const profileHeader = document.getElementById('profile-header');
+    if (profileHeader) {
+        profileHeader.innerHTML = `
+            <span>${getLevelEmoji(lvl)}</span>
+            <b>${data.name}</b>
+            <span class="level-tag" style="background:${lvlColor};">${lvlTitle} ${lvl}</span>
+        `;
     }
+
+    // Топ-5
+    const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
+    let top5Html = `<div class="top5-title">🏆 Топ-5 игроков</div>
+        <table class="top5-table"><thead><tr>
+            <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th><th>KD</th>
+        </tr></thead><tbody>`;
+    let place = 1;
+    top5Snap.forEach(doc => {
+        const d = doc.data();
+        if (!d.name || d.name.trim() === '') return;
+        const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
+        const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
+        top5Html += `<tr>
+            <td><b>${place}</b></td>
+            <td>${d.name}</td>
+            <td><span class="level-badge" style="background:${getLevelColor(l)};">${getLevelTitle(l)} ${l}</span></td>
+            <td>${d.points}</td>
+            <td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor:pointer">${kd}</td>
+        </tr>`;
+        place++;
+    });
+    top5Html += '</tbody></table>';
+    document.getElementById('top5-container').innerHTML = top5Html;
+
+    updateShopButton(lvl);
 }
 
-// Функция для обновления кнопки магазина
-function updateShopButton(userLevel) {
+function updateShopButton(lvl) {
     const shopBtn = document.getElementById('shop-btn');
     if (!shopBtn) return;
-    
-    if (userLevel < 5) {
+    if (lvl < 5) {
         shopBtn.innerHTML = '🔒 Магазин (5 уровень)';
-        shopBtn.title = 'Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.';
+        shopBtn.disabled = true;
         shopBtn.style.background = 'linear-gradient(135deg, #ccc, #999)';
-        shopBtn.style.cursor = 'not-allowed';
         shopBtn.style.opacity = '0.7';
-        shopBtn.disabled = true; // Блокируем кнопку
-        shopBtn.classList.add('disabled'); // Добавляем класс для стилизации
+        shopBtn.style.cursor = 'not-allowed';
     } else {
         shopBtn.innerHTML = '🛒 Магазин';
-        shopBtn.title = 'Открыть магазин инвестиций';
+        shopBtn.disabled = false;
         shopBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        shopBtn.style.cursor = 'pointer';
         shopBtn.style.opacity = '1';
-        shopBtn.disabled = false; // Разблокируем кнопку
-        shopBtn.classList.remove('disabled'); // Убираем класс блокировки
+        shopBtn.style.cursor = 'pointer';
     }
 }
 
-// Показ рейтинга
+// ─── Рейтинг ──────────────────────────────────────────────────────────────────
+
 async function showRating() {
     const usersSnap = await db.collection('users').orderBy('points', 'desc').get();
     ratingTableBody.innerHTML = '';
     let place = 1;
-    // Добавляем заголовок с новыми столбцами
-    document.querySelector('#rating-table thead').innerHTML = `<tr>
-        <th><span style='font-size:1.1em;'>🏅</span></th>
-        <th><span style='font-size:1.1em;'>👤</span></th>
-        <th><span style='font-size:1.1em;'>🎯</span></th>
-        <th><span class='profile-badge points'><span style='font-size:1.1em;'>⭐</span></span></th>
-        <th><span class='profile-badge coins'><span style='font-size:1.1em;'>💰</span></span></th>
-        <th><span class='profile-badge cf'><span style='font-size:1.1em;'>💎</span></span></th>
-        <th><span class='profile-badge kd'><span style='font-size:1.1em;'>🎯</span></span></th>
-    </tr>`;
     usersSnap.forEach(doc => {
         const data = doc.data();
-        if (!data.name || data.name.trim() === "") return; // фильтрация безымянных
+        if (!data.name || data.name.trim() === '') return;
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
-        const lvlTitle = getLevelTitle(lvl);
-        const lvlColor = getLevelColor(lvl);
-        const lvlHtml = `<span class=\"level-badge\" style=\"background:${lvlColor} !important;color:white !important;font-weight:600 !important;padding:1px 4px !important;border-radius:6px !important;box-shadow:0 2px 6px rgba(0,0,0,0.1) !important;text-shadow:0 1px 2px rgba(0,0,0,0.3) !important;font-size:0.8em !important;\">${lvl}</span>`;
-        const tr = document.createElement('tr');
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
-        const cfAmount = (data.cf ?? 0).toFixed(2);
-        tr.innerHTML = `<td>${place++}</td><td>${data.name}</td><td>${lvlHtml}</td><td>${data.points}</td><td>${data.coins ?? 0}</td><td>${cfAmount}</td><td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor: pointer;" title="Кликните для подробностей">${kd}</td>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${place++}</td>
+            <td>${data.name}</td>
+            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${lvl}</span></td>
+            <td>${data.points}</td>
+            <td>${data.coins ?? 0}</td>
+            <td>${(data.cf ?? 0).toFixed(2)}</td>
+            <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
+        `;
         ratingTableBody.appendChild(tr);
     });
 }
 
-// Админ: начисление баллов
-adminAddPointsBtn.onclick = async () => {
-    const user = adminUserInput.value.trim();
-    const points = parseInt(adminPointsInput.value, 10);
-    if (!user || isNaN(points)) return;
-    // Поиск пользователя по имени без учёта регистра и пробелов
-    const usersSnap = await db.collection('users').get();
-    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-    if (userDoc) {
-        const oldPoints = userDoc.data().points || 0;
-        const newPoints = oldPoints + points;
-        const newLevel = getLevelByPoints(newPoints);
-        await userDoc.ref.update({
-            points: newPoints,
-            level: newLevel
-        });
-        adminMessage.textContent = `Начислено ${points} баллов пользователю ${user}`;
-        adminPointsInput.value = '';
-        updateUsersList(); // Обновляем список пользователей
-        setTimeout(() => {
-            showProfile();
-            showRating();
-        }, 500);
-    } else {
-        adminMessage.textContent = `Пользователь ${user} не найден.`;
-    }
-};
+// ─── Модалы ───────────────────────────────────────────────────────────────────
 
-// Админ: начисление монет
-adminAddCoinsBtn.onclick = async () => {
-    const user = adminUserInput.value.trim();
-    const coins = parseInt(adminPointsInput.value, 10);
-    if (!user || isNaN(coins)) return;
-    // Поиск пользователя по имени без учёта регистра и пробелов
-    const usersSnap = await db.collection('users').get();
-    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-    if (userDoc) {
-        const oldCoins = userDoc.data().coins || 0;
-        const newCoins = oldCoins + coins;
-        await userDoc.ref.update({
-            coins: newCoins
-        });
-        adminMessage.textContent = `Начислено ${coins} монет пользователю ${user}`;
-        adminPointsInput.value = '';
-        updateUsersList(); // Обновляем список пользователей
-        setTimeout(() => {
-            showProfile();
-            showRating();
-        }, 500);
-    } else {
-        adminMessage.textContent = `Пользователь ${user} не найден.`;
-    }
-};
-
-adminResetUserBtn.onclick = async () => {
-    const user = adminUserInput.value.trim();
-    if (!user) return;
-    if (!confirm(`Обнулить баллы и монеты у пользователя ${user}?`)) return;
-    // Поиск пользователя по имени без учёта регистра и пробелов
-    const usersSnap = await db.collection('users').get();
-    const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-    if (userDoc) {
-        await userDoc.ref.update({
-            points: 0,
-            coins: 0,
-            level: 1,
-            savingsLevel: 0,
-            savings: 0,
-            twobigLevel: 0,
-            twobig: 0,
-            ok4uLevel: 0,
-            ok4u: 0,
-            myt4uLevel: 0,
-            myt4u: 0,
-            percentsLevel: 0,
-            percents: '-',
-            passivesLevel: 0,
-            passives: '-',
-            realtyLevel: 0,
-            realty: '-'
-        });
-        adminMessage.textContent = `Баллы, монеты и магазин пользователя ${user} обнулены!`;
-        updateUsersList(); // Обновляем список пользователей
-        if (userDoc.id === currentUser) showProfile();
-        showRating();
-        showProfile();
-        if (typeof renderShop === 'function') renderShop();
-    } else {
-        adminMessage.textContent = `Пользователь ${user} не найден.`;
-    }
-};
-
-adminResetAllBtn.onclick = async () => {
-    if (!confirm('Вы уверены, что хотите обнулить баллы и монеты у всех участников?')) return;
-    const usersSnap = await db.collection('users').get();
-    const batch = db.batch();
-    usersSnap.forEach(doc => {
-        batch.update(doc.ref, {
-            points: 0,
-            coins: 0,
-            level: 1,
-            savingsLevel: 0,
-            savings: 0,
-            twobigLevel: 0,
-            twobig: 0,
-            ok4uLevel: 0,
-            ok4u: 0,
-            myt4uLevel: 0,
-            myt4u: 0,
-            percentsLevel: 0,
-            percents: '-',
-            passivesLevel: 0,
-            passives: '-',
-            realtyLevel: 0,
-            realty: '-'
-        });
-    });
-    await batch.commit();
-    adminMessage.textContent = 'Баллы и монеты у всех участников обнулены!';
-    updateUsersList(); // Обновляем список пользователей
-    showRating();
-    showProfile();
-    if (typeof renderShop === 'function') renderShop();
-};
-
-
-if (adminAddWinsBtn) {
-    adminAddWinsBtn.onclick = () => {
-        const user = adminUserInput.value.trim();
-        const wins = parseInt(adminWinsInput.value, 10);
-        window.adminAddWins(user, wins);
-    };
-}
-if (adminAddGamesBtn) {
-    adminAddGamesBtn.onclick = () => {
-        const user = adminUserInput.value.trim();
-        const games = parseInt(adminGamesInput.value, 10);
-        window.adminAddGames(user, games);
-    };
-}
-
-// Модальное окно рейтинга
 const ratingModal = document.getElementById('rating-modal');
-const ratingClose = document.getElementById('rating-close');
-const toggleRatingBtn = document.getElementById('toggle-rating-btn');
+document.getElementById('toggle-rating-btn').onclick = () => {
+    ratingModal.style.display = 'flex';
+    showRating();
+};
+document.getElementById('rating-close').onclick = () => { ratingModal.style.display = 'none'; };
+ratingModal.onclick = (e) => { if (e.target === ratingModal) ratingModal.style.display = 'none'; };
 
-if (toggleRatingBtn && ratingModal) {
-    toggleRatingBtn.onclick = () => {
-        ratingModal.style.display = 'flex';
-        showRating(); // Обновляем данные рейтинга при открытии
-    };
-}
+const scoreRequestModal = document.getElementById('score-request-modal');
+document.getElementById('submit-score-btn').onclick = () => {
+    scoreRequestModal.style.display = 'flex';
+};
+document.getElementById('score-request-close').onclick = () => {
+    scoreRequestModal.style.display = 'none';
+};
+scoreRequestModal.onclick = (e) => {
+    if (e.target === scoreRequestModal) scoreRequestModal.style.display = 'none';
+};
 
-if (ratingClose && ratingModal) {
-    ratingClose.onclick = () => {
-        ratingModal.style.display = 'none';
-    };
-}
+// ─── Подача счёта игроком ─────────────────────────────────────────────────────
 
-// Закрытие модального окна при клике вне его
-if (ratingModal) {
-    ratingModal.onclick = (e) => {
-        if (e.target === ratingModal) {
-            ratingModal.style.display = 'none';
-        }
-    };
-}
+document.getElementById('score-request-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('score-request-msg');
+    const games  = parseInt(document.getElementById('req-games').value)  || 0;
+    const wins   = parseInt(document.getElementById('req-wins').value)   || 0;
+    const cf     = parseInt(document.getElementById('req-cf').value)     || 0;
+    const points = parseInt(document.getElementById('req-points').value) || 0;
+    const coins  = parseInt(document.getElementById('req-coins').value)  || 0;
 
-if (adminResetWinsBtn) {
-    adminResetWinsBtn.onclick = async () => {
-        const user = adminUserInput.value.trim();
-        if (!user) return;
-        // Поиск пользователя по имени без учёта регистра и пробелов
-        const usersSnap = await db.collection('users').get();
-        const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-        if (userDoc) {
-            await userDoc.ref.update({ wins: 0 });
-            adminMessage.textContent = `Победы пользователя ${user} сброшены!`;
-            updateUsersList(); // Обновляем список пользователей
-            setTimeout(() => {
-                if (typeof showProfile === 'function') showProfile();
-                if (typeof showRating === 'function') showRating();
-            }, 500);
-        } else {
-            adminMessage.textContent = `Пользователь ${user} не найден.`;
-        }
-    };
-}
-
-if (adminResetGamesBtn) {
-    adminResetGamesBtn.onclick = async () => {
-        const user = adminUserInput.value.trim();
-        if (!user) return;
-        // Поиск пользователя по имени без учёта регистра и пробелов
-        const usersSnap = await db.collection('users').get();
-        const userDoc = usersSnap.docs.find(doc => doc.data().name && doc.data().name.trim().toLowerCase() === user.trim().toLowerCase());
-        if (userDoc) {
-            await userDoc.ref.update({ games: 0 });
-            adminMessage.textContent = `Игры пользователя ${user} сброшены!`;
-            updateUsersList(); // Обновляем список пользователей
-            setTimeout(() => {
-                if (typeof showProfile === 'function') showProfile();
-                if (typeof showRating === 'function') showRating();
-            }, 500);
-        } else {
-            adminMessage.textContent = `Пользователь ${user} не найден.`;
-        }
-    };
-}
-
-if (adminResetAllWinsBtn) {
-    adminResetAllWinsBtn.onclick = async () => {
-        if (!confirm('Вы уверены, что хотите сбросить победы у всех участников?')) return;
-        const usersSnap = await db.collection('users').get();
-        const batch = db.batch();
-        usersSnap.forEach(doc => {
-            batch.update(doc.ref, { wins: 0 });
-        });
-        await batch.commit();
-        adminMessage.textContent = 'Победы у всех участников сброшены!';
-        updateUsersList(); // Обновляем список пользователей
-        setTimeout(() => {
-            if (typeof showProfile === 'function') showProfile();
-            if (typeof showRating === 'function') showRating();
-        }, 500);
-    };
-}
-if (adminResetAllGamesBtn) {
-    adminResetAllGamesBtn.onclick = async () => {
-        if (!confirm('Вы уверены, что хотите сбросить игры у всех участников?')) return;
-        const usersSnap = await db.collection('users').get();
-        const batch = db.batch();
-        usersSnap.forEach(doc => {
-            batch.update(doc.ref, { games: 0 });
-        });
-        await batch.commit();
-        adminMessage.textContent = 'Игры у всех участников сброшены!';
-        updateUsersList(); // Обновляем список пользователей
-        setTimeout(() => {
-            if (typeof showProfile === 'function') showProfile();
-            if (typeof showRating === 'function') showRating();
-        }, 500);
-    };
-}
-
-// Функция для загрузки списка пользователей в datalist
-async function loadUsersList() {
-    try {
-        const usersSnap = await db.collection('users').get();
-        const usersList = document.getElementById('users-list');
-        if (usersList) {
-            usersList.innerHTML = '';
-            usersSnap.forEach(doc => {
-                const userData = doc.data();
-                if (userData.name && userData.name.trim() !== '') {
-                    const option = document.createElement('option');
-                    option.value = userData.name;
-                    usersList.appendChild(option);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки списка пользователей:', error);
+    if (!games && !wins && !cf && !points && !coins) {
+        msg.textContent = 'Заполните хотя бы одно поле!';
+        msg.className = 'transfer-message error';
+        return;
     }
-}
 
-// Функция для обновления списка пользователей при показе админ-панели
-function updateUsersList() {
-    if (adminSection && adminSection.style.display !== 'none') {
-        loadUsersList();
-    }
-}
+    msg.textContent = 'Отправка...';
+    msg.className = 'transfer-message';
 
-
-
-
-// Админ-панель для управления транзакциями
-const transactionsHistory = document.getElementById('transactions-history');
-const adminTransactionUser = document.getElementById('admin-transaction-user');
-const adminTransactionAmount = document.getElementById('admin-transaction-amount');
-const adminTransactionReason = document.getElementById('admin-transaction-reason');
-const adminAddCFBtn = document.getElementById('admin-add-cf');
-const adminWithdrawCFBtn = document.getElementById('admin-withdraw-cf');
-const clearTransactionsBtn = document.getElementById('clear-transactions-btn');
-
-// Загрузка истории транзакций
-async function loadTransactionsHistory() {
-    if (!transactionsHistory) return;
-    
     try {
-        const transactionsSnap = await db.collection('transactions')
-            .orderBy('timestamp', 'desc')
-            .limit(20)
+        // Проверяем нет ли уже pending счёта
+        const existing = await db.collection('score_requests')
+            .where('userId', '==', currentUser)
+            .where('status', '==', 'pending')
             .get();
-        
-        transactionsHistory.innerHTML = '';
-        
-        if (transactionsSnap.empty) {
-            transactionsHistory.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">История транзакций пуста</p>';
+
+        if (!existing.empty) {
+            msg.textContent = 'У вас уже есть счёт на рассмотрении!';
+            msg.className = 'transfer-message error';
             return;
         }
-        
-        transactionsSnap.forEach(doc => {
-            const transaction = doc.data();
-            const date = transaction.timestamp ? transaction.timestamp.toDate().toLocaleString('ru-RU') : 
-                        (transaction.date ? transaction.date.toDate().toLocaleString('ru-RU') : 'Неизвестно');
-            
-            // Определяем тип транзакции и стиль
-            let transactionClass = 'transaction-item';
-            let amountText = '';
-            let typeText = '';
-            let statusText = '';
-            
-            if (transaction.admin) {
-                // Админские операции с CF
-                transactionClass += ' admin-transaction';
-                if (transaction.type === 'add') {
-                    amountText = `+${transaction.amount} CF`;
-                    typeText = 'Начисление CF';
-                    statusText = 'Подтверждено';
-                } else if (transaction.type === 'withdraw') {
-                    amountText = `-${transaction.amount} CF`;
-                    typeText = 'Снятие CF';
-                    statusText = 'Подтверждено';
-                }
+
+        const userDoc = await db.collection('users').doc(currentUser).get();
+        const username = userDoc.data().name;
+
+        await db.collection('score_requests').add({
+            userId: currentUser,
+            username,
+            games, wins, cf, points, coins,
+            status: 'pending',
+            createdAt: new Date()
+        });
+
+        msg.textContent = 'Счёт отправлен! Ожидайте подтверждения.';
+        msg.className = 'transfer-message success';
+        e.target.reset();
+        setTimeout(() => {
+            scoreRequestModal.style.display = 'none';
+            msg.textContent = '';
+        }, 2000);
+    } catch (err) {
+        msg.textContent = 'Ошибка: ' + err.message;
+        msg.className = 'transfer-message error';
+    }
+};
+
+// ─── Real-time: статус счёта для игрока ──────────────────────────────────────
+
+function setupPlayerRequestListener() {
+    if (!currentUser) return;
+    unsubPlayerRequests = db.collection('score_requests')
+        .where('userId', '==', currentUser)
+        .onSnapshot(snapshot => {
+            const statusDiv = document.getElementById('score-request-status');
+            const submitBtn = document.getElementById('submit-score-btn');
+            if (!statusDiv) return;
+
+            // Ищем pending или последний rejected
+            const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            const pending = docs.find(r => r.status === 'pending');
+            const rejected = docs
+                .filter(r => r.status === 'rejected')
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+
+            if (pending) {
+                statusDiv.style.display = '';
+                statusDiv.innerHTML = `<div class="status-badge pending">⏳ Счёт на проверке у администратора</div>`;
+                if (submitBtn) submitBtn.disabled = true;
+            } else if (rejected) {
+                statusDiv.style.display = '';
+                statusDiv.innerHTML = `<div class="status-badge rejected">❌ Счёт отклонён — подай исправленный</div>`;
+                if (submitBtn) submitBtn.disabled = false;
             } else {
-                // Старые транзакции (для совместимости)
-                const statusClass = transaction.status;
-                statusText = {
-                    'pending': 'Ожидает',
-                    'approved': 'Подтверждено',
-                    'rejected': 'Отклонено'
-                }[transaction.status] || 'Неизвестно';
-                
-                if (transaction.type === 'withdrawal') {
-                    amountText = `-${transaction.sum} сумов`;
-                    typeText = 'Снятие';
-                    transactionClass += ' withdrawal';
-                } else {
-                    amountText = `+${transaction.sum} сумов`;
-                    typeText = 'Обмен';
-                    transactionClass += ` ${statusClass}`;
-                }
+                statusDiv.style.display = 'none';
+                if (submitBtn) submitBtn.disabled = false;
             }
-            
-            const transactionHtml = `
-                <div class="${transactionClass}">
+        });
+}
+
+// ─── Real-time: очередь счетов для администратора ─────────────────────────────
+
+function setupAdminRequestsListener() {
+    unsubAdminRequests = db.collection('score_requests')
+        .where('status', '==', 'pending')
+        .onSnapshot(snapshot => {
+            const listDiv = document.getElementById('score-requests-list');
+            if (!listDiv) return;
+
+            if (snapshot.empty) {
+                listDiv.innerHTML = '<p class="empty-hint">Нет входящих счетов</p>';
+                return;
+            }
+
+            // Сортируем по дате
+            const docs = snapshot.docs.sort((a, b) => {
+                const ta = a.data().createdAt?.seconds || 0;
+                const tb = b.data().createdAt?.seconds || 0;
+                return ta - tb;
+            });
+
+            listDiv.innerHTML = '';
+            docs.forEach(doc => {
+                const req = doc.data();
+                const dateStr = req.createdAt ? req.createdAt.toDate().toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                }) : '';
+
+                const fields = [];
+                if (req.games)  fields.push(`🎮 ${req.games} игр`);
+                if (req.wins)   fields.push(`🏆 ${req.wins} побед`);
+                if (req.cf)     fields.push(`💎 ${req.cf} CF`);
+                if (req.points) fields.push(`⭐ ${req.points} опыта`);
+                if (req.coins)  fields.push(`💰 ${req.coins} монет`);
+
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                card.innerHTML = `
+                    <div class="request-header">
+                        <span class="request-username">${req.username}</span>
+                        <span class="request-time">${dateStr}</span>
+                    </div>
+                    <div class="request-fields">${fields.map(f => `<span class="req-field">${f}</span>`).join('')}</div>
+                    <div class="request-actions">
+                        <button class="approve-btn" onclick="approveRequest('${doc.id}')">✅ Принять</button>
+                        <button class="reject-btn" onclick="rejectRequest('${doc.id}')">❌ Отклонить</button>
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        });
+}
+
+// Глобальные обёртки для onclick в HTML
+window.approveRequest = (id) => window.approveScoreRequest && window.approveScoreRequest(id);
+window.rejectRequest  = (id) => window.rejectScoreRequest  && window.rejectScoreRequest(id);
+
+// ─── Список пользователей для datalist ───────────────────────────────────────
+
+async function loadUsersList() {
+    const usersSnap = await db.collection('users').get();
+    const usersList = document.getElementById('users-list');
+    if (!usersList) return;
+    usersList.innerHTML = '';
+    usersSnap.forEach(doc => {
+        const name = doc.data().name;
+        if (name && name.trim()) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            usersList.appendChild(opt);
+        }
+    });
+}
+
+function updateUsersList() {
+    if (adminSection && adminSection.style.display !== 'none') loadUsersList();
+}
+
+// ─── Транзакции CF ────────────────────────────────────────────────────────────
+
+const adminTransactionUser   = document.getElementById('admin-transaction-user');
+const adminTransactionAmount = document.getElementById('admin-transaction-amount');
+const adminTransactionReason = document.getElementById('admin-transaction-reason');
+const adminAddCFBtn          = document.getElementById('admin-add-cf');
+const adminWithdrawCFBtn     = document.getElementById('admin-withdraw-cf');
+const clearTransactionsBtn   = document.getElementById('clear-transactions-btn');
+const transactionsHistory    = document.getElementById('transactions-history');
+
+async function loadTransactionsHistory() {
+    if (!transactionsHistory) return;
+    try {
+        const snap = await db.collection('transactions')
+            .orderBy('timestamp', 'desc').limit(20).get();
+
+        if (snap.empty) {
+            transactionsHistory.innerHTML = '<p class="empty-hint">История пуста</p>';
+            return;
+        }
+
+        transactionsHistory.innerHTML = '';
+        snap.forEach(doc => {
+            const t = doc.data();
+            const date = t.timestamp
+                ? t.timestamp.toDate().toLocaleString('ru-RU')
+                : 'Неизвестно';
+            const isAdd = t.type === 'add';
+            transactionsHistory.innerHTML += `
+                <div class="transaction-item ${isAdd ? 'tx-add' : 'tx-remove'}">
                     <div class="transaction-header">
-                        <span class="transaction-user">${transaction.username || transaction.userName}</span>
-                        <span class="transaction-status">${statusText}</span>
+                        <span class="transaction-user">${t.username || ''}</span>
+                        <span class="transaction-amount">${isAdd ? '+' : '-'}${t.amount} CF</span>
                     </div>
-                    <div class="transaction-details">
-                        <span class="transaction-amount">${amountText}</span>
-                        <span class="transaction-type">${typeText}</span>
-                    </div>
-                    <div class="transaction-description">${transaction.reason || transaction.description || ''}</div>
+                    <div class="transaction-description">${t.reason || ''}</div>
                     <div class="transaction-date">${date}</div>
                 </div>
             `;
-            
-            transactionsHistory.innerHTML += transactionHtml;
         });
-    } catch (error) {
-        console.error('Ошибка загрузки истории:', error);
+    } catch (err) {
+        console.error('Ошибка загрузки истории:', err);
     }
 }
 
+function updateTransactionsLists() {
+    if (adminSection && adminSection.style.display !== 'none') loadTransactionsHistory();
+}
 
-
-// Обработчики для управления CF
 if (adminAddCFBtn) {
     adminAddCFBtn.onclick = async () => {
-        const userName = adminTransactionUser.value.trim();
+        const user   = adminTransactionUser.value.trim();
         const amount = parseInt(adminTransactionAmount.value, 10);
         const reason = adminTransactionReason.value.trim();
-        
-        if (!userName || isNaN(amount) || amount <= 0) {
-            alert('Заполните все поля корректно!');
-            return;
-        }
-        
-        await adminAddCF(userName, amount, reason);
+        if (!user || isNaN(amount) || amount <= 0) { alert('Заполните все поля!'); return; }
+        await window.adminAddCF(user, amount, reason);
         loadTransactionsHistory();
     };
 }
 
 if (adminWithdrawCFBtn) {
     adminWithdrawCFBtn.onclick = async () => {
-        const userName = adminTransactionUser.value.trim();
+        const user   = adminTransactionUser.value.trim();
         const amount = parseInt(adminTransactionAmount.value, 10);
         const reason = adminTransactionReason.value.trim();
-        
-        if (!userName || isNaN(amount) || amount <= 0) {
-            alert('Заполните все поля корректно!');
-            return;
-        }
-        
-        await adminWithdrawCF(userName, amount, reason);
+        if (!user || isNaN(amount) || amount <= 0) { alert('Заполните все поля!'); return; }
+        await window.adminWithdrawCF(user, amount, reason);
         loadTransactionsHistory();
     };
 }
 
-// Очистка истории транзакций
 if (clearTransactionsBtn) {
     clearTransactionsBtn.onclick = async () => {
-        if (!confirm('Вы уверены, что хотите очистить всю историю транзакций? Это действие нельзя отменить.')) {
-            return;
-        }
-        
+        if (!confirm('Очистить всю историю транзакций?')) return;
         try {
-            // Получаем все транзакции
-            const transactionsSnap = await db.collection('transactions').get();
-            
-            if (transactionsSnap.empty) {
-                adminMessage.textContent = 'История транзакций уже пуста!';
-                return;
-            }
-            
-            // Создаем batch для удаления
+            const snap = await db.collection('transactions').get();
+            if (snap.empty) { adminMessage.textContent = 'История уже пуста!'; return; }
             const batch = db.batch();
-            transactionsSnap.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            
-            // Выполняем удаление
+            snap.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
-            
-            adminMessage.textContent = `Удалено ${transactionsSnap.size} транзакций из истории!`;
-            
-            // Обновляем отображение
+            adminMessage.textContent = `Удалено ${snap.size} транзакций!`;
             loadTransactionsHistory();
-            
-        } catch (error) {
-            alert('Ошибка при очистке истории: ' + error.message);
+        } catch (err) {
+            alert('Ошибка: ' + err.message);
         }
     };
 }
 
-// Обновляем списки транзакций при показе админ-панели
-function updateTransactionsLists() {
-    if (adminSection && adminSection.style.display !== 'none') {
-        loadTransactionsHistory();
-    }
-}
+// ─── Сброс данных ─────────────────────────────────────────────────────────────
 
-// Логика депозитов
-const depositsBtn = document.getElementById('deposits-btn');
-const depositsModal = document.getElementById('deposits-modal');
-const depositsClose = document.getElementById('deposits-close');
-const depositAmount = document.getElementById('deposit-amount');
-const depositRate = document.getElementById('deposit-rate');
-const dailyIncome = document.getElementById('daily-income');
-const createDepositBtn = document.getElementById('create-deposit-btn');
-const availableCF = document.getElementById('available-cf');
-const totalDeposits = document.getElementById('total-deposits');
-const depositsList = document.getElementById('deposits-list');
+const adminUserInput = document.getElementById('admin-user');
 
-// Открытие модального окна депозитов - В РАЗРАБОТКЕ
-depositsBtn.onclick = () => {
-    // Показываем сообщение "В РАЗРАБОТКЕ"
-    const tooltip = document.createElement('div');
-    tooltip.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        text-align: center;
-        min-width: 300px;
-        border: 2px solid rgba(255,255,255,0.2);
-    `;
-    
-    tooltip.innerHTML = `
-        <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 15px;">🚧 В РАЗРАБОТКЕ</div>
-        <div style="font-size: 1.1em; margin-bottom: 20px;">Функция депозитов находится в разработке</div>
-        <div style="font-size: 0.9em; opacity: 0.8;">Кликните для закрытия</div>
-    `;
-    
-    // Добавляем затемнение фона
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999;
-    `;
-    
-    document.body.appendChild(overlay);
-    document.body.appendChild(tooltip);
-    
-    // Функция закрытия
-    const closeTooltip = () => {
-        document.body.removeChild(overlay);
-        document.body.removeChild(tooltip);
-    };
-    
-    // Закрытие по клику
-    overlay.onclick = closeTooltip;
-    tooltip.onclick = closeTooltip;
-    
-    // Автоматическое закрытие через 3 секунды
-    setTimeout(closeTooltip, 3000);
-};
-
-// Закрытие модального окна
-depositsClose.onclick = () => {
-    depositsModal.style.display = 'none';
-};
-
-// Создание депозита
-createDepositBtn.onclick = async () => {
-    const amount = parseInt(depositAmount.value);
-    if (!amount || amount < 100) {
-        alert('Минимальная сумма депозита: 100 CF');
-        return;
-    }
-    
-    if (!currentUser) return;
-    
-    try {
-        // Получаем данные пользователя
-        const userRef = db.collection('users').doc(currentUser);
-        const userDoc = await userRef.get();
-        const userData = userDoc.data();
-        
-        // Проверяем уровень
-        const level = Math.max(1, Math.min(getLevelByPoints(userData.points), 25));
-        if (level < 10) {
-            alert('Депозиты доступны с 10 уровня!');
-            return;
-        }
-        
-        // Проверяем баланс
-        const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
-        let totalDepositsAmount = 0;
-        depositsSnap.forEach(deposit => {
-            totalDepositsAmount += deposit.data().amount;
+document.getElementById('admin-reset-user').onclick = async () => {
+    const user = adminUserInput.value.trim();
+    if (!user) return;
+    if (!confirm(`Обнулить данные пользователя ${user}?`)) return;
+    const userDoc = await findUserByName(user);
+    if (userDoc) {
+        await userDoc.ref.update({
+            points: 0, coins: 0, level: 1,
+            savingsLevel: 0, savings: 0,
+            twobigLevel: 0, twobig: 0,
+            ok4uLevel: 0, ok4u: 0,
+            myt4uLevel: 0, myt4u: 0,
+            percentsLevel: 0, percents: '-',
+            passivesLevel: 0, passives: '-',
+            realtyLevel: 0, realty: '-'
         });
-        
-        const totalCF = userData.cf ?? 0;
-        const availableCFAmount = totalCF; // Доступно для депозита = текущий баланс CF
-        
-        if (amount > availableCFAmount) {
-            alert(`Недостаточно CF! Доступно: ${availableCFAmount.toFixed(2)} CF`);
-            return;
-        }
-        
-        // Создаем депозит и списываем CF с баланса
-        const rate = getDepositRate(level);
-        await db.collection('deposits').add({
-            userId: currentUser,
-            amount: amount,
-            interestRate: rate,
-            startDate: new Date(),
-            status: 'active',
-            level: level
-        });
-        
-        // Списываем CF с баланса пользователя
-        await userRef.update({
-            cf: totalCF - amount
-        });
-        
-        alert(`Депозит на ${amount} CF создан! Процентная ставка: ${rate}% годовых`);
-        
-        // Обновляем интерфейс
-        depositAmount.value = '';
-        dailyIncome.textContent = '0';
-        await loadActiveDeposits();
-        showProfile(); // Обновляем профиль
-        
-    } catch (error) {
-        alert('Ошибка при создании депозита: ' + error.message);
-    }
-};
-
-// Загрузка активных депозитов
-async function loadActiveDeposits() {
-    if (!currentUser) return;
-    
-    const depositsSnap = await db.collection('deposits').where('userId', '==', currentUser).where('status', '==', 'active').get();
-    
-    depositsList.innerHTML = '';
-    
-    if (depositsSnap.empty) {
-        depositsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Нет активных депозитов</p>';
-        return;
-    }
-    
-    depositsSnap.forEach(doc => {
-        const deposit = doc.data();
-        const startDate = deposit.startDate.toDate();
-        const daysActive = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
-        const dailyIncomeAmount = calculateDailyIncome(deposit.amount, deposit.interestRate);
-        const totalIncome = (dailyIncomeAmount * daysActive).toFixed(2);
-        
-        const depositItem = document.createElement('div');
-        depositItem.className = 'deposit-item';
-        depositItem.innerHTML = `
-            <div class="deposit-info">
-                <h4>${deposit.amount} CF</h4>
-                <p>Ставка: ${deposit.interestRate}% годовых</p>
-                <p>Дней активен: ${daysActive}</p>
-                <p>Доход: ${totalIncome} CF</p>
-            </div>
-            <div class="deposit-actions">
-                <button class="deposit-close-btn" onclick="closeDeposit('${doc.id}')">Закрыть</button>
-            </div>
-        `;
-        depositsList.appendChild(depositItem);
-    });
-}
-
-// Закрытие депозита
-async function closeDeposit(depositId) {
-    if (!confirm('Вы уверены, что хотите закрыть депозит?')) return;
-    
-    try {
-        const depositRef = db.collection('deposits').doc(depositId);
-        const depositDoc = await depositRef.get();
-        const deposit = depositDoc.data();
-        
-        // Рассчитываем доход
-        const startDate = deposit.startDate.toDate();
-        const daysActive = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
-        const dailyIncomeAmount = calculateDailyIncome(deposit.amount, deposit.interestRate);
-        const totalIncome = parseFloat(dailyIncomeAmount * daysActive);
-        const totalAmount = deposit.amount + totalIncome;
-        
-        // Возвращаем деньги пользователю (основная сумма + доход)
-        const userRef = db.collection('users').doc(currentUser);
-        const userDoc = await userRef.get();
-        const userData = userDoc.data();
-        
-        await userRef.update({
-            cf: (userData.cf ?? 0) + totalAmount
-        });
-        
-        // Закрываем депозит
-        await depositRef.update({
-            status: 'completed',
-            endDate: new Date(),
-            totalReturn: totalAmount
-        });
-        
-        alert(`Депозит закрыт! Получено: ${totalAmount.toFixed(2)} CF (включая доход: ${totalIncome.toFixed(2)} CF)`);
-        
-        // Обновляем интерфейс
-        await loadActiveDeposits();
+        adminMessage.textContent = `Данные ${user} обнулены!`;
+        updateUsersList();
         showProfile();
-        
-    } catch (error) {
-        alert('Ошибка при закрытии депозита: ' + error.message);
+        showRating();
+        if (typeof renderShop === 'function') renderShop();
+    } else {
+        adminMessage.textContent = `Пользователь ${user} не найден.`;
     }
-}
+};
 
+document.getElementById('admin-reset-all').onclick = async () => {
+    if (!confirm('Обнулить данные всех участников?')) return;
+    const usersSnap = await db.collection('users').get();
+    const batch = db.batch();
+    usersSnap.forEach(doc => {
+        batch.update(doc.ref, {
+            points: 0, coins: 0, level: 1,
+            savingsLevel: 0, savings: 0,
+            twobigLevel: 0, twobig: 0,
+            ok4uLevel: 0, ok4u: 0,
+            myt4uLevel: 0, myt4u: 0,
+            percentsLevel: 0, percents: '-',
+            passivesLevel: 0, passives: '-',
+            realtyLevel: 0, realty: '-'
+        });
+    });
+    await batch.commit();
+    adminMessage.textContent = 'Все участники обнулены!';
+    updateUsersList();
+    showRating();
+    showProfile();
+    if (typeof renderShop === 'function') renderShop();
+};
 
-// Вызываем рейтинг при загрузке страницы
+document.getElementById('admin-reset-all-wins').onclick = async () => {
+    if (!confirm('Сбросить победы у всех участников?')) return;
+    const usersSnap = await db.collection('users').get();
+    const batch = db.batch();
+    usersSnap.forEach(doc => batch.update(doc.ref, { wins: 0 }));
+    await batch.commit();
+    adminMessage.textContent = 'Победы у всех сброшены!';
+    showRating(); showProfile();
+};
+
+document.getElementById('admin-reset-all-games').onclick = async () => {
+    if (!confirm('Сбросить игры у всех участников?')) return;
+    const usersSnap = await db.collection('users').get();
+    const batch = db.batch();
+    usersSnap.forEach(doc => batch.update(doc.ref, { games: 0 }));
+    await batch.commit();
+    adminMessage.textContent = 'Игры у всех сброшены!';
+    showRating(); showProfile();
+};
+
+// ─── DOMContentLoaded ─────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
     showRating();
-    // Загружаем список пользователей при загрузке страницы
     loadUsersList();
-}); 
+});

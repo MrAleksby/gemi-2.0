@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Геймификация участников</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="transfer.css">
     <script defer src="main.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -16,6 +15,8 @@
     <div id="logo-container">
         <img src="logo2.jpg" alt="Логотип" id="main-logo">
     </div>
+
+    <!-- Вход -->
     <div id="login-section">
         <h2>Вход</h2>
         <form id="login-form">
@@ -25,6 +26,8 @@
         </form>
         <p>Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a></p>
     </div>
+
+    <!-- Регистрация -->
     <div id="register-section" style="display:none;">
         <h2>Регистрация</h2>
         <form id="register-form">
@@ -36,136 +39,148 @@
         </form>
         <p>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
     </div>
-    <div id="profile-card" class="card" style="display:none; margin: 30px auto 10px auto; max-width: 420px;">
+
+    <!-- Профиль -->
+    <div id="profile-card" class="card" style="display:none;">
         <h2 id="profile-header"></h2>
         <p id="profile-info"></p>
-        <button id="show-transfer-form" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block;">Передать монеты</button>
-        <button id="deposits-btn" class="main-btn" style="margin:10px auto 0 auto; width:80%; display:block; background: linear-gradient(135deg, #6c5ce7 0%, #5f3dc4 100%);">🏦 Депозиты</button>
+
+        <!-- Статус счёта игрока -->
+        <div id="score-request-status" style="display:none;"></div>
+
+        <!-- Кнопки действий -->
+        <div class="profile-action-btns">
+            <button id="submit-score-btn" class="main-btn score-btn">📋 Подать счёт</button>
+            <button id="show-transfer-form" class="main-btn transfer-btn">💸 Перевести</button>
+        </div>
+
         <div id="transfer-form-container" style="display:none;"></div>
         <div id="top5-container"></div>
-        <div id="profile-buttons" style="display: flex; gap: 12px; margin-top: 12px;">
+
+        <div id="profile-buttons">
             <button id="logout-btn">Выйти</button>
-            <button id="shop-btn" class="btn">Магазин</button>
+            <button id="shop-btn">Магазин</button>
         </div>
-        <button id="toggle-rating-btn" class="main-btn" style="margin: 18px auto 0 auto; width: 80%; display: block;">Показать рейтинг</button>
+        <button id="toggle-rating-btn" class="main-btn rating-btn">Показать рейтинг</button>
     </div>
+
+    <!-- Модал: подача счёта -->
+    <div id="score-request-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="score-request-close">&times;</span>
+            <h2>📋 Подать счёт</h2>
+            <p class="modal-hint">Заполни результаты и отправь на проверку администратору</p>
+            <form id="score-request-form">
+                <div class="score-field">
+                    <label>🎮 Игр сыграно</label>
+                    <input type="number" id="req-games" placeholder="0" min="0" value="0">
+                </div>
+                <div class="score-field">
+                    <label>🏆 Побед</label>
+                    <input type="number" id="req-wins" placeholder="0" min="0" value="0">
+                </div>
+                <div class="score-field">
+                    <label>💎 CF</label>
+                    <input type="number" id="req-cf" placeholder="0" min="0" value="0">
+                </div>
+                <div class="score-field">
+                    <label>⭐ Опыт / баллы</label>
+                    <input type="number" id="req-points" placeholder="0" min="0" value="0">
+                </div>
+                <div class="score-field">
+                    <label>💰 Монеты</label>
+                    <input type="number" id="req-coins" placeholder="0" min="0" value="0">
+                </div>
+                <button type="submit" class="main-btn" style="margin-top: 16px;">Отправить счёт</button>
+                <div id="score-request-msg" class="transfer-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модал: рейтинг -->
     <div id="rating-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" id="rating-close">&times;</span>
             <h2>🏆 Рейтинг участников</h2>
-            <table id="rating-table">
-                <thead>
-                    <tr><th>Место</th><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Монеты</th><th>Победы</th><th>Игры</th><th>KD</th><th>CF</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-    <div id="admin-section" style="display:none;">
-        <h2>Админ-панель</h2>
-        <p id="admin-message"></p>
-        <input type="text" id="admin-user" placeholder="Имя участника" list="users-list">
-        <datalist id="users-list">
-            <!-- Список пользователей будет загружаться динамически -->
-        </datalist>
-        <input type="number" id="admin-points" placeholder="Баллы для начисления">
-        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
-            <button id="admin-add-points" style="flex:1; min-width:0;">Начислить баллы</button>
-            <button id="admin-add-coins" style="flex:1; min-width:0;">Начислить монеты</button>
-        </div>
-        <button id="admin-reset-user">Обнулить баллы и монеты у участника</button>
-        <button id="admin-reset-all">Обнулить баллы и монеты у всех</button>
-        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
-            <button id="admin-reset-all-wins" style="flex:1; min-width:0;">Сбросить победы у всех</button>
-            <button id="admin-reset-all-games" style="flex:1; min-width:0;">Сбросить игры у всех</button>
-        </div>
-        <br><br>
-        <input type="number" id="admin-wins" placeholder="Победы для начисления">
-        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
-            <button id="admin-add-wins" style="flex:1; min-width:0;">Начислить победы</button>
-            <button id="admin-reset-wins" style="flex:1; min-width:0;">Сбросить победы</button>
-        </div>
-        <input type="number" id="admin-games" placeholder="Игры для начисления">
-        <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:8px;">
-            <button id="admin-add-games" style="flex:1; min-width:0;">Начислить игры</button>
-            <button id="admin-reset-games" style="flex:1; min-width:0;">Сбросить игры</button>
-        </div>
-        
-        <hr style="margin: 30px 0; border: 1px solid rgba(102, 126, 234, 0.2);">
-        
-        <h3 style="color: #00d4aa; margin-bottom: 15px;">💰 Управление транзакциями</h3>
-        
-        <div class="admin-transactions-section">
-            <h4>Управление CF пользователей:</h4>
-            <input type="text" id="admin-transaction-user" placeholder="Имя пользователя" list="users-list">
-            <input type="number" id="admin-transaction-amount" placeholder="Сумма в CF">
-            <input type="text" id="admin-transaction-reason" placeholder="Причина (например: донат в Standoff 2)">
-            <div class="admin-row-btns" style="display:flex; gap:10px; margin-top:10px;">
-                <button id="admin-add-cf" class="main-btn" style="flex:1; min-width:0; background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);">➕ Добавить CF</button>
-                <button id="admin-withdraw-cf" class="main-btn" style="flex:1; min-width:0; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);">➖ Снять CF</button>
+            <div class="table-scroll">
+                <table id="rating-table">
+                    <thead>
+                        <tr>
+                            <th>🏅</th>
+                            <th>Имя</th>
+                            <th>Уровень</th>
+                            <th>⭐</th>
+                            <th>💰</th>
+                            <th>💎</th>
+                            <th>KD</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
-        
-        <h4 style="margin-top: 25px; color: #667eea;">📊 История транзакций:</h4>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 0.9em; color: #666;">Последние 20 транзакций</span>
-            <button id="clear-transactions-btn" class="main-btn" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); padding: 8px 16px; font-size: 0.9em; margin: 0;">🗑️ Очистить историю</button>
-        </div>
-        <div id="transactions-history" class="transactions-list">
-            <!-- История будет загружаться сюда -->
-        </div>
-        
-        <hr style="margin: 30px 0; border: 1px solid rgba(102, 126, 234, 0.2);">
-        
     </div>
+
+    <!-- Магазин -->
     <div id="shop-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" id="shop-close">&times;</span>
             <h2>Магазин</h2>
-            <div id="shop-items">
-                <!-- Товары магазина будут подгружаться сюда -->
-            </div>
+            <div id="shop-items"></div>
         </div>
     </div>
-    
-    
-    <!-- Модальное окно депозитов -->
-    <div id="deposits-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" id="deposits-close">&times;</span>
-            <h2>🏦 Депозиты</h2>
-            
-            <!-- Информация о депозитах -->
-            <div class="deposits-info">
-                <p><strong>Доступно для депозита:</strong> <span id="available-cf">0</span> CF</p>
-                <p><strong>В депозитах:</strong> <span id="total-deposits">0</span> CF</p>
-            </div>
-            
-            <!-- Создание нового депозита -->
-            <div class="create-deposit-section">
-                <h3>Создать депозит</h3>
-                <div class="deposit-form">
-                    <label for="deposit-amount">Сумма депозита (минимум 100 CF):</label>
-                    <input type="number" id="deposit-amount" placeholder="Введите сумму" min="100">
-                    <div class="deposit-preview">
-                        <p><strong>Процентная ставка:</strong> <span id="deposit-rate">0</span>% годовых</p>
-                        <p><strong>Доход в день:</strong> <span id="daily-income">0</span> CF</p>
-                    </div>
-                    <button id="create-deposit-btn" class="main-btn">Создать депозит</button>
-                </div>
-            </div>
-            
-            <!-- Активные депозиты -->
-            <div class="active-deposits-section">
-                <h3>Активные депозиты</h3>
-                <div id="deposits-list" class="deposits-list">
-                    <!-- Список депозитов будет загружаться сюда -->
-                </div>
+
+    <!-- Админ-панель -->
+    <div id="admin-section" style="display:none;">
+        <h2>Админ-панель</h2>
+        <p id="admin-message"></p>
+
+        <!-- Входящие счета -->
+        <h3 class="section-title requests-title">📥 Входящие счета</h3>
+        <div id="score-requests-list" class="requests-list">
+            <p class="empty-hint">Загрузка...</p>
+        </div>
+
+        <hr class="section-divider">
+
+        <!-- Ручное управление CF -->
+        <h3 class="section-title cf-title">💰 Ручное управление CF</h3>
+        <datalist id="users-list"></datalist>
+        <div class="admin-transactions-section">
+            <input type="text" id="admin-transaction-user" placeholder="Имя пользователя" list="users-list">
+            <input type="number" id="admin-transaction-amount" placeholder="Сумма в CF">
+            <input type="text" id="admin-transaction-reason" placeholder="Причина">
+            <div class="admin-row-btns">
+                <button id="admin-add-cf" class="btn-add-cf">➕ Добавить CF</button>
+                <button id="admin-withdraw-cf" class="btn-remove-cf">➖ Снять CF</button>
             </div>
         </div>
+
+        <hr class="section-divider">
+
+        <!-- Сброс данных -->
+        <h3 class="section-title reset-title">🔄 Сброс данных</h3>
+        <input type="text" id="admin-user" placeholder="Имя участника" list="users-list">
+        <button id="admin-reset-user">Обнулить данные участника</button>
+        <button id="admin-reset-all">Обнулить всех участников</button>
+        <div class="admin-row-btns">
+            <button id="admin-reset-all-wins" style="flex:1;">Сбросить победы</button>
+            <button id="admin-reset-all-games" style="flex:1;">Сбросить игры</button>
+        </div>
+
+        <hr class="section-divider">
+
+        <!-- История транзакций -->
+        <h4 class="section-title">📊 История транзакций CF</h4>
+        <div class="history-header">
+            <span>Последние 20 транзакций</span>
+            <button id="clear-transactions-btn" class="btn-clear">🗑️ Очистить</button>
+        </div>
+        <div id="transactions-history" class="transactions-list"></div>
     </div>
+
 </body>
 </html>
 <script src="shop.js"></script>
 <script src="transfer.js"></script>
-<script src="admin-actions.js"></script> 
+<script src="admin-actions.js"></script>
