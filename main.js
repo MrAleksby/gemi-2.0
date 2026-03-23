@@ -689,6 +689,7 @@ document.getElementById('admin-reset-user').onclick = async () => {
     if (userDoc) {
         await userDoc.ref.update({
             points: 0, coins: 0, level: 1,
+            wins: 0, games: 0,
             savingsLevel: 0, savings: 0,
             twobigLevel: 0, twobig: 0,
             ok4uLevel: 0, ok4u: 0,
@@ -714,6 +715,7 @@ document.getElementById('admin-reset-all').onclick = async () => {
     usersSnap.forEach(doc => {
         batch.update(doc.ref, {
             points: 0, coins: 0, level: 1,
+            wins: 0, games: 0,
             savingsLevel: 0, savings: 0,
             twobigLevel: 0, twobig: 0,
             ok4uLevel: 0, ok4u: 0,
