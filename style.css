@@ -1917,6 +1917,47 @@ th {
     -webkit-overflow-scrolling: touch;
 }
 
+/* ─── Обмен CF ─────────────────────────────────────────────── */
+
+.exchange-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.exchange-balance {
+    text-align: center;
+    font-size: 1em;
+    font-weight: 600;
+    color: #00b894;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    background: rgba(0, 184, 148, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 184, 148, 0.3);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.exchange-preview {
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: #764ba2;
+    padding: 10px;
+    border-radius: 10px;
+    min-height: 20px;
+    margin-top: 4px;
+    transition: all 0.2s;
+}
+
+.exchange-preview.active {
+    background: rgba(102, 126, 234, 0.08);
+    border: 1.5px solid rgba(102, 126, 234, 0.25);
+}
+
+.exchange-submit-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
 /* ─── Мобильная оптимизация новых компонентов ────────────── */
 
 @media (max-width: 600px) {

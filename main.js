@@ -401,6 +401,90 @@ async function showRating() {
     });
 }
 
+// ─── Обмен CF ─────────────────────────────────────────────────────────────────
+
+const CF_TO_POINTS = 2;
+const CF_TO_COINS  = 2;
+
+const exchangeModal = document.getElementById('exchange-modal');
+
+document.getElementById('show-exchange-btn').onclick = async () => {
+    document.getElementById('exchange-cf-amount').value = '';
+    document.getElementById('exchange-preview').textContent = '';
+    document.getElementById('exchange-msg').textContent = '';
+    const doc = await db.collection('users').doc(currentUser).get();
+    const cf = (doc.data().cf || 0).toFixed(2);
+    document.getElementById('exchange-cf-balance').textContent = `Ваш баланс: ${cf} CF`;
+    exchangeModal.style.display = 'flex';
+};
+
+document.getElementById('exchange-close').onclick = () => {
+    exchangeModal.style.display = 'none';
+};
+exchangeModal.onclick = (e) => {
+    if (e.target === exchangeModal) exchangeModal.style.display = 'none';
+};
+
+document.getElementById('exchange-cf-amount').oninput = () => {
+    const amt = parseInt(document.getElementById('exchange-cf-amount').value) || 0;
+    const preview = document.getElementById('exchange-preview');
+    if (amt <= 0) { preview.textContent = ''; preview.className = 'exchange-preview'; return; }
+    preview.textContent = `${amt} CF → ${amt * CF_TO_POINTS} ⭐ опыта + ${amt * CF_TO_COINS} 💰 монет`;
+    preview.className = 'exchange-preview active';
+};
+
+document.getElementById('exchange-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('exchange-msg');
+    const amt = parseInt(document.getElementById('exchange-cf-amount').value) || 0;
+
+    if (amt <= 0) {
+        msg.textContent = 'Введите количество CF!';
+        msg.className = 'transfer-message error';
+        return;
+    }
+
+    msg.textContent = 'Обмен...';
+    msg.className = 'transfer-message';
+
+    try {
+        const userRef = db.collection('users').doc(currentUser);
+        const userDoc = await userRef.get();
+        const data    = userDoc.data();
+        const currentCF = data.cf || 0;
+
+        if (currentCF < amt) {
+            msg.textContent = `Недостаточно CF! У вас ${currentCF.toFixed(2)} CF`;
+            msg.className = 'transfer-message error';
+            return;
+        }
+
+        const newPoints = (data.points || 0) + amt * CF_TO_POINTS;
+        const newCoins  = (data.coins  || 0) + amt * CF_TO_COINS;
+        const newCF     = currentCF - amt;
+        const newLevel  = getLevelByPoints(newPoints);
+
+        await userRef.update({ cf: newCF, points: newPoints, coins: newCoins, level: newLevel });
+
+        msg.textContent = `Получено ${amt * CF_TO_POINTS} ⭐ опыта и ${amt * CF_TO_COINS} 💰 монет!`;
+        msg.className = 'transfer-message success';
+        document.getElementById('exchange-cf-amount').value = '';
+        document.getElementById('exchange-preview').textContent = '';
+        document.getElementById('exchange-cf-balance').textContent = `Ваш баланс: ${newCF.toFixed(2)} CF`;
+
+        showProfile();
+        showRating();
+
+        setTimeout(() => {
+            exchangeModal.style.display = 'none';
+            msg.textContent = '';
+        }, 2500);
+    } catch (err) {
+        msg.textContent = 'Ошибка: ' + err.message;
+        msg.className = 'transfer-message error';
+    }
+};
+
 // ─── Модалы ───────────────────────────────────────────────────────────────────
 
 const ratingModal = document.getElementById('rating-modal');

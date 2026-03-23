@@ -53,6 +53,9 @@
             <button id="submit-score-btn" class="main-btn score-btn">📋 Подать счёт</button>
             <button id="show-transfer-form" class="main-btn transfer-btn">💸 Перевести</button>
         </div>
+        <div class="profile-action-btns" style="margin-top: 8px;">
+            <button id="show-exchange-btn" class="main-btn exchange-btn">🔄 Обменять CF</button>
+        </div>
 
         <div id="transfer-form-container" style="display:none;"></div>
         <div id="top5-container"></div>
@@ -62,6 +65,25 @@
             <button id="shop-btn">Магазин</button>
         </div>
         <button id="toggle-rating-btn" class="main-btn rating-btn">Показать рейтинг</button>
+    </div>
+
+    <!-- Модал: обмен CF -->
+    <div id="exchange-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="exchange-close">&times;</span>
+            <h2>🔄 Обменять CF</h2>
+            <p class="modal-hint">1 CF = 2 ⭐ опыта + 2 💰 монеты</p>
+            <div id="exchange-cf-balance" class="exchange-balance"></div>
+            <form id="exchange-form">
+                <div class="score-field">
+                    <label>Сколько CF обменять?</label>
+                    <input type="number" id="exchange-cf-amount" placeholder="0" min="1">
+                </div>
+                <div id="exchange-preview" class="exchange-preview"></div>
+                <button type="submit" class="main-btn exchange-submit-btn" style="margin-top: 12px;">Обменять</button>
+                <div id="exchange-msg" class="transfer-message"></div>
+            </form>
+        </div>
     </div>
 
     <!-- Модал: подача счёта -->
