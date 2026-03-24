@@ -75,7 +75,7 @@ const QUOTES = [
     { text: "Относись к другим так, как хочешь, чтобы относились к тебе.", author: "Золотое правило" },
 ];
 
-// ─── Система бейджей ──────────────────────────────────────────────────────────
+// ─── Система наград ───────────────────────────────────────────────────────────
 
 // Уровни редкости (как в Brawl Stars): common rare superrare epic mythic legendary
 const BADGE_TIERS = {
@@ -154,8 +154,6 @@ const BADGES = [
     { id: 'reliable',    icon: '✅', name: 'Надёжный',           desc: '5 счётов — все одобрены',            cat: 'Особые', tier: 'superrare', check: d => (d.approvedRequests||0) >= 5 && !(d.rejectedRequests > 0) },
     { id: 'top3_rank',   icon: '🥉', name: 'Топ-3',              desc: 'Попал в топ-3 рейтинга',            cat: 'Особые', tier: 'epic',      check: d => (d.bestRank||99) <= 3 },
     { id: 'silent_hunt', icon: '🕵️', name: 'Тихий охотник',     desc: 'KD ≥ 0.8 при 10+ играх',            cat: 'Особые', tier: 'mythic',    check: d => (d.games||0) >= 10 && (d.wins||0)/(d.games||1) >= 0.8 },
-    { id: 'season_end',  icon: '🎖', name: 'Завершитель сезона', desc: '20+ игр + уровень 5+',               cat: 'Особые', tier: 'mythic',    check: d => (d.games||0) >= 20 && getLevelByPoints(d.points||0) >= 5 },
-    { id: 'all_res',     icon: '🌈', name: 'Всесезонный',        desc: 'Сыграл 24 игры за сезон',           cat: 'Особые', tier: 'mythic',    check: d => (d.games||0) >= 24 },
     { id: 'top1_rank',   icon: '🏅', name: 'Чемпион рейтинга',   desc: 'Занял 1-е место в рейтинге',        cat: 'Особые', tier: 'legendary', check: d => (d.bestRank||99) <= 1 },
 ];
 
@@ -184,7 +182,7 @@ function showBadgeToast(badge) {
     toast.innerHTML = `
         <div class="badge-toast-icon">${badge.icon}</div>
         <div class="badge-toast-text">
-            <div class="badge-toast-title">🎉 Новый бейдж!</div>
+            <div class="badge-toast-title">🎉 Новая награда!</div>
             <div class="badge-toast-name">${badge.name}</div>
             <div class="badge-toast-desc">${badge.desc}</div>
         </div>
@@ -204,7 +202,7 @@ function renderBadges(earnedIds) {
     const count = BADGES.filter(b => earnedSet.has(b.id)).length;
     container.innerHTML = `
         <div class="badges-header" onclick="toggleBadgesGrid()">
-            🏅 Мои бейджи <span class="badges-count">${count} / ${BADGES.length}</span>
+            🏅 Мои награды <span class="badges-count">${count} / ${BADGES.length}</span>
             <span id="badges-toggle-icon">▼</span>
         </div>
         <div class="badges-grid" id="badges-grid" style="display:none;">
@@ -233,7 +231,7 @@ function showBadgeInfo(icon, name, desc, tier, earned) {
         </div>
         <div style="font-size:0.88rem;color:#555;text-align:center;line-height:1.4;">${desc}</div>
         <div style="margin-top:12px;font-size:0.88rem;font-weight:700;color:${earned ? '#27ae60' : '#e67e22'};">
-            ${earned ? '✅ Уже получен!' : '🔒 Ещё не получен'}
+            ${earned ? '✅ Уже получена!' : '🔒 Ещё не получена'}
         </div>
         <div class="popup-hint">Нажмите для закрытия</div>
     `;
