@@ -45,14 +45,15 @@ async function adminWithdrawCF(username, amount, reason) {
     setTimeout(() => { showProfile(); showRating(); }, 500);
 }
 
-async function addTransactionRecord(username, amount, type, reason) {
+async function addTransactionRecord(username, amount, type, reason, userId = null) {
     await db.collection('transactions').add({
         username,
         amount,
         type,
         reason: reason || 'Не указано',
         timestamp: new Date(),
-        admin: true
+        userId,
+        admin: type !== 'exchange'
     });
 }
 
@@ -94,6 +95,20 @@ async function approveScoreRequest(requestId) {
         batch.update(reqDoc.ref, { status: 'approved', resolvedAt: new Date() });
         await batch.commit();
 
+        const parts = [];
+        if (req.games)  parts.push(`${req.games} игр`);
+        if (req.wins)   parts.push(`${req.wins} побед`);
+        if (req.cf)     parts.push(`${req.cf} CF`);
+        if (req.points) parts.push(`${req.points} опыта`);
+        if (req.coins)  parts.push(`${req.coins} монет`);
+        await addTransactionRecord(
+            req.username,
+            req.cf || 0,
+            'approve',
+            `Счёт одобрен: ${parts.join(', ')}`,
+            req.userId
+        );
+
         if (typeof showProfile === 'function') showProfile();
         if (typeof showRating  === 'function') showRating();
     } catch (err) {
@@ -103,10 +118,19 @@ async function approveScoreRequest(requestId) {
 
 async function rejectScoreRequest(requestId) {
     try {
-        await db.collection('score_requests').doc(requestId).update({
-            status: 'rejected',
-            resolvedAt: new Date()
-        });
+        const reqDoc = await db.collection('score_requests').doc(requestId).get();
+        if (!reqDoc.exists) return;
+        const req = reqDoc.data();
+
+        await reqDoc.ref.update({ status: 'rejected', resolvedAt: new Date() });
+
+        await addTransactionRecord(
+            req.username,
+            0,
+            'reject',
+            'Счёт отклонён администратором',
+            req.userId
+        );
     } catch (err) {
         alert('Ошибка при отклонении: ' + err.message);
     }

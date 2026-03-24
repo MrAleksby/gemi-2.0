@@ -203,6 +203,7 @@ auth.onAuthStateChanged(async (user) => {
             setupAdminRequestsListener();
         } else {
             adminSection.style.display = 'none';
+            loadPlayerHistory(currentUser);
         }
         setupPlayerRequestListener();
     } else {
@@ -466,6 +467,16 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
 
         await userRef.update({ cf: newCF, points: newPoints, coins: newCoins, level: newLevel });
 
+        const userSnap = await userRef.get();
+        const username = userSnap.data().name || '';
+        await addTransactionRecord(
+            username,
+            amt,
+            'exchange',
+            `Обмен ${amt} CF → ${amt * CF_TO_POINTS} ⭐ опыта + ${amt * CF_TO_COINS} 💰 монет`,
+            currentUser
+        );
+
         msg.textContent = `Получено ${amt * CF_TO_POINTS} ⭐ опыта и ${amt * CF_TO_COINS} 💰 монет!`;
         msg.className = 'transfer-message success';
         document.getElementById('exchange-cf-amount').value = '';
@@ -674,6 +685,51 @@ function updateUsersList() {
     if (adminSection && adminSection.style.display !== 'none') loadUsersList();
 }
 
+// ─── Рендер транзакции ────────────────────────────────────────────────────────
+
+function renderTransactionItem(t) {
+    const date = t.timestamp
+        ? t.timestamp.toDate().toLocaleString('ru-RU')
+        : 'Неизвестно';
+    const typeMap = {
+        add:      { cls: 'tx-add',      icon: '+', label: `${t.amount} CF` },
+        withdraw: { cls: 'tx-remove',   icon: '-', label: `${t.amount} CF` },
+        approve:  { cls: 'tx-approve',  icon: '✅', label: 'Счёт одобрен' },
+        reject:   { cls: 'tx-reject',   icon: '❌', label: 'Счёт отклонён' },
+        exchange: { cls: 'tx-exchange', icon: '🔄', label: `${t.amount} CF` },
+    };
+    const m = typeMap[t.type] || { cls: 'tx-add', icon: '', label: t.amount };
+    return `
+        <div class="transaction-item ${m.cls}">
+            <div class="transaction-header">
+                <span class="transaction-user">${t.username || ''}</span>
+                <span class="transaction-amount">${m.icon} ${m.label}</span>
+            </div>
+            <div class="transaction-description">${t.reason || ''}</div>
+            <div class="transaction-date">${date}</div>
+        </div>
+    `;
+}
+
+async function loadPlayerHistory(userId) {
+    const listEl = document.getElementById('player-history-list');
+    if (!listEl) return;
+    try {
+        const snap = await db.collection('transactions')
+            .where('userId', '==', userId)
+            .orderBy('timestamp', 'desc')
+            .limit(20).get();
+        if (snap.empty) {
+            listEl.innerHTML = '<p class="empty-hint">История пуста</p>';
+            return;
+        }
+        listEl.innerHTML = '';
+        snap.forEach(doc => { listEl.innerHTML += renderTransactionItem(doc.data()); });
+    } catch (err) {
+        console.error('Ошибка загрузки истории игрока:', err);
+    }
+}
+
 // ─── Транзакции CF ────────────────────────────────────────────────────────────
 
 const adminTransactionUser   = document.getElementById('admin-transaction-user');
@@ -697,21 +753,7 @@ async function loadTransactionsHistory() {
 
         transactionsHistory.innerHTML = '';
         snap.forEach(doc => {
-            const t = doc.data();
-            const date = t.timestamp
-                ? t.timestamp.toDate().toLocaleString('ru-RU')
-                : 'Неизвестно';
-            const isAdd = t.type === 'add';
-            transactionsHistory.innerHTML += `
-                <div class="transaction-item ${isAdd ? 'tx-add' : 'tx-remove'}">
-                    <div class="transaction-header">
-                        <span class="transaction-user">${t.username || ''}</span>
-                        <span class="transaction-amount">${isAdd ? '+' : '-'}${t.amount} CF</span>
-                    </div>
-                    <div class="transaction-description">${t.reason || ''}</div>
-                    <div class="transaction-date">${date}</div>
-                </div>
-            `;
+            transactionsHistory.innerHTML += renderTransactionItem(doc.data());
         });
     } catch (err) {
         console.error('Ошибка загрузки истории:', err);
