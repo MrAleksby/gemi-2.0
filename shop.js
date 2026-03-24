@@ -8,7 +8,7 @@ const SHOP_ITEMS = [
         maxLevel: 25,
         upgrades: Array.from({ length: 25 }, (_, i) => ({
             charLevel: i + 1,
-            cost: (i + 1) * 10,
+            cost: (i + 1) * 20,
             reward: (i + 1) * 200
         }))
     },
@@ -19,11 +19,11 @@ const SHOP_ITEMS = [
         color: '#e53935',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 5  },
-            { charLevel: 10, cost: 50,  reward: 10 },
-            { charLevel: 15, cost: 75,  reward: 15 },
-            { charLevel: 20, cost: 100, reward: 20 },
-            { charLevel: 25, cost: 125, reward: 25 }
+            { charLevel: 5,  cost: 50,  reward: 5  },
+            { charLevel: 10, cost: 100, reward: 10 },
+            { charLevel: 15, cost: 150, reward: 15 },
+            { charLevel: 20, cost: 200, reward: 20 },
+            { charLevel: 25, cost: 250, reward: 25 }
         ]
     },
     {
@@ -33,11 +33,11 @@ const SHOP_ITEMS = [
         color: '#1976d2',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 100  },
-            { charLevel: 10, cost: 50,  reward: 250  },
-            { charLevel: 15, cost: 75,  reward: 500  },
-            { charLevel: 20, cost: 100, reward: 750  },
-            { charLevel: 25, cost: 125, reward: 1000 }
+            { charLevel: 5,  cost: 50,  reward: 100  },
+            { charLevel: 10, cost: 100, reward: 250  },
+            { charLevel: 15, cost: 150, reward: 500  },
+            { charLevel: 20, cost: 200, reward: 750  },
+            { charLevel: 25, cost: 250, reward: 1000 }
         ]
     },
     {
@@ -47,11 +47,11 @@ const SHOP_ITEMS = [
         color: '#f9a825',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 100  },
-            { charLevel: 10, cost: 50,  reward: 250  },
-            { charLevel: 15, cost: 75,  reward: 500  },
-            { charLevel: 20, cost: 100, reward: 750  },
-            { charLevel: 25, cost: 125, reward: 1000 }
+            { charLevel: 5,  cost: 50,  reward: 100  },
+            { charLevel: 10, cost: 100, reward: 250  },
+            { charLevel: 15, cost: 150, reward: 500  },
+            { charLevel: 20, cost: 200, reward: 750  },
+            { charLevel: 25, cost: 250, reward: 1000 }
         ]
     },
     {
@@ -61,11 +61,11 @@ const SHOP_ITEMS = [
         color: '#00897b',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 100  },
-            { charLevel: 10, cost: 50,  reward: 250  },
-            { charLevel: 15, cost: 75,  reward: 500  },
-            { charLevel: 20, cost: 100, reward: 750  },
-            { charLevel: 25, cost: 125, reward: 1000 }
+            { charLevel: 5,  cost: 50,  reward: 100  },
+            { charLevel: 10, cost: 100, reward: 250  },
+            { charLevel: 15, cost: 150, reward: 500  },
+            { charLevel: 20, cost: 200, reward: 750  },
+            { charLevel: 25, cost: 250, reward: 1000 }
         ]
     },
     {
@@ -75,11 +75,11 @@ const SHOP_ITEMS = [
         color: '#e65100',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 100  },
-            { charLevel: 10, cost: 50,  reward: 250  },
-            { charLevel: 15, cost: 75,  reward: 500  },
-            { charLevel: 20, cost: 100, reward: 750  },
-            { charLevel: 25, cost: 125, reward: 1000 }
+            { charLevel: 5,  cost: 50,  reward: 100  },
+            { charLevel: 10, cost: 100, reward: 250  },
+            { charLevel: 15, cost: 150, reward: 500  },
+            { charLevel: 20, cost: 200, reward: 750  },
+            { charLevel: 25, cost: 250, reward: 1000 }
         ]
     },
     {
@@ -90,11 +90,11 @@ const SHOP_ITEMS = [
         maxLevel: 5,
         defaultValue: '—',
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: '10%' },
-            { charLevel: 10, cost: 50,  reward: '20%' },
-            { charLevel: 15, cost: 75,  reward: '30%' },
-            { charLevel: 20, cost: 100, reward: '40%' },
-            { charLevel: 25, cost: 125, reward: '50%' }
+            { charLevel: 5,  cost: 50,  reward: '10%' },
+            { charLevel: 10, cost: 100, reward: '20%' },
+            { charLevel: 15, cost: 150, reward: '30%' },
+            { charLevel: 20, cost: 200, reward: '40%' },
+            { charLevel: 25, cost: 250, reward: '50%' }
         ]
     },
     {
@@ -105,11 +105,11 @@ const SHOP_ITEMS = [
         maxLevel: 5,
         defaultValue: '—',
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: 'Мелкие кредиты'      },
-            { charLevel: 10, cost: 50,  reward: 'Кредитные карточки'   },
-            { charLevel: 15, cost: 75,  reward: 'Кредит на автомобиль' },
-            { charLevel: 20, cost: 100, reward: 'На образование'       },
-            { charLevel: 25, cost: 125, reward: 'Ипотека'              }
+            { charLevel: 5,  cost: 50,  reward: 'Мелкие кредиты'      },
+            { charLevel: 10, cost: 100, reward: 'Кредитные карточки'   },
+            { charLevel: 15, cost: 150, reward: 'Кредит на автомобиль' },
+            { charLevel: 20, cost: 200, reward: 'На образование'       },
+            { charLevel: 25, cost: 250, reward: 'Ипотека'              }
         ]
     },
     {
@@ -120,11 +120,11 @@ const SHOP_ITEMS = [
         maxLevel: 5,
         defaultValue: '—',
         upgrades: [
-            { charLevel: 5,  cost: 25,  reward: '(2|1 И35к ПВ2к П100)'   },
-            { charLevel: 10, cost: 50,  reward: '(3/2 И90к ПВ3к П200)'   },
-            { charLevel: 15, cost: 75,  reward: '(2плекс И40к ПВ5к П300)' },
-            { charLevel: 20, cost: 100, reward: '(4плекс И80к ПВ10к П500)'},
-            { charLevel: 25, cost: 125, reward: '(8плес И120к ПВ20к П1к)' }
+            { charLevel: 5,  cost: 50,  reward: '(2|1 И35к ПВ2к П100)'   },
+            { charLevel: 10, cost: 100, reward: '(3/2 И90к ПВ3к П200)'   },
+            { charLevel: 15, cost: 150, reward: '(2плекс И40к ПВ5к П300)' },
+            { charLevel: 20, cost: 200, reward: '(4плекс И80к ПВ10к П500)'},
+            { charLevel: 25, cost: 250, reward: '(8плес И120к ПВ20к П1к)' }
         ]
     }
 ];
