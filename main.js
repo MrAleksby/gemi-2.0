@@ -202,6 +202,7 @@ function renderBadges(earnedIds) {
                 <div class="badge-item ${earnedSet.has(b.id) ? 'earned' : 'locked'}" title="${b.name}: ${b.desc}">
                     <div class="badge-icon">${b.icon}</div>
                     <div class="badge-name">${b.name}</div>
+                    <div class="badge-desc">${b.desc}</div>
                 </div>
             `).join('')}
         </div>
