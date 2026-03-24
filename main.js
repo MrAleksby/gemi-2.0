@@ -100,7 +100,6 @@ const BADGES = [
     // 🏆 Победы
     { id: 'win_1',  icon: '🥇', name: 'Первая кровь',      desc: '1 победа',              cat: 'Победы',   tier: 'common',    check: d => (d.wins||0) >= 1  },
     { id: 'win_3',  icon: '⚔️', name: 'Боец',              desc: '3 победы',              cat: 'Победы',   tier: 'rare',      check: d => (d.wins||0) >= 3  },
-    { id: 'win_5',  icon: '🛡', name: 'Воин',               desc: '5 побед',               cat: 'Победы',   tier: 'rare',      check: d => (d.wins||0) >= 5  },
     { id: 'win_8',  icon: '🏹', name: 'Охотник',            desc: '8 побед',               cat: 'Победы',   tier: 'superrare', check: d => (d.wins||0) >= 8  },
     { id: 'win_12', icon: '🦅', name: 'Чемпион',            desc: '12 побед',              cat: 'Победы',   tier: 'epic',      check: d => (d.wins||0) >= 12 },
     { id: 'win_16', icon: '🌪', name: 'Непобедимый',        desc: '16 побед',              cat: 'Победы',   tier: 'mythic',    check: d => (d.wins||0) >= 16 },
@@ -117,7 +116,6 @@ const BADGES = [
     { id: 'cf_1500', icon: '🤑', name: 'CF Магнат',         desc: 'Накопил 1500 CF',       cat: 'CF',       tier: 'mythic',    check: d => (d.cf||0) >= 1500 },
     // 💰 Монеты
     { id: 'coin_100',   icon: '🐷', name: 'Копилка',        desc: 'Накопил 100 монет',     cat: 'Монеты',   tier: 'common',    check: d => (d.coins||0) >= 100   },
-    { id: 'coin_300',   icon: '💰', name: 'Кассир',         desc: 'Накопил 300 монет',     cat: 'Монеты',   tier: 'rare',      check: d => (d.coins||0) >= 300   },
     { id: 'coin_500',   icon: '🏦', name: 'Банкир',         desc: 'Накопил 500 монет',     cat: 'Монеты',   tier: 'rare',      check: d => (d.coins||0) >= 500   },
     { id: 'coin_1000',  icon: '🏛', name: 'Богач',          desc: 'Накопил 1000 монет',    cat: 'Монеты',   tier: 'superrare', check: d => (d.coins||0) >= 1000  },
     { id: 'coin_2000',  icon: '💎', name: 'Сокровище',      desc: 'Накопил 2000 монет',    cat: 'Монеты',   tier: 'epic',      check: d => (d.coins||0) >= 2000  },
