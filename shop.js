@@ -61,11 +61,11 @@ const SHOP_ITEMS = [
         color: '#00897b',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 50,  reward: 100  },
-            { charLevel: 10, cost: 100, reward: 250  },
-            { charLevel: 15, cost: 150, reward: 500  },
-            { charLevel: 20, cost: 200, reward: 750  },
-            { charLevel: 25, cost: 250, reward: 1000 }
+            { charLevel: 5,  cost: 60,  reward: 100  },
+            { charLevel: 10, cost: 120, reward: 250  },
+            { charLevel: 15, cost: 180, reward: 500  },
+            { charLevel: 20, cost: 240, reward: 750  },
+            { charLevel: 25, cost: 300, reward: 1000 }
         ]
     },
     {
@@ -75,11 +75,11 @@ const SHOP_ITEMS = [
         color: '#e65100',
         maxLevel: 5,
         upgrades: [
-            { charLevel: 5,  cost: 50,  reward: 100  },
-            { charLevel: 10, cost: 100, reward: 250  },
-            { charLevel: 15, cost: 150, reward: 500  },
-            { charLevel: 20, cost: 200, reward: 750  },
-            { charLevel: 25, cost: 250, reward: 1000 }
+            { charLevel: 5,  cost: 60,  reward: 100  },
+            { charLevel: 10, cost: 120, reward: 250  },
+            { charLevel: 15, cost: 180, reward: 500  },
+            { charLevel: 20, cost: 240, reward: 750  },
+            { charLevel: 25, cost: 300, reward: 1000 }
         ]
     },
     {
