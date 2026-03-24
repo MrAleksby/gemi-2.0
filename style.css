@@ -2252,9 +2252,10 @@ th {
 }
 
 .badge-item.locked {
-    background: rgba(0,0,0,0.06);
-    border: 1.5px solid #e0d0c0;
-    opacity: 0.55;
+    background: rgba(0,0,0,0.04);
+    border: 1.5px solid #ddd;
+    filter: grayscale(100%);
+    opacity: 0.5;
 }
 
 .badge-icon {

@@ -200,8 +200,8 @@ function renderBadges(earnedIds) {
         <div class="badges-grid" id="badges-grid" style="display:none;">
             ${BADGES.map(b => `
                 <div class="badge-item ${earnedSet.has(b.id) ? 'earned' : 'locked'}" title="${b.name}: ${b.desc}">
-                    <div class="badge-icon">${earnedSet.has(b.id) ? b.icon : '🔒'}</div>
-                    <div class="badge-name">${earnedSet.has(b.id) ? b.name : '???'}</div>
+                    <div class="badge-icon">${b.icon}</div>
+                    <div class="badge-name">${b.name}</div>
                 </div>
             `).join('')}
         </div>
