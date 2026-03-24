@@ -1547,6 +1547,22 @@ th {
     min-height: 46px;
 }
 
+/* Кнопка отмены счёта */
+.cancel-request-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: none;
+    border: 2px solid rgba(231, 76, 60, 0.4);
+    border-radius: 12px;
+    color: #e74c3c;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.cancel-request-btn:hover { background: rgba(231,76,60,0.08); opacity: 1; }
+
 /* Кнопка удаления аккаунта */
 .btn-delete-account {
     display: block;

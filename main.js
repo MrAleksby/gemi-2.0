@@ -690,8 +690,16 @@ function setupPlayerRequestListener() {
 
             if (pending) {
                 statusDiv.style.display = '';
-                statusDiv.innerHTML = `<div class="status-badge pending">⏳ Счёт на проверке у администратора</div>`;
+                statusDiv.innerHTML = `
+                    <div class="status-badge pending">⏳ Счёт на проверке у администратора</div>
+                    <button class="cancel-request-btn" id="cancel-request-btn">✖ Отменить счёт</button>
+                `;
                 if (submitBtn) submitBtn.disabled = true;
+
+                document.getElementById('cancel-request-btn').onclick = async () => {
+                    if (!confirm('Отменить выставленный счёт?')) return;
+                    await db.collection('score_requests').doc(pending.id).delete();
+                };
             } else if (rejected) {
                 statusDiv.style.display = '';
                 statusDiv.innerHTML = `<div class="status-badge rejected">❌ Счёт отклонён — подай исправленный</div>`;
