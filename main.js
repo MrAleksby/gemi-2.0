@@ -382,7 +382,7 @@ async function showProfile() {
     let place = 1;
     top5Snap.forEach(doc => {
         const d = doc.data();
-        if (!d.name || d.name.trim() === '') return;
+        if (!d.name || d.name.trim() === '' || d.isAdmin) return;
         const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
         const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
         top5Html += `<tr>
@@ -426,7 +426,7 @@ async function showRating() {
     let place = 1;
     usersSnap.forEach(doc => {
         const data = doc.data();
-        if (!data.name || data.name.trim() === '') return;
+        if (!data.name || data.name.trim() === '' || data.isAdmin) return;
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         const tr = document.createElement('tr');
