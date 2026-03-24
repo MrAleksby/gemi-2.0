@@ -621,8 +621,9 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
     const games  = parseInt(document.getElementById('req-games').value)  || 0;
     const wins   = parseInt(document.getElementById('req-wins').value)   || 0;
     const cf     = parseInt(document.getElementById('req-cf').value)     || 0;
-    const points = parseInt(document.getElementById('req-points').value) || 0;
-    const coins  = parseInt(document.getElementById('req-coins').value)  || 0;
+    const points  = parseInt(document.getElementById('req-points').value)  || 0;
+    const coins   = parseInt(document.getElementById('req-coins').value)   || 0;
+    const comment = document.getElementById('req-comment').value.trim();
 
     if (!games && !wins && !cf && !points && !coins) {
         msg.textContent = 'Заполните хотя бы одно поле!';
@@ -653,6 +654,7 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
             userId: currentUser,
             username,
             games, wins, cf, points, coins,
+            comment: comment || '',
             status: 'pending',
             createdAt: new Date()
         });
@@ -754,6 +756,7 @@ function setupAdminRequestsListener() {
                         <span class="request-time">${dateStr}</span>
                     </div>
                     <div class="request-fields">${fields.map(f => `<span class="req-field">${f}</span>`).join('')}</div>
+                    ${req.comment ? `<div class="request-comment">💬 ${req.comment}</div>` : ''}
                     <div class="request-actions">
                         <button class="approve-btn" onclick="approveRequest('${doc.id}')">✅ Принять</button>
                         <button class="reject-btn" onclick="rejectRequest('${doc.id}')">❌ Отклонить</button>
