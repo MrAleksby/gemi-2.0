@@ -43,12 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const toInput = document.getElementById('transfer-to');
         const suggBox = document.getElementById('transfer-suggestions');
 
-        toInput.addEventListener('input', () => {
-            const val = toInput.value.trim().toLowerCase();
+        function positionSugg() {
+            const rect = toInput.getBoundingClientRect();
+            suggBox.style.top    = (rect.bottom + window.scrollY + 4) + 'px';
+            suggBox.style.left   = (rect.left   + window.scrollX)     + 'px';
+            suggBox.style.width  = rect.width + 'px';
+        }
+
+        function showSugg(matches) {
             suggBox.innerHTML = '';
-            if (!val) { suggBox.style.display = 'none'; return; }
-            const matches = allUsers.filter(n => n.toLowerCase().includes(val));
-            if (!matches.length) { suggBox.style.display = 'none'; return; }
             matches.forEach(name => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
@@ -61,7 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 suggBox.appendChild(item);
             });
+            positionSugg();
             suggBox.style.display = 'block';
+        }
+
+        toInput.addEventListener('input', () => {
+            const val = toInput.value.trim().toLowerCase();
+            if (!val) { suggBox.style.display = 'none'; return; }
+            const matches = allUsers.filter(n => n.toLowerCase().includes(val));
+            if (!matches.length) { suggBox.style.display = 'none'; return; }
+            showSugg(matches);
         });
 
         toInput.addEventListener('blur', () => {
@@ -69,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         toInput.addEventListener('focus', () => {
-            if (suggBox.children.length) suggBox.style.display = 'block';
+            if (suggBox.children.length) { positionSugg(); suggBox.style.display = 'block'; }
         });
 
         formContainer.querySelectorAll('.transfer-tab').forEach(tab => {
