@@ -68,20 +68,24 @@ document.addEventListener('DOMContentLoaded', () => {
             suggBox.style.display = 'block';
         }
 
-        toInput.addEventListener('input', () => {
+        function filterAndShow() {
             const val = toInput.value.trim().toLowerCase();
-            if (!val) { suggBox.style.display = 'none'; return; }
-            const matches = allUsers.filter(n => n.toLowerCase().includes(val)).sort((a, b) => a.localeCompare(b));
-            if (!matches.length) { suggBox.style.display = 'none'; return; }
-            showSugg(matches);
+            const list = val
+                ? allUsers.filter(n => n.toLowerCase().includes(val))
+                : allUsers.slice();
+            list.sort((a, b) => a.localeCompare(b));
+            if (!list.length) { suggBox.style.display = 'none'; return; }
+            showSugg(list);
+        }
+
+        toInput.addEventListener('input', filterAndShow);
+
+        toInput.addEventListener('focus', () => {
+            if (allUsers.length) filterAndShow();
         });
 
         toInput.addEventListener('blur', () => {
             setTimeout(() => { suggBox.style.display = 'none'; }, 150);
-        });
-
-        toInput.addEventListener('focus', () => {
-            if (suggBox.children.length) { positionSugg(); suggBox.style.display = 'block'; }
         });
 
         formContainer.querySelectorAll('.transfer-tab').forEach(tab => {
