@@ -36,6 +36,35 @@ async function findUserByName(username) {
     ) || null;
 }
 
+// ─── Мотивирующие цитаты ──────────────────────────────────────────────────────
+
+const QUOTES = [
+    { text: "Правило №1: никогда не теряй деньги. Правило №2: не забывай правило №1.", author: "Уоррен Баффетт" },
+    { text: "Инвестиции в знания приносят наибольший доход.", author: "Бенджамин Франклин" },
+    { text: "Не деньги делают тебя богатым — знания делают.", author: "Роберт Кийосаки" },
+    { text: "Дисциплина — это мост между целями и достижениями.", author: "Джим Рон" },
+    { text: "Успех — это сумма небольших усилий, повторяемых день за днём.", author: "Роберт Коллиер" },
+    { text: "Единственный способ делать великую работу — любить то, что делаешь.", author: "Стив Джобс" },
+    { text: "Будущее принадлежит тем, кто верит в красоту своей мечты.", author: "Элеонора Рузвельт" },
+    { text: "Никогда не трать то, что ещё не заработал.", author: "Томас Джефферсон" },
+    { text: "Твой самый ценный актив — это ты сам. Инвестируй в себя.", author: "Пол Мейер" },
+    { text: "Деньги не сделают тебя счастливым, но помогут быть несчастным в комфорте.", author: "Хелен Герли Браун" },
+    { text: "Маленькие шаги каждый день — это и есть путь к великим целям.", author: "Конфуций" },
+    { text: "Не бойся расти медленно. Бойся стоять на месте.", author: "Китайская мудрость" },
+];
+
+function showRandomQuote() {
+    const el = document.getElementById('daily-quote');
+    if (!el) return;
+    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    el.innerHTML = `
+        <div class="quote-card">
+            <div class="quote-text">${q.text}</div>
+            <div class="quote-author">— ${q.author}</div>
+        </div>
+    `;
+}
+
 // ─── KD детали ────────────────────────────────────────────────────────────────
 
 function showKDDetails(wins, games) {
@@ -191,6 +220,7 @@ auth.onAuthStateChanged(async (user) => {
         profileCard.style.display = '';
         await showProfile();
         await showRating();
+        showRandomQuote();
 
         const doc = await db.collection('users').doc(currentUser).get();
         const isAdmin = doc.exists && doc.data().name &&
