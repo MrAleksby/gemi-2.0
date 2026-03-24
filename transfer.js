@@ -81,7 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
         toInput.addEventListener('input', filterAndShow);
 
         toInput.addEventListener('focus', () => {
-            if (allUsers.length) filterAndShow();
+            // Задержка 350ms — ждём пока клавиатура откроется и viewport пересчитается
+            setTimeout(() => {
+                if (allUsers.length) filterAndShow();
+                toInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 350);
         });
 
         toInput.addEventListener('blur', () => {
