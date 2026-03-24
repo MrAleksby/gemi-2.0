@@ -145,9 +145,6 @@ function buildCard(item, data, coins) {
     if (maxed) {
         hint     = `<div class="shop-hint shop-hint--max" style="color:${item.color}">✅ MAX</div>`;
         btnLabel = 'MAX';
-    } else if (charLevel < next.charLevel) {
-        hint     = `<div class="shop-hint">🔒 Нужен уровень ${next.charLevel}</div>`;
-        btnLabel = 'Недоступно';
     } else if (coins < next.cost) {
         const missing = next.cost - coins;
         hint     = `<div class="shop-hint shop-hint--warn">Не хватает ${missing} 💰</div>`;
@@ -232,8 +229,7 @@ async function renderShop() {
 
             // Проверяем что ничего не изменилось с момента рендера
             if (!freshNext || freshLevel !== snapshotLevel
-                || freshCoins < freshNext.cost
-                || freshCharLvl < freshNext.charLevel) {
+                || freshCoins < freshNext.cost) {
                 animatePurchase(btn, false);
                 setTimeout(() => renderShop(), 1000);
                 return;
