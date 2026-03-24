@@ -45,9 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function positionSugg() {
             const rect = toInput.getBoundingClientRect();
-            suggBox.style.top    = (rect.bottom + window.scrollY + 4) + 'px';
-            suggBox.style.left   = (rect.left   + window.scrollX)     + 'px';
-            suggBox.style.width  = rect.width + 'px';
+            suggBox.style.top   = (rect.bottom + 4) + 'px';
+            suggBox.style.left  = rect.left + 'px';
+            suggBox.style.width = rect.width + 'px';
         }
 
         function showSugg(matches) {
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toInput.addEventListener('input', () => {
             const val = toInput.value.trim().toLowerCase();
             if (!val) { suggBox.style.display = 'none'; return; }
-            const matches = allUsers.filter(n => n.toLowerCase().includes(val));
+            const matches = allUsers.filter(n => n.toLowerCase().includes(val)).sort((a, b) => a.localeCompare(b));
             if (!matches.length) { suggBox.style.display = 'none'; return; }
             showSugg(matches);
         });
