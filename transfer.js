@@ -16,7 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="transfer-tab" data-type="cf">💎 CF</button>
             </div>
             <form id="transfer-form">
-                <input type="text" id="transfer-to" placeholder="Имя получателя" required autocomplete="off">
+                <div class="autocomplete-wrap">
+                    <input type="text" id="transfer-to" placeholder="Имя получателя" required autocomplete="off">
+                    <div id="transfer-suggestions" class="autocomplete-list"></div>
+                </div>
                 <input type="number" id="transfer-amount" placeholder="Количество монет" min="1" required>
                 <button type="submit">Отправить</button>
                 <div id="transfer-message" class="transfer-message"></div>
@@ -26,6 +29,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let transferType = 'coins';
         const amountInput = document.getElementById('transfer-amount');
+
+        // Загружаем всех игроков для автодополнения
+        const currentUser = firebase.auth().currentUser;
+        let allUsers = [];
+        firebase.firestore().collection('users').get().then(snap => {
+            allUsers = snap.docs
+                .filter(d => d.id !== (currentUser && currentUser.uid))
+                .map(d => d.data().name)
+                .filter(Boolean);
+        });
+
+        const toInput = document.getElementById('transfer-to');
+        const suggBox = document.getElementById('transfer-suggestions');
+
+        toInput.addEventListener('input', () => {
+            const val = toInput.value.trim().toLowerCase();
+            suggBox.innerHTML = '';
+            if (!val) { suggBox.style.display = 'none'; return; }
+            const matches = allUsers.filter(n => n.toLowerCase().includes(val));
+            if (!matches.length) { suggBox.style.display = 'none'; return; }
+            matches.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = name;
+                item.onmousedown = (e) => {
+                    e.preventDefault();
+                    toInput.value = name;
+                    suggBox.style.display = 'none';
+                    amountInput.focus();
+                };
+                suggBox.appendChild(item);
+            });
+            suggBox.style.display = 'block';
+        });
+
+        toInput.addEventListener('blur', () => {
+            setTimeout(() => { suggBox.style.display = 'none'; }, 150);
+        });
+
+        toInput.addEventListener('focus', () => {
+            if (suggBox.children.length) suggBox.style.display = 'block';
+        });
 
         formContainer.querySelectorAll('.transfer-tab').forEach(tab => {
             tab.onclick = () => {

@@ -1823,6 +1823,46 @@ th {
     color: white;
 }
 
+/* ─── Автодополнение получателя ───────────────────────────── */
+.autocomplete-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid #e8c4d0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(180, 80, 100, 0.15);
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.autocomplete-item {
+    padding: 11px 16px;
+    font-size: 0.97em;
+    color: #3d2040;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #f5e0e8;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: linear-gradient(90deg, #fce4ec, #fff3e0);
+    color: #c0395a;
+    font-weight: 600;
+}
+
 .transfer-tab:hover:not(.active) {
     background: rgba(102, 126, 234, 0.1);
     transform: none;
