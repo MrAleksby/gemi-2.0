@@ -223,8 +223,7 @@ auth.onAuthStateChanged(async (user) => {
         showRandomQuote();
 
         const doc = await db.collection('users').doc(currentUser).get();
-        const isAdmin = doc.exists && doc.data().name &&
-            doc.data().name.toLowerCase() === adminName.toLowerCase();
+        const isAdmin = doc.exists && doc.data().isAdmin === true;
 
         if (isAdmin) {
             adminSection.style.display = '';
@@ -305,11 +304,7 @@ document.getElementById('register-form').onsubmit = async (e) => {
         showRating();
         showRandomQuote();
 
-        if (fullname.toLowerCase() === adminName.toLowerCase()) {
-            adminSection.style.display = '';
-            loadUsersList();
-            updateTransactionsLists();
-        }
+        // isAdmin выставляется вручную в Firebase Console
     } catch (err) {
         alert('Ошибка регистрации: ' + err.message);
     }
