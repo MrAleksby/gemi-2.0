@@ -199,22 +199,11 @@ function renderBadges(earnedIds) {
     const earnedSet = new Set(earnedIds);
     const count = BADGES.filter(b => earnedSet.has(b.id)).length;
 
-    const CAT_ICONS = {
-        'Игры':     '🎮',
-        'Победы':   '⚔️',
-        'KD':       '🎯',
-        'CF':       '💎',
-        'Монеты':   '💰',
-        'Опыт':     '⭐',
-        'Уровни':   '🏆',
-        'Переводы': '💸',
-        'Обмен':    '🔄',
-        'Особые':   '✨'
-    };
-    const catStats = Object.entries(CAT_ICONS).map(([cat, icon]) => {
-        const all     = BADGES.filter(b => b.cat === cat).length;
-        const earned  = BADGES.filter(b => b.cat === cat && earnedSet.has(b.id)).length;
-        return `<span class="cat-chip ${earned === all ? 'cat-chip--done' : ''}">${icon} ${earned}/${all}</span>`;
+    const tierStats = Object.entries(BADGE_TIERS).map(([tier, t]) => {
+        const all    = BADGES.filter(b => b.tier === tier).length;
+        const earned = BADGES.filter(b => b.tier === tier && earnedSet.has(b.id)).length;
+        const done   = earned === all;
+        return `<span class="cat-chip" style="background:${t.color};color:#fff;opacity:${done ? '1' : '0.45'};">${earned}/${all}</span>`;
     }).join('');
 
     container.innerHTML = `
@@ -223,7 +212,7 @@ function renderBadges(earnedIds) {
                 🏅 Мои награды
                 <span id="badges-toggle-icon">▼</span>
             </div>
-            <div class="badges-cat-row">${catStats}</div>
+            <div class="badges-cat-row">${tierStats}</div>
         </div>
         <div class="badges-grid" id="badges-grid" style="display:none;">
             ${BADGES.map(b => `
