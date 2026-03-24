@@ -332,24 +332,42 @@ function getLevelByPoints(points) {
     return 1;
 }
 
+const LEVEL_NAMES = [
+    '',
+    '🐢 Микеланджело',
+    '🐢 Донателло',
+    '🐢 Рафаэль',
+    '🐢 Леонардо',
+    '⚡ Пикачу',
+    '🧙 Гарри Поттер',
+    '🕷 Человек-паук',
+    '🦇 Бэтмен',
+    '🛡 Капитан Америка',
+    '🤖 Железный человек',
+    '💚 Халк',
+    '🔱 Тор',
+    '⚡ Супермен',
+    '🌑 Дарт Вейдер',
+    '🟢 Йода',
+    '🦖 Годзилла',
+    '💎 Танос',
+    '🐕 Джон Уик',
+    '💪 Джейсон Стэтхэм',
+    '🥋 Джеки Чан',
+    '🦾 Сильвестр Сталлоне',
+    '🔥 Арнольд Шварценеггер',
+    '🐉 Брюс Ли',
+    '🌊 Дуэйн Джонсон',
+    '🤠 Чак Норрис',
+];
+
 function getLevelTitle(lvl) {
-    if (lvl >= 1 && lvl <= 4) return 'Ребенок';
-    if (lvl >= 5 && lvl <= 9) return 'Ученик';
-    if (lvl >= 10 && lvl <= 14) return 'Начинающий инвестор';
-    if (lvl >= 15 && lvl <= 19) return 'Опытный инвестор';
-    if (lvl >= 20 && lvl <= 24) return 'Финансовый магнат';
-    if (lvl === 25) return 'Финансовая свобода';
-    return 'Неизвестно';
+    return LEVEL_NAMES[lvl] || '❓';
 }
 
 function getLevelEmoji(lvl) {
-    if (lvl >= 1 && lvl <= 4) return '👶';
-    if (lvl >= 5 && lvl <= 9) return '👨‍🎓';
-    if (lvl >= 10 && lvl <= 14) return '💼';
-    if (lvl >= 15 && lvl <= 19) return '🏢';
-    if (lvl >= 20 && lvl <= 24) return '👑';
-    if (lvl === 25) return '🌟';
-    return '❓';
+    const name = LEVEL_NAMES[lvl] || '';
+    return name.split(' ')[0] || '❓';
 }
 
 function getLevelDescription(lvl) {
