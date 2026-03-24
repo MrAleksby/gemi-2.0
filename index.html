@@ -233,6 +233,20 @@
         <div id="transactions-history" class="transactions-list"></div>
     </div>
 
+<!-- Модал: причина отклонения -->
+<div id="reject-reason-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:none;align-items:center;justify-content:center;">
+    <div style="background:#fff8f4;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
+        <h3 style="margin:0 0 8px;font-size:1.1em;">❌ Причина отклонения</h3>
+        <p style="font-size:0.88em;color:#888;margin:0 0 14px;">Необязательно, но игрок увидит это сообщение</p>
+        <textarea id="reject-reason-input" placeholder="Например: неверное количество игр" rows="3"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #e8c4d0;border-radius:12px;padding:10px 12px;font-size:0.95em;resize:none;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+            <button id="reject-reason-cancel" style="flex:1;background:#eee;color:#555;border-radius:12px;padding:12px;border:none;font-size:0.95em;cursor:pointer;">Отмена</button>
+            <button id="reject-reason-confirm" style="flex:1;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;border-radius:12px;padding:12px;border:none;font-size:0.95em;cursor:pointer;font-weight:700;">Отклонить</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 <script src="shop.js"></script>

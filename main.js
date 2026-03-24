@@ -704,7 +704,8 @@ function setupPlayerRequestListener() {
                 };
             } else if (rejected) {
                 statusDiv.style.display = '';
-                statusDiv.innerHTML = `<div class="status-badge rejected">❌ Счёт отклонён — подай исправленный</div>`;
+                const reason = rejected.rejectReason ? `<br><span style="font-size:0.88em;opacity:0.85;">Причина: ${rejected.rejectReason}</span>` : '';
+                statusDiv.innerHTML = `<div class="status-badge rejected">❌ Счёт отклонён — подай исправленный${reason}</div>`;
                 if (submitBtn) submitBtn.disabled = false;
             } else {
                 statusDiv.style.display = 'none';
@@ -769,7 +770,22 @@ function setupAdminRequestsListener() {
 
 // Глобальные обёртки для onclick в HTML
 window.approveRequest = (id) => window.approveScoreRequest && window.approveScoreRequest(id);
-window.rejectRequest  = (id) => window.rejectScoreRequest  && window.rejectScoreRequest(id);
+window.rejectRequest  = (id) => {
+    const modal  = document.getElementById('reject-reason-modal');
+    const input  = document.getElementById('reject-reason-input');
+    const btnOk  = document.getElementById('reject-reason-confirm');
+    const btnNo  = document.getElementById('reject-reason-cancel');
+    if (!modal) { window.rejectScoreRequest && window.rejectScoreRequest(id, ''); return; }
+    input.value = '';
+    modal.style.display = 'flex';
+    const close = () => { modal.style.display = 'none'; btnOk.onclick = null; btnNo.onclick = null; };
+    btnNo.onclick  = close;
+    btnOk.onclick  = () => {
+        const reason = input.value.trim();
+        close();
+        window.rejectScoreRequest && window.rejectScoreRequest(id, reason);
+    };
+};
 
 // ─── Список пользователей для datalist ───────────────────────────────────────
 

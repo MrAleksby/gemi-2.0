@@ -116,21 +116,18 @@ async function approveScoreRequest(requestId) {
     }
 }
 
-async function rejectScoreRequest(requestId) {
+async function rejectScoreRequest(requestId, reason = '') {
     try {
         const reqDoc = await db.collection('score_requests').doc(requestId).get();
         if (!reqDoc.exists) return;
         const req = reqDoc.data();
 
-        await reqDoc.ref.update({ status: 'rejected', resolvedAt: new Date() });
+        const update = { status: 'rejected', resolvedAt: new Date() };
+        if (reason) update.rejectReason = reason;
+        await reqDoc.ref.update(update);
 
-        await addTransactionRecord(
-            req.username,
-            0,
-            'reject',
-            'Счёт отклонён администратором',
-            req.userId
-        );
+        const note = reason ? `Счёт отклонён: ${reason}` : 'Счёт отклонён администратором';
+        await addTransactionRecord(req.username, 0, 'reject', note, req.userId);
     } catch (err) {
         alert('Ошибка при отклонении: ' + err.message);
     }
