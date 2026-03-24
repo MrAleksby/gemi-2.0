@@ -198,10 +198,32 @@ function renderBadges(earnedIds) {
     if (!container) return;
     const earnedSet = new Set(earnedIds);
     const count = BADGES.filter(b => earnedSet.has(b.id)).length;
+
+    const CAT_ICONS = {
+        'Игры':     '🎮',
+        'Победы':   '⚔️',
+        'KD':       '🎯',
+        'CF':       '💎',
+        'Монеты':   '💰',
+        'Опыт':     '⭐',
+        'Уровни':   '🏆',
+        'Переводы': '💸',
+        'Обмен':    '🔄',
+        'Особые':   '✨'
+    };
+    const catStats = Object.entries(CAT_ICONS).map(([cat, icon]) => {
+        const all     = BADGES.filter(b => b.cat === cat).length;
+        const earned  = BADGES.filter(b => b.cat === cat && earnedSet.has(b.id)).length;
+        return `<span class="cat-chip ${earned === all ? 'cat-chip--done' : ''}">${icon} ${earned}/${all}</span>`;
+    }).join('');
+
     container.innerHTML = `
         <div class="badges-header" onclick="toggleBadgesGrid()">
-            🏅 Мои награды <span class="badges-count">${count} / ${BADGES.length}</span>
-            <span id="badges-toggle-icon">▼</span>
+            <div class="badges-header-top">
+                🏅 Мои награды
+                <span id="badges-toggle-icon">▼</span>
+            </div>
+            <div class="badges-cat-row">${catStats}</div>
         </div>
         <div class="badges-grid" id="badges-grid" style="display:none;">
             ${BADGES.map(b => `
