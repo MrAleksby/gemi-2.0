@@ -140,8 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (toDoc.id === user.uid) throw new Error(`Нельзя переводить ${fieldName} самому себе!`);
 
                 const batch = firebase.firestore().batch();
-                batch.update(fromRef, { [transferType]: (fromData[transferType] || 0) - amount });
-                batch.update(toDoc.ref, { [transferType]: (toDoc.data()[transferType] || 0) + amount });
+                batch.update(fromRef, {
+                    [transferType]: (fromData[transferType] || 0) - amount,
+                    transferCount: firebase.firestore.FieldValue.increment(1)
+                });
+                batch.update(toDoc.ref, {
+                    [transferType]: (toDoc.data()[transferType] || 0) + amount,
+                    receivedTransfers: firebase.firestore.FieldValue.increment(1)
+                });
                 await batch.commit();
 
                 msg.textContent = `Успешно переведено ${amount} ${fieldName} игроку ${toDoc.data().name}!`;

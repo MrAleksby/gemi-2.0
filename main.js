@@ -75,6 +75,148 @@ const QUOTES = [
     { text: "Относись к другим так, как хочешь, чтобы относились к тебе.", author: "Золотое правило" },
 ];
 
+// ─── Система бейджей ──────────────────────────────────────────────────────────
+
+const BADGES = [
+    // 🎮 Игровая активность (8)
+    { id: 'game_1',  icon: '🎮', name: 'Первый выход',     desc: 'Сыграл 1 игру',         cat: 'Игры',     check: d => (d.games||0) >= 1  },
+    { id: 'game_4',  icon: '🎯', name: 'Участник',         desc: 'Сыграл 4 игры',         cat: 'Игры',     check: d => (d.games||0) >= 4  },
+    { id: 'game_8',  icon: '🕹', name: 'Игрок',            desc: 'Сыграл 8 игр',          cat: 'Игры',     check: d => (d.games||0) >= 8  },
+    { id: 'game_12', icon: '⚡', name: 'Активный',         desc: 'Сыграл 12 игр',         cat: 'Игры',     check: d => (d.games||0) >= 12 },
+    { id: 'game_16', icon: '🦁', name: 'Серьёзный',        desc: 'Сыграл 16 игр',         cat: 'Игры',     check: d => (d.games||0) >= 16 },
+    { id: 'game_20', icon: '🔥', name: 'Ветеран',          desc: 'Сыграл 20 игр',         cat: 'Игры',     check: d => (d.games||0) >= 20 },
+    { id: 'game_24', icon: '👑', name: 'Легенда сезона',   desc: 'Сыграл 24 игры',        cat: 'Игры',     check: d => (d.games||0) >= 24 },
+    { id: 'game_30', icon: '💥', name: 'Сверхактивный',    desc: 'Сыграл 30+ игр',        cat: 'Игры',     check: d => (d.games||0) >= 30 },
+    // 🏆 Победы (7)
+    { id: 'win_1',  icon: '🥇', name: 'Первая кровь',      desc: '1 победа',              cat: 'Победы',   check: d => (d.wins||0) >= 1  },
+    { id: 'win_3',  icon: '⚔️', name: 'Боец',              desc: '3 победы',              cat: 'Победы',   check: d => (d.wins||0) >= 3  },
+    { id: 'win_5',  icon: '🛡', name: 'Воин',               desc: '5 побед',               cat: 'Победы',   check: d => (d.wins||0) >= 5  },
+    { id: 'win_8',  icon: '🏹', name: 'Охотник',            desc: '8 побед',               cat: 'Победы',   check: d => (d.wins||0) >= 8  },
+    { id: 'win_12', icon: '🦅', name: 'Чемпион',            desc: '12 побед',              cat: 'Победы',   check: d => (d.wins||0) >= 12 },
+    { id: 'win_16', icon: '🌪', name: 'Непобедимый',        desc: '16 побед',              cat: 'Победы',   check: d => (d.wins||0) >= 16 },
+    { id: 'win_20', icon: '🔱', name: 'Бог рейтинга',       desc: '20 побед',              cat: 'Победы',   check: d => (d.wins||0) >= 20 },
+    // 📊 KD (3)
+    { id: 'kd_05', icon: '🎯', name: 'Меткий',              desc: 'KD ≥ 0.5 (5+ игр)',    cat: 'KD',       check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.5 },
+    { id: 'kd_07', icon: '🔭', name: 'Снайпер',             desc: 'KD ≥ 0.7 (5+ игр)',    cat: 'KD',       check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.7 },
+    { id: 'kd_09', icon: '💎', name: 'Безупречный',         desc: 'KD ≥ 0.9 (5+ игр)',    cat: 'KD',       check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.9 },
+    // 💎 CF (5) — обновлённые пороги
+    { id: 'cf_100',  icon: '🪙', name: 'CF Старт',          desc: 'Накопил 100 CF',        cat: 'CF',       check: d => (d.cf||0) >= 100  },
+    { id: 'cf_300',  icon: '💵', name: 'CF Накопитель',     desc: 'Накопил 300 CF',        cat: 'CF',       check: d => (d.cf||0) >= 300  },
+    { id: 'cf_500',  icon: '💴', name: 'CF Инвестор',       desc: 'Накопил 500 CF',        cat: 'CF',       check: d => (d.cf||0) >= 500  },
+    { id: 'cf_1000', icon: '💸', name: 'CF Богатей',        desc: 'Накопил 1000 CF',       cat: 'CF',       check: d => (d.cf||0) >= 1000 },
+    { id: 'cf_1500', icon: '🤑', name: 'CF Магнат',         desc: 'Накопил 1500 CF',       cat: 'CF',       check: d => (d.cf||0) >= 1500 },
+    // 💰 Монеты (8) — обновлённые пороги
+    { id: 'coin_100',   icon: '🐷', name: 'Копилка',        desc: 'Накопил 100 монет',     cat: 'Монеты',   check: d => (d.coins||0) >= 100   },
+    { id: 'coin_300',   icon: '💰', name: 'Кассир',         desc: 'Накопил 300 монет',     cat: 'Монеты',   check: d => (d.coins||0) >= 300   },
+    { id: 'coin_500',   icon: '🏦', name: 'Банкир',         desc: 'Накопил 500 монет',     cat: 'Монеты',   check: d => (d.coins||0) >= 500   },
+    { id: 'coin_1000',  icon: '🏛', name: 'Богач',          desc: 'Накопил 1000 монет',    cat: 'Монеты',   check: d => (d.coins||0) >= 1000  },
+    { id: 'coin_2000',  icon: '💎', name: 'Сокровище',      desc: 'Накопил 2000 монет',    cat: 'Монеты',   check: d => (d.coins||0) >= 2000  },
+    { id: 'coin_3000',  icon: '🏰', name: 'Замок',          desc: 'Накопил 3000 монет',    cat: 'Монеты',   check: d => (d.coins||0) >= 3000  },
+    { id: 'coin_5000',  icon: '👑', name: 'Король монет',   desc: 'Накопил 5000 монет',    cat: 'Монеты',   check: d => (d.coins||0) >= 5000  },
+    { id: 'coin_10000', icon: '🌟', name: 'Легенда монет',  desc: 'Накопил 10 000 монет',  cat: 'Монеты',   check: d => (d.coins||0) >= 10000 },
+    // ⭐ Опыт (4)
+    { id: 'exp_50',  icon: '🌱', name: 'Росток',             desc: 'Набрал 50 опыта',      cat: 'Опыт',     check: d => (d.points||0) >= 50  },
+    { id: 'exp_150', icon: '🌿', name: 'Ученик',             desc: 'Набрал 150 опыта',     cat: 'Опыт',     check: d => (d.points||0) >= 150 },
+    { id: 'exp_300', icon: '🌳', name: 'Знаток',             desc: 'Набрал 300 опыта',     cat: 'Опыт',     check: d => (d.points||0) >= 300 },
+    { id: 'exp_500', icon: '✨', name: 'Мастер',             desc: 'Набрал 500 опыта',     cat: 'Опыт',     check: d => (d.points||0) >= 500 },
+    // 📈 Уровни (5) — обновлённые пороги
+    { id: 'lvl_5',  icon: '🚀', name: 'Уровень 5',           desc: 'Достиг 5-го уровня',   cat: 'Уровни',   check: d => getLevelByPoints(d.points||0) >= 5  },
+    { id: 'lvl_10', icon: '🛸', name: 'Уровень 10',          desc: 'Достиг 10-го уровня',  cat: 'Уровни',   check: d => getLevelByPoints(d.points||0) >= 10 },
+    { id: 'lvl_15', icon: '🌙', name: 'Уровень 15',          desc: 'Достиг 15-го уровня',  cat: 'Уровни',   check: d => getLevelByPoints(d.points||0) >= 15 },
+    { id: 'lvl_20', icon: '⚡', name: 'Уровень 20',          desc: 'Достиг 20-го уровня',  cat: 'Уровни',   check: d => getLevelByPoints(d.points||0) >= 20 },
+    { id: 'lvl_25', icon: '🏆', name: 'Уровень 25',          desc: 'Достиг 25-го уровня',  cat: 'Уровни',   check: d => getLevelByPoints(d.points||0) >= 25 },
+    // 🤝 Переводы (5) — обновлённые пороги
+    { id: 'tr_3',  icon: '🤲', name: 'Первый жест',          desc: '3 перевода',           cat: 'Переводы', check: d => (d.transferCount||0) >= 3  },
+    { id: 'tr_9',  icon: '💝', name: 'Щедрый',               desc: '9 переводов',          cat: 'Переводы', check: d => (d.transferCount||0) >= 9  },
+    { id: 'tr_17', icon: '🫶', name: 'Меценат',              desc: '17 переводов',         cat: 'Переводы', check: d => (d.transferCount||0) >= 17 },
+    { id: 'tr_25', icon: '🌍', name: 'Благотворитель',       desc: '25 переводов',         cat: 'Переводы', check: d => (d.transferCount||0) >= 25 },
+    { id: 'tr_50', icon: '🌟', name: 'Легенда щедрости',     desc: '50 переводов',         cat: 'Переводы', check: d => (d.transferCount||0) >= 50 },
+    // 🔄 Обмен CF (5) — обновлённые пороги + мин 50 CF
+    { id: 'ex_1',  icon: '🔁', name: 'Трейдер',              desc: 'Первый обмен CF',      cat: 'Обмен',    check: d => (d.exchangeCount||0) >= 1  },
+    { id: 'ex_5',  icon: '📈', name: 'Брокер',               desc: 'Обменял CF 5 раз',     cat: 'Обмен',    check: d => (d.exchangeCount||0) >= 5  },
+    { id: 'ex_15', icon: '🏦', name: 'Биржевик',             desc: 'Обменял CF 15 раз',    cat: 'Обмен',    check: d => (d.exchangeCount||0) >= 15 },
+    { id: 'ex_25', icon: '💹', name: 'Профи',                desc: 'Обменял CF 25 раз',    cat: 'Обмен',    check: d => (d.exchangeCount||0) >= 25 },
+    { id: 'ex_50', icon: '🎰', name: 'Мастер обмена',        desc: 'Обменял CF 50 раз',    cat: 'Обмен',    check: d => (d.exchangeCount||0) >= 50 },
+    // 🌟 Особые (9)
+    { id: 'first_req',   icon: '📋', name: 'Честный счёт',      desc: 'Подал первый счёт',                  cat: 'Особые', check: d => (d.totalRequests||0) >= 1 },
+    { id: 'reliable',    icon: '✅', name: 'Надёжный',           desc: '5 счётов — все одобрены',            cat: 'Особые', check: d => (d.approvedRequests||0) >= 5 && !(d.rejectedRequests > 0) },
+    { id: 'balanced',    icon: '⚖️', name: 'Балансировщик',     desc: 'CF + монеты + опыт + победы > 0',    cat: 'Особые', check: d => (d.cf||0)>0 && (d.coins||0)>0 && (d.points||0)>0 && (d.wins||0)>0 },
+    { id: 'recv_tr',     icon: '🎁', name: 'Добряк',             desc: 'Получил перевод от другого игрока',  cat: 'Особые', check: d => (d.receivedTransfers||0) >= 1 },
+    { id: 'silent_hunt', icon: '🕵️', name: 'Тихий охотник',     desc: 'KD ≥ 0.8 при 10+ играх',            cat: 'Особые', check: d => (d.games||0) >= 10 && (d.wins||0)/(d.games||1) >= 0.8 },
+    { id: 'season_end',  icon: '🎖', name: 'Завершитель сезона', desc: '20+ игр + уровень 5+',               cat: 'Особые', check: d => (d.games||0) >= 20 && getLevelByPoints(d.points||0) >= 5 },
+    { id: 'all_res',     icon: '🌈', name: 'Всесезонный',        desc: 'Сыграл 24 игры за сезон',           cat: 'Особые', check: d => (d.games||0) >= 24 },
+    { id: 'top3_rank',   icon: '🥉', name: 'Топ-3',              desc: 'Попал в топ-3 рейтинга',            cat: 'Особые', check: d => (d.bestRank||99) <= 3 },
+    { id: 'top1_rank',   icon: '🏅', name: 'Чемпион рейтинга',   desc: 'Занял 1-е место в рейтинге',        cat: 'Особые', check: d => (d.bestRank||99) <= 1 },
+];
+
+async function checkAndAwardBadges(data) {
+    if (!currentUser) return;
+    const earned = new Set(Array.isArray(data.badges) ? data.badges : []);
+    const newBadges = [];
+    BADGES.forEach(b => {
+        try { if (!earned.has(b.id) && b.check(data)) newBadges.push(b.id); } catch(e) {}
+    });
+    if (newBadges.length > 0) {
+        const updated = [...earned, ...newBadges];
+        await db.collection('users').doc(currentUser).update({ badges: updated });
+        newBadges.forEach(id => {
+            const b = BADGES.find(x => x.id === id);
+            if (b) showBadgeToast(b);
+        });
+        data.badges = updated;
+    }
+    renderBadges(Array.isArray(data.badges) ? data.badges : []);
+}
+
+function showBadgeToast(badge) {
+    const toast = document.createElement('div');
+    toast.className = 'badge-toast';
+    toast.innerHTML = `
+        <div class="badge-toast-icon">${badge.icon}</div>
+        <div class="badge-toast-text">
+            <div class="badge-toast-title">🎉 Новый бейдж!</div>
+            <div class="badge-toast-name">${badge.name}</div>
+            <div class="badge-toast-desc">${badge.desc}</div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
+}
+
+function renderBadges(earnedIds) {
+    const container = document.getElementById('badges-container');
+    if (!container) return;
+    const earnedSet = new Set(earnedIds);
+    const count = BADGES.filter(b => earnedSet.has(b.id)).length;
+    container.innerHTML = `
+        <div class="badges-header" onclick="toggleBadgesGrid()">
+            🏅 Мои бейджи <span class="badges-count">${count} / ${BADGES.length}</span>
+            <span id="badges-toggle-icon">▼</span>
+        </div>
+        <div class="badges-grid" id="badges-grid" style="display:none;">
+            ${BADGES.map(b => `
+                <div class="badge-item ${earnedSet.has(b.id) ? 'earned' : 'locked'}" title="${b.name}: ${b.desc}">
+                    <div class="badge-icon">${earnedSet.has(b.id) ? b.icon : '🔒'}</div>
+                    <div class="badge-name">${earnedSet.has(b.id) ? b.name : '???'}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function toggleBadgesGrid() {
+    const grid = document.getElementById('badges-grid');
+    const icon = document.getElementById('badges-toggle-icon');
+    if (!grid) return;
+    const show = grid.style.display === 'none';
+    grid.style.display = show ? 'grid' : 'none';
+    if (icon) icon.textContent = show ? '▲' : '▼';
+}
+
 function showRandomQuote() {
     const el = document.getElementById('daily-quote');
     if (!el) return;
@@ -475,6 +617,7 @@ async function showProfile() {
     document.getElementById('top5-container').innerHTML = top5Html;
 
     updateShopButton(lvl);
+    await checkAndAwardBadges(data);
 }
 
 function updateShopButton(lvl) {
@@ -504,6 +647,10 @@ async function showRating() {
     usersSnap.forEach(doc => {
         const data = doc.data();
         if (!data.name || data.name.trim() === '' || data.isAdmin) return;
+        // Обновляем bestRank для текущего пользователя
+        if (doc.id === currentUser && place < (data.bestRank || 99)) {
+            db.collection('users').doc(currentUser).update({ bestRank: place }).catch(() => {});
+        }
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         const tr = document.createElement('tr');
@@ -557,8 +704,8 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
     const msg = document.getElementById('exchange-msg');
     const amt = parseInt(document.getElementById('exchange-cf-amount').value) || 0;
 
-    if (amt <= 0) {
-        msg.textContent = 'Введите количество CF!';
+    if (amt < 50) {
+        msg.textContent = 'Минимальный обмен: 50 CF!';
         msg.className = 'transfer-message error';
         return;
     }
@@ -583,7 +730,10 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
         const newCF     = currentCF - amt;
         const newLevel  = getLevelByPoints(newPoints);
 
-        await userRef.update({ cf: newCF, points: newPoints, coins: newCoins, level: newLevel });
+        await userRef.update({
+            cf: newCF, points: newPoints, coins: newCoins, level: newLevel,
+            exchangeCount: firebase.firestore.FieldValue.increment(1)
+        });
 
         const userSnap = await userRef.get();
         const username = userSnap.data().name || '';
@@ -679,6 +829,9 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
             comment: comment || '',
             status: 'pending',
             createdAt: new Date()
+        });
+        await db.collection('users').doc(currentUser).update({
+            totalRequests: firebase.firestore.FieldValue.increment(1)
         });
 
         msg.textContent = 'Счёт отправлен! Ожидайте подтверждения.';

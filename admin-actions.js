@@ -90,7 +90,8 @@ async function approveScoreRequest(requestId) {
             cf:     (data.cf     || 0) + (req.cf     || 0),
             points: newPoints,
             level:  newLevel,
-            coins:  (data.coins  || 0) + (req.coins  || 0)
+            coins:  (data.coins  || 0) + (req.coins  || 0),
+            approvedRequests: firebase.firestore.FieldValue.increment(1)
         });
         batch.update(reqDoc.ref, { status: 'approved', resolvedAt: new Date() });
         await batch.commit();
@@ -125,6 +126,9 @@ async function rejectScoreRequest(requestId, reason = '') {
         const update = { status: 'rejected', resolvedAt: new Date() };
         if (reason) update.rejectReason = reason;
         await reqDoc.ref.update(update);
+        await db.collection('users').doc(req.userId).update({
+            rejectedRequests: firebase.firestore.FieldValue.increment(1)
+        });
 
         const note = reason ? `Счёт отклонён: ${reason}` : 'Счёт отклонён администратором';
         await addTransactionRecord(req.username, 0, 'reject', note, req.userId);
