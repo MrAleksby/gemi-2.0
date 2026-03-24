@@ -333,6 +333,61 @@ document.getElementById('logout-btn').onclick = async () => {
     await auth.signOut();
 };
 
+// ─── Удаление аккаунта ────────────────────────────────────────────────────────
+
+document.getElementById('delete-account-btn').onclick = () => {
+    document.getElementById('delete-account-password').value = '';
+    document.getElementById('delete-account-msg').textContent = '';
+    document.getElementById('delete-account-modal').style.display = 'flex';
+};
+
+document.getElementById('delete-account-close').onclick = () => {
+    document.getElementById('delete-account-modal').style.display = 'none';
+};
+
+document.getElementById('delete-account-confirm').onclick = async () => {
+    const password = document.getElementById('delete-account-password').value.trim();
+    const msgEl = document.getElementById('delete-account-msg');
+    if (!password) { msgEl.textContent = 'Введи пароль'; msgEl.style.color = '#e74c3c'; return; }
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+        // Повторная аутентификация (Firebase требует перед удалением)
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+        await user.reauthenticateWithCredential(credential);
+
+        // Удаляем данные из Firestore
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+            const phone = userDoc.data().phone;
+            // Удаляем запись в usernames
+            if (phone) {
+                const unameSnap = await db.collection('usernames').where('phone', '==', phone).get();
+                const batch = db.batch();
+                unameSnap.docs.forEach(d => batch.delete(d.ref));
+                batch.delete(db.collection('users').doc(user.uid));
+                await batch.commit();
+            } else {
+                await db.collection('users').doc(user.uid).delete();
+            }
+        }
+
+        // Удаляем Firebase Auth аккаунт
+        await user.delete();
+
+        // Выходим — onAuthStateChanged сам переключит на экран входа
+    } catch (e) {
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+            msgEl.textContent = '❌ Неверный пароль';
+        } else {
+            msgEl.textContent = '❌ Ошибка: ' + e.message;
+        }
+        msgEl.style.color = '#e74c3c';
+    }
+};
+
 // ─── Профиль ──────────────────────────────────────────────────────────────────
 
 async function showProfile() {

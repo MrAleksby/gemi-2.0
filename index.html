@@ -74,6 +74,20 @@
             <button id="shop-btn">Магазин</button>
         </div>
         <button id="toggle-rating-btn" class="main-btn rating-btn">Показать рейтинг</button>
+        <button id="delete-account-btn" class="btn-delete-account">🗑 Удалить мой аккаунт</button>
+    </div>
+
+    <!-- Модал: удаление аккаунта -->
+    <div id="delete-account-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="delete-account-close">&times;</span>
+            <h2>🗑 Удалить аккаунт</h2>
+            <p class="delete-warning">⚠️ Это действие необратимо. Все твои данные (монеты, CF, опыт, история) будут удалены навсегда.</p>
+            <label>Введи пароль для подтверждения:</label>
+            <input type="password" id="delete-account-password" placeholder="Твой пароль">
+            <div id="delete-account-msg" class="form-message"></div>
+            <button id="delete-account-confirm" class="btn-danger">Да, удалить мой аккаунт</button>
+        </div>
     </div>
 
     <!-- Модал: обмен CF -->
