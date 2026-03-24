@@ -199,14 +199,35 @@ function renderBadges(earnedIds) {
         </div>
         <div class="badges-grid" id="badges-grid" style="display:none;">
             ${BADGES.map(b => `
-                <div class="badge-item ${earnedSet.has(b.id) ? 'earned' : 'locked'}" title="${b.name}: ${b.desc}">
+                <div class="badge-item ${earnedSet.has(b.id) ? 'earned' : 'locked'}"
+                     onclick="showBadgeInfo('${b.icon}','${b.name.replace(/'/g,"\\'")}','${b.desc.replace(/'/g,"\\'")}',${earnedSet.has(b.id)})">
                     <div class="badge-icon">${b.icon}</div>
                     <div class="badge-name">${b.name}</div>
-                    <div class="badge-desc">${b.desc}</div>
                 </div>
             `).join('')}
         </div>
     `;
+}
+
+function showBadgeInfo(icon, name, desc, earned) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup badge-info-popup';
+    popup.innerHTML = `
+        <div style="font-size:2.8rem;line-height:1;margin-bottom:8px;${!earned ? 'filter:grayscale(1);opacity:0.6' : ''}">${icon}</div>
+        <div class="popup-title">${name}</div>
+        <div style="font-size:0.9rem;color:#666;margin-top:6px;text-align:center;">${desc}</div>
+        <div style="margin-top:12px;font-size:0.85rem;font-weight:700;color:${earned ? '#27ae60' : '#e67e22'};">
+            ${earned ? '✅ Уже получен!' : '🔒 Ещё не получен'}
+        </div>
+        <div class="popup-hint">Нажмите для закрытия</div>
+    `;
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    popup.onclick = close;
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
 }
 
 function toggleBadgesGrid() {

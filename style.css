@@ -2276,18 +2276,6 @@ th {
     color: #aaa;
 }
 
-.badge-desc {
-    font-size: 0.6rem;
-    color: #9a6a3a;
-    line-height: 1.2;
-    margin-top: 2px;
-    word-break: break-word;
-    text-align: center;
-}
-
-.badge-item.locked .badge-desc {
-    color: #bbb;
-}
 
 /* ─── Toast уведомление о новом бейдже ───────────────────────────────────── */
 .badge-toast {
