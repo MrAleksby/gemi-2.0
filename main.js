@@ -223,7 +223,8 @@ auth.onAuthStateChanged(async (user) => {
         showRandomQuote();
 
         const doc = await db.collection('users').doc(currentUser).get();
-        const isAdmin = doc.exists && doc.data().isAdmin === true;
+        if (!doc.exists) { await auth.signOut(); return; }
+        const isAdmin = doc.data().isAdmin === true;
 
         if (isAdmin) {
             adminSection.style.display = '';
