@@ -778,13 +778,14 @@ async function loadUsersList() {
     const usersList = document.getElementById('users-list');
     if (!usersList) return;
     usersList.innerHTML = '';
-    usersSnap.forEach(doc => {
-        const name = doc.data().name;
-        if (name && name.trim()) {
-            const opt = document.createElement('option');
-            opt.value = name;
-            usersList.appendChild(opt);
-        }
+    const names = usersSnap.docs
+        .map(doc => doc.data().name)
+        .filter(n => n && n.trim())
+        .sort((a, b) => a.localeCompare(b));
+    names.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        usersList.appendChild(opt);
     });
 }
 
