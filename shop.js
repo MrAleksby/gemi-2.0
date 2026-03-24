@@ -6,7 +6,7 @@ const shopItems = document.getElementById('shop-items');
 
 // Массив апгрейдов для "Сбережения"
 const savingsUpgrades = Array.from({length: 25}, (_, i) => ({
-    cost: (i + 1) * 5,
+    cost: (i + 1) * 10,
     reward: (i + 1) * 200
 }));
 
@@ -19,7 +19,7 @@ const twobigUpgrades = [
     { charLevel: 25, cost: 125, reward: 25 }
 ];
 
-// Массив апгрейдов для OK4U и MYT4U
+// Массив апгрейдов для OK4U, MYT4U, ON2U, GRO4US
 const ok4uUpgrades = [
     { charLevel: 5, cost: 25, reward: 100 },
     { charLevel: 10, cost: 50, reward: 250 },
@@ -28,6 +28,20 @@ const ok4uUpgrades = [
     { charLevel: 25, cost: 125, reward: 1000 }
 ];
 const myt4uUpgrades = [
+    { charLevel: 5, cost: 25, reward: 100 },
+    { charLevel: 10, cost: 50, reward: 250 },
+    { charLevel: 15, cost: 75, reward: 500 },
+    { charLevel: 20, cost: 100, reward: 750 },
+    { charLevel: 25, cost: 125, reward: 1000 }
+];
+const on2uUpgrades = [
+    { charLevel: 5, cost: 25, reward: 100 },
+    { charLevel: 10, cost: 50, reward: 250 },
+    { charLevel: 15, cost: 75, reward: 500 },
+    { charLevel: 20, cost: 100, reward: 750 },
+    { charLevel: 25, cost: 125, reward: 1000 }
+];
+const gro4usUpgrades = [
     { charLevel: 5, cost: 25, reward: 100 },
     { charLevel: 10, cost: 50, reward: 250 },
     { charLevel: 15, cost: 75, reward: 500 },
@@ -79,7 +93,7 @@ async function renderShop() {
     const data = doc.data();
     const userLevel = data.level || 1;
     const coins = data.coins || 0;
-    
+
     // Проверяем уровень пользователя
     if (userLevel < 5) {
         shopItems.innerHTML = `
@@ -120,11 +134,7 @@ async function renderShop() {
     const twobigLevel = data.twobigLevel || 0;
     const twobig = data.twobig || 0;
     let nextTwobig = twobigUpgrades[twobigLevel];
-    const userWins = data.wins || 0;
-    const needsWinForLevel3Twobig = twobigLevel === 2 && userWins < 1;
-    const needsWinForLevel4Twobig = twobigLevel === 3 && userWins < 3;
-    const needsWinForLevel5Twobig = twobigLevel === 4 && userWins < 5;
-    let canUpgradeTwobig = nextTwobig && coins >= nextTwobig.cost && (data.level || 1) >= nextTwobig.charLevel && twobigLevel < ((data.level || 1) / 5) && !needsWinForLevel3Twobig && !needsWinForLevel4Twobig && !needsWinForLevel5Twobig;
+    let canUpgradeTwobig = nextTwobig && coins >= nextTwobig.cost && (data.level || 1) >= nextTwobig.charLevel && twobigLevel < ((data.level || 1) / 5);
     let twobigLimitReached = !nextTwobig || (data.level || 1) < nextTwobig.charLevel;
     let twobigMaxed = twobigLevel >= 5;
     let twobigCard = `
@@ -134,16 +144,13 @@ async function renderShop() {
         <div class="shop-value">${twobig}</div>
         <div class="shop-next">+${nextTwobig ? nextTwobig.reward : '-'} за ${nextTwobig ? nextTwobig.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-twobig-btn" ${canUpgradeTwobig ? '' : 'disabled'}>Прокачать</button>
-        ${twobigMaxed ? '<div class="shop-hint" style="color:#d32f2f;">MAX</div>' : (twobigLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Twobig ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Twobig ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Twobig ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${twobigMaxed ? '<div class="shop-hint" style="color:#d32f2f;">MAX</div>' : (twobigLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
     // --- OK4U ---
     const ok4uLevel = data.ok4uLevel || 0;
     const ok4u = data.ok4u || 0;
     let nextOk4u = ok4uUpgrades[ok4uLevel];
-    const needsWinForLevel3Ok4u = ok4uLevel === 2 && userWins < 1;
-    const needsWinForLevel4Ok4u = ok4uLevel === 3 && userWins < 3;
-    const needsWinForLevel5Ok4u = ok4uLevel === 4 && userWins < 5;
-    let canUpgradeOk4u = nextOk4u && coins >= nextOk4u.cost && (data.level || 1) >= nextOk4u.charLevel && ok4uLevel < ((data.level || 1) / 5) && !needsWinForLevel3Ok4u && !needsWinForLevel4Ok4u && !needsWinForLevel5Ok4u;
+    let canUpgradeOk4u = nextOk4u && coins >= nextOk4u.cost && (data.level || 1) >= nextOk4u.charLevel && ok4uLevel < ((data.level || 1) / 5);
     let ok4uLimitReached = !nextOk4u || (data.level || 1) < nextOk4u.charLevel;
     let ok4uMaxed = ok4uLevel >= 5;
     let ok4uCard = `
@@ -153,16 +160,13 @@ async function renderShop() {
         <div class="shop-value">${ok4u}</div>
         <div class="shop-next">+${nextOk4u ? nextOk4u.reward : '-'} за ${nextOk4u ? nextOk4u.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-ok4u-btn" ${canUpgradeOk4u ? '' : 'disabled'}>Прокачать</button>
-        ${ok4uMaxed ? '<div class="shop-hint" style="color:#1976d2;">MAX</div>' : (ok4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Ok4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Ok4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Ok4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${ok4uMaxed ? '<div class="shop-hint" style="color:#1976d2;">MAX</div>' : (ok4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
     // --- MYT4U ---
     const myt4uLevel = data.myt4uLevel || 0;
     const myt4u = data.myt4u || 0;
     let nextMyt4u = myt4uUpgrades[myt4uLevel];
-    const needsWinForLevel3Myt4u = myt4uLevel === 2 && userWins < 1;
-    const needsWinForLevel4Myt4u = myt4uLevel === 3 && userWins < 3;
-    const needsWinForLevel5Myt4u = myt4uLevel === 4 && userWins < 5;
-    let canUpgradeMyt4u = nextMyt4u && coins >= nextMyt4u.cost && (data.level || 1) >= nextMyt4u.charLevel && myt4uLevel < ((data.level || 1) / 5) && !needsWinForLevel3Myt4u && !needsWinForLevel4Myt4u && !needsWinForLevel5Myt4u;
+    let canUpgradeMyt4u = nextMyt4u && coins >= nextMyt4u.cost && (data.level || 1) >= nextMyt4u.charLevel && myt4uLevel < ((data.level || 1) / 5);
     let myt4uLimitReached = !nextMyt4u || (data.level || 1) < nextMyt4u.charLevel;
     let myt4uMaxed = myt4uLevel >= 5;
     let myt4uCard = `
@@ -172,16 +176,45 @@ async function renderShop() {
         <div class="shop-value">${myt4u}</div>
         <div class="shop-next">+${nextMyt4u ? nextMyt4u.reward : '-'} за ${nextMyt4u ? nextMyt4u.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-myt4u-btn" ${canUpgradeMyt4u ? '' : 'disabled'}>Прокачать</button>
-        ${myt4uMaxed ? '<div class="shop-hint" style="color:#fbc02d;">MAX</div>' : (myt4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Myt4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Myt4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Myt4u ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${myt4uMaxed ? '<div class="shop-hint" style="color:#fbc02d;">MAX</div>' : (myt4uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+      </div>`;
+    // --- ON2U ---
+    const on2uLevel = data.on2uLevel || 0;
+    const on2u = data.on2u || 0;
+    let nextOn2u = on2uUpgrades[on2uLevel];
+    let canUpgradeOn2u = nextOn2u && coins >= nextOn2u.cost && (data.level || 1) >= nextOn2u.charLevel && on2uLevel < ((data.level || 1) / 5);
+    let on2uLimitReached = !nextOn2u || (data.level || 1) < nextOn2u.charLevel;
+    let on2uMaxed = on2uLevel >= 5;
+    let on2uCard = `
+      <div class="shop-card">
+        <div class="shop-title" style="color:#00897b;">ON2U</div>
+        <div class="shop-progress">Ур. <b>${on2uLevel}</b> / 5</div>
+        <div class="shop-value">${on2u}</div>
+        <div class="shop-next">+${nextOn2u ? nextOn2u.reward : '-'} за ${nextOn2u ? nextOn2u.cost : '-'} монет</div>
+        <button class="shop-btn" id="upgrade-on2u-btn" ${canUpgradeOn2u ? '' : 'disabled'}>Прокачать</button>
+        ${on2uMaxed ? '<div class="shop-hint" style="color:#00897b;">MAX</div>' : (on2uLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
+      </div>`;
+    // --- GRO4US ---
+    const gro4usLevel = data.gro4usLevel || 0;
+    const gro4us = data.gro4us || 0;
+    let nextGro4us = gro4usUpgrades[gro4usLevel];
+    let canUpgradeGro4us = nextGro4us && coins >= nextGro4us.cost && (data.level || 1) >= nextGro4us.charLevel && gro4usLevel < ((data.level || 1) / 5);
+    let gro4usLimitReached = !nextGro4us || (data.level || 1) < nextGro4us.charLevel;
+    let gro4usMaxed = gro4usLevel >= 5;
+    let gro4usCard = `
+      <div class="shop-card">
+        <div class="shop-title" style="color:#e65100;">GRO4US</div>
+        <div class="shop-progress">Ур. <b>${gro4usLevel}</b> / 5</div>
+        <div class="shop-value">${gro4us}</div>
+        <div class="shop-next">+${nextGro4us ? nextGro4us.reward : '-'} за ${nextGro4us ? nextGro4us.cost : '-'} монет</div>
+        <button class="shop-btn" id="upgrade-gro4us-btn" ${canUpgradeGro4us ? '' : 'disabled'}>Прокачать</button>
+        ${gro4usMaxed ? '<div class="shop-hint" style="color:#e65100;">MAX</div>' : (gro4usLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
     // --- Проценты ---
     const percentsLevel = data.percentsLevel || 0;
     const percents = data.percents || '-';
     let nextPercents = percentsUpgrades[percentsLevel];
-    const needsWinForLevel3Percents = percentsLevel === 2 && userWins < 1;
-    const needsWinForLevel4Percents = percentsLevel === 3 && userWins < 3;
-    const needsWinForLevel5Percents = percentsLevel === 4 && userWins < 5;
-    let canUpgradePercents = nextPercents && coins >= nextPercents.cost && (data.level || 1) >= nextPercents.charLevel && percentsLevel < ((data.level || 1) / 5) && !needsWinForLevel3Percents && !needsWinForLevel4Percents && !needsWinForLevel5Percents;
+    let canUpgradePercents = nextPercents && coins >= nextPercents.cost && (data.level || 1) >= nextPercents.charLevel && percentsLevel < ((data.level || 1) / 5);
     let percentsLimitReached = !nextPercents || (data.level || 1) < nextPercents.charLevel;
     let percentsMaxed = percentsLevel >= 5;
     let percentsCard = `
@@ -191,16 +224,13 @@ async function renderShop() {
         <div class="shop-value">${percents}</div>
         <div class="shop-next">${nextPercents ? nextPercents.reward : '-'} за ${nextPercents ? nextPercents.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-percents-btn" ${canUpgradePercents ? '' : 'disabled'}>Прокачать</button>
-        ${percentsMaxed ? '<div class="shop-hint" style="color:#6a1b9a;">MAX</div>' : (percentsLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Percents ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Percents ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Percents ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${percentsMaxed ? '<div class="shop-hint" style="color:#6a1b9a;">MAX</div>' : (percentsLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
     // --- Уменьшение пассивов ---
     const passivesLevel = data.passivesLevel || 0;
     const passives = data.passives || '-';
     let nextPassives = passivesUpgrades[passivesLevel];
-    const needsWinForLevel3Passives = passivesLevel === 2 && userWins < 1;
-    const needsWinForLevel4Passives = passivesLevel === 3 && userWins < 3;
-    const needsWinForLevel5Passives = passivesLevel === 4 && userWins < 5;
-    let canUpgradePassives = nextPassives && coins >= nextPassives.cost && (data.level || 1) >= nextPassives.charLevel && passivesLevel < ((data.level || 1) / 5) && !needsWinForLevel3Passives && !needsWinForLevel4Passives && !needsWinForLevel5Passives;
+    let canUpgradePassives = nextPassives && coins >= nextPassives.cost && (data.level || 1) >= nextPassives.charLevel && passivesLevel < ((data.level || 1) / 5);
     let passivesLimitReached = !nextPassives || (data.level || 1) < nextPassives.charLevel;
     let passivesMaxed = passivesLevel >= 5;
     let passivesCard = `
@@ -210,16 +240,13 @@ async function renderShop() {
         <div class="shop-value">${passives}</div>
         <div class="shop-next">${nextPassives ? nextPassives.reward : '-'} за ${nextPassives ? nextPassives.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-passives-btn" ${canUpgradePassives ? '' : 'disabled'}>Прокачать</button>
-        ${passivesMaxed ? '<div class="shop-hint" style="color:#388e3c;">MAX</div>' : (passivesLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Passives ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Passives ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Passives ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${passivesMaxed ? '<div class="shop-hint" style="color:#388e3c;">MAX</div>' : (passivesLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
     // --- Недвижимость ---
     const realtyLevel = data.realtyLevel || 0;
     const realty = data.realty || '-';
     let nextRealty = realtyUpgrades[realtyLevel];
-    const needsWinForLevel3Realty = realtyLevel === 2 && userWins < 1;
-    const needsWinForLevel4Realty = realtyLevel === 3 && userWins < 3;
-    const needsWinForLevel5Realty = realtyLevel === 4 && userWins < 5;
-    let canUpgradeRealty = nextRealty && coins >= nextRealty.cost && (data.level || 1) >= nextRealty.charLevel && realtyLevel < ((data.level || 1) / 5) && !needsWinForLevel3Realty && !needsWinForLevel4Realty && !needsWinForLevel5Realty;
+    let canUpgradeRealty = nextRealty && coins >= nextRealty.cost && (data.level || 1) >= nextRealty.charLevel && realtyLevel < ((data.level || 1) / 5);
     let realtyLimitReached = !nextRealty || (data.level || 1) < nextRealty.charLevel;
     let realtyMaxed = realtyLevel >= 5;
     let realtyCard = `
@@ -229,9 +256,9 @@ async function renderShop() {
         <div class="shop-value">${realty}</div>
         <div class="shop-next">${nextRealty ? nextRealty.reward : '-'} за ${nextRealty ? nextRealty.cost : '-'} монет</div>
         <button class="shop-btn" id="upgrade-realty-btn" ${canUpgradeRealty ? '' : 'disabled'}>Прокачать</button>
-        ${realtyMaxed ? '<div class="shop-hint" style="color:#ff9800;">MAX</div>' : (realtyLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : (needsWinForLevel3Realty ? '<div class="shop-hint" style="color:#ff9800;">Требуется 1 победа для 3 уровня</div>' : (needsWinForLevel4Realty ? '<div class="shop-hint" style="color:#ff9800;">Требуется 3 победы для 4 уровня</div>' : (needsWinForLevel5Realty ? '<div class="shop-hint" style="color:#ff9800;">Требуется 5 побед для 5 уровня</div>' : ''))))}
+        ${realtyMaxed ? '<div class="shop-hint" style="color:#ff9800;">MAX</div>' : (realtyLimitReached ? '<div class="shop-hint">Увеличьте уровень персонажа</div>' : '')}
       </div>`;
-    shopItems.innerHTML = `<div class="shop-balance">Ваши монеты: <b>${coins}</b></div><div class="shop-cards">${savingsCard}${twobigCard}${ok4uCard}${myt4uCard}${percentsCard}${passivesCard}${realtyCard}</div>`;
+    shopItems.innerHTML = `<div class="shop-balance">Ваши монеты: <b>${coins}</b></div><div class="shop-cards">${savingsCard}${twobigCard}${ok4uCard}${myt4uCard}${on2uCard}${gro4usCard}${percentsCard}${passivesCard}${realtyCard}</div>`;
     // --- обработчик savings ---
     if (nextUpgrade && canUpgrade) {
         document.getElementById('upgrade-savings-btn').onclick = async () => {
@@ -265,25 +292,6 @@ async function renderShop() {
             const freshTwobigLevel = freshData.twobigLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshTwobigLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshTwobigLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshTwobigLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshTwobigLevel !== twobigLevel || freshCoins < nextTwobig.cost || freshCharLevel < nextTwobig.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -308,25 +316,6 @@ async function renderShop() {
             const freshOk4uLevel = freshData.ok4uLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshOk4uLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshOk4uLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshOk4uLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshOk4uLevel !== ok4uLevel || freshCoins < nextOk4u.cost || freshCharLevel < nextOk4u.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -351,25 +340,6 @@ async function renderShop() {
             const freshMyt4uLevel = freshData.myt4uLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshMyt4uLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshMyt4uLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshMyt4uLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshMyt4uLevel !== myt4uLevel || freshCoins < nextMyt4u.cost || freshCharLevel < nextMyt4u.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -385,6 +355,54 @@ async function renderShop() {
             setTimeout(() => renderShop(), 1500);
         };
     }
+    // --- обработчик on2u ---
+    if (nextOn2u && canUpgradeOn2u) {
+        document.getElementById('upgrade-on2u-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-on2u-btn');
+            const freshDoc = await userRef.get();
+            const freshData = freshDoc.data();
+            const freshOn2uLevel = freshData.on2uLevel || 0;
+            const freshCoins = freshData.coins || 0;
+            const freshCharLevel = freshData.level || 1;
+            if (freshOn2uLevel !== on2uLevel || freshCoins < nextOn2u.cost || freshCharLevel < nextOn2u.charLevel) {
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
+                return;
+            }
+            await userRef.update({
+                coins: freshCoins - nextOn2u.cost,
+                on2uLevel: freshOn2uLevel + 1,
+                on2u: nextOn2u.reward
+            });
+            animatePurchase(button, true);
+            if (typeof showProfile === 'function') showProfile();
+            setTimeout(() => renderShop(), 1500);
+        };
+    }
+    // --- обработчик gro4us ---
+    if (nextGro4us && canUpgradeGro4us) {
+        document.getElementById('upgrade-gro4us-btn').onclick = async () => {
+            const button = document.getElementById('upgrade-gro4us-btn');
+            const freshDoc = await userRef.get();
+            const freshData = freshDoc.data();
+            const freshGro4usLevel = freshData.gro4usLevel || 0;
+            const freshCoins = freshData.coins || 0;
+            const freshCharLevel = freshData.level || 1;
+            if (freshGro4usLevel !== gro4usLevel || freshCoins < nextGro4us.cost || freshCharLevel < nextGro4us.charLevel) {
+                animatePurchase(button, false);
+                setTimeout(() => renderShop(), 1000);
+                return;
+            }
+            await userRef.update({
+                coins: freshCoins - nextGro4us.cost,
+                gro4usLevel: freshGro4usLevel + 1,
+                gro4us: nextGro4us.reward
+            });
+            animatePurchase(button, true);
+            if (typeof showProfile === 'function') showProfile();
+            setTimeout(() => renderShop(), 1500);
+        };
+    }
     // --- обработчик percents ---
     if (nextPercents && canUpgradePercents) {
         document.getElementById('upgrade-percents-btn').onclick = async () => {
@@ -394,25 +412,6 @@ async function renderShop() {
             const freshPercentsLevel = freshData.percentsLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshPercentsLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshPercentsLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshPercentsLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshPercentsLevel !== percentsLevel || freshCoins < nextPercents.cost || freshCharLevel < nextPercents.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -437,25 +436,6 @@ async function renderShop() {
             const freshPassivesLevel = freshData.passivesLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshPassivesLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshPassivesLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshPassivesLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshPassivesLevel !== passivesLevel || freshCoins < nextPassives.cost || freshCharLevel < nextPassives.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -480,25 +460,6 @@ async function renderShop() {
             const freshRealtyLevel = freshData.realtyLevel || 0;
             const freshCoins = freshData.coins || 0;
             const freshCharLevel = freshData.level || 1;
-            const freshWins = freshData.wins || 0;
-            
-            // Проверяем требования побед
-            if (freshRealtyLevel === 2 && freshWins < 1) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshRealtyLevel === 3 && freshWins < 3) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            if (freshRealtyLevel === 4 && freshWins < 5) {
-                animatePurchase(button, false);
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-            
             if (freshRealtyLevel !== realtyLevel || freshCoins < nextRealty.cost || freshCharLevel < nextRealty.charLevel) {
                 animatePurchase(button, false);
                 setTimeout(() => renderShop(), 1000);
@@ -520,15 +481,15 @@ async function renderShop() {
 function animatePurchase(button, success = true) {
     const originalText = button.innerHTML;
     const originalBackground = button.style.background;
-    
+
     if (success) {
         button.innerHTML = '<span class="btn-icon">✅</span><span class="btn-text">Куплено!</span>';
         button.style.background = 'linear-gradient(135deg, #4caf50, #66bb6a)';
         button.style.transform = 'scale(1.05)';
-        
+
         // Добавляем эффект частиц
         createParticleEffect(button);
-        
+
         setTimeout(() => {
             button.innerHTML = originalText;
             button.style.background = originalBackground;
@@ -538,7 +499,7 @@ function animatePurchase(button, success = true) {
         button.innerHTML = '<span class="btn-icon">❌</span><span class="btn-text">Недостаточно монет!</span>';
         button.style.background = 'linear-gradient(135deg, #f44336, #e53935)';
         button.style.transform = 'scale(0.95)';
-        
+
         setTimeout(() => {
             button.innerHTML = originalText;
             button.style.background = originalBackground;
@@ -552,7 +513,7 @@ function createParticleEffect(element) {
     const rect = element.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     for (let i = 0; i < 8; i++) {
         const particle = document.createElement('div');
         particle.style.position = 'fixed';
@@ -565,21 +526,21 @@ function createParticleEffect(element) {
         particle.style.pointerEvents = 'none';
         particle.style.zIndex = '9999';
         particle.style.transition = 'all 0.6s ease-out';
-        
+
         document.body.appendChild(particle);
-        
+
         const angle = (i / 8) * Math.PI * 2;
         const distance = 50;
         const targetX = centerX + Math.cos(angle) * distance;
         const targetY = centerY + Math.sin(angle) * distance;
-        
+
         setTimeout(() => {
             particle.style.left = targetX + 'px';
             particle.style.top = targetY + 'px';
             particle.style.opacity = '0';
             particle.style.transform = 'scale(0)';
         }, 50);
-        
+
         setTimeout(() => {
             document.body.removeChild(particle);
         }, 650);
@@ -593,29 +554,29 @@ if (shopBtn && shopModal && shopClose) {
             alert('Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.');
             return;
         }
-        
+
         // Проверяем уровень пользователя
         const user = firebase.auth().currentUser;
         if (!user) {
             alert('Войдите в аккаунт, чтобы пользоваться магазином.');
             return;
         }
-        
+
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const doc = await userRef.get();
         if (!doc.exists) {
             alert('Ошибка загрузки данных пользователя.');
             return;
         }
-        
+
         const data = doc.data();
         const userLevel = data.level || 1;
-        
+
         if (userLevel < 5) {
             alert('Магазин доступен только с 5 уровня! Станьте Учеником, чтобы получить доступ к инвестициям.');
             return;
         }
-        
+
         shopModal.style.display = 'block';
         renderShop();
     };
@@ -628,4 +589,4 @@ if (shopBtn && shopModal && shopClose) {
             shopModal.style.display = 'none';
         }
     };
-} 
+}

@@ -1160,6 +1160,8 @@ document.getElementById('admin-reset-user').onclick = async () => {
             twobigLevel: 0, twobig: 0,
             ok4uLevel: 0, ok4u: 0,
             myt4uLevel: 0, myt4u: 0,
+            on2uLevel: 0, on2u: 0,
+            gro4usLevel: 0, gro4us: 0,
             percentsLevel: 0, percents: '-',
             passivesLevel: 0, passives: '-',
             realtyLevel: 0, realty: '-'
@@ -1191,6 +1193,8 @@ document.getElementById('admin-reset-all').onclick = async () => {
             twobigLevel: 0, twobig: 0,
             ok4uLevel: 0, ok4u: 0,
             myt4uLevel: 0, myt4u: 0,
+            on2uLevel: 0, on2u: 0,
+            gro4usLevel: 0, gro4us: 0,
             percentsLevel: 0, percents: '-',
             passivesLevel: 0, passives: '-',
             realtyLevel: 0, realty: '-'
