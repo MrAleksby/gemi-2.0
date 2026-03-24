@@ -258,40 +258,54 @@ document.getElementById('show-login').onclick = (e) => {
     loginSection.style.display = '';
 };
 
+// ─── Утилита: телефон → внутренний email ──────────────────────────────────────
+
+function phoneToEmail(phone) {
+    return phone.replace(/\D/g, '') + '@bmk.local';
+}
+
 // ─── Регистрация ──────────────────────────────────────────────────────────────
 
 document.getElementById('register-form').onsubmit = async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    const username = document.getElementById('register-username').value.trim();
-    const email = document.getElementById('register-email').value.trim();
+
+    const fullname = document.getElementById('register-fullname').value.trim();
+    const phone    = document.getElementById('register-phone').value.trim();
     const password = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
 
-    if (!username) { alert('Введите имя пользователя!'); submitBtn.disabled = false; return; }
+    if (!fullname) { alert('Введите имя и фамилию!'); submitBtn.disabled = false; return; }
+    if (!phone)    { alert('Введите номер телефона!'); submitBtn.disabled = false; return; }
     if (password !== passwordConfirm) { alert('Пароли не совпадают!'); submitBtn.disabled = false; return; }
 
-    const usernameDoc = await db.collection('usernames').doc(username.toLowerCase()).get();
-    if (usernameDoc.exists) { alert('Пользователь с таким именем уже существует!'); submitBtn.disabled = false; return; }
+    const phoneKey = phone.replace(/\D/g, '');
+
+    // Проверяем уникальность телефона
+    const phoneDoc = await db.collection('usernames').doc(phoneKey).get();
+    if (phoneDoc.exists) { alert('Этот номер телефона уже зарегистрирован!'); submitBtn.disabled = false; return; }
 
     try {
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const fakeEmail = phoneToEmail(phone);
+        const cred = await auth.createUserWithEmailAndPassword(fakeEmail, password);
         await new Promise(resolve => {
             const unsub = auth.onAuthStateChanged(u => { if (u) { unsub(); resolve(); } });
         });
         const uid = auth.currentUser.uid;
-        await db.collection('usernames').doc(username.toLowerCase()).set({ uid });
+        await db.collection('usernames').doc(phoneKey).set({ uid });
         await db.collection('users').doc(uid).set({
-            name: username, email, level: 1, experience: 0, points: 0, coins: 0, cf: 0, wins: 0, games: 0
+            name: fullname, phone: phoneKey, level: 1, experience: 0,
+            points: 0, coins: 0, cf: 0, wins: 0, games: 0
         });
         currentUser = uid;
         registerSection.style.display = 'none';
         profileCard.style.display = '';
         showProfile();
         showRating();
+        showRandomQuote();
 
-        if (username.toLowerCase() === adminName.toLowerCase()) {
+        if (fullname.toLowerCase() === adminName.toLowerCase()) {
             adminSection.style.display = '';
             loadUsersList();
             updateTransactionsLists();
@@ -306,13 +320,14 @@ document.getElementById('register-form').onsubmit = async (e) => {
 
 document.getElementById('login-form').onsubmit = async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value.trim();
+    const phone    = document.getElementById('login-phone').value.trim();
     const password = document.getElementById('login-password').value;
     try {
-        const cred = await auth.signInWithEmailAndPassword(email, password);
+        const fakeEmail = phoneToEmail(phone);
+        const cred = await auth.signInWithEmailAndPassword(fakeEmail, password);
         currentUser = cred.user.uid;
     } catch (err) {
-        alert('Ошибка входа: ' + err.message);
+        alert('Неверный номер телефона или пароль');
     }
 };
 
@@ -907,6 +922,50 @@ document.getElementById('admin-reset-all-games').onclick = async () => {
     await batch.commit();
     adminMessage.textContent = 'Игры у всех сброшены!';
     showRating(); showProfile();
+};
+
+// ─── Полный сброс (новый сезон) ───────────────────────────────────────────────
+
+document.getElementById('admin-nuclear-reset').onclick = async () => {
+    const confirmed = confirm(
+        '☢️ ПОЛНЫЙ СБРОС\n\n' +
+        'Будут удалены:\n' +
+        '• Все игроки из базы данных\n' +
+        '• Все счёта и заявки\n' +
+        '• История транзакций\n\n' +
+        'Игроки смогут зарегистрироваться заново.\n\n' +
+        'Введите "НОВЫЙ СЕЗОН" для подтверждения:'
+    );
+    if (!confirmed) return;
+    const code = prompt('Введите: НОВЫЙ СЕЗОН');
+    if (code !== 'НОВЫЙ СЕЗОН') { alert('Отменено — текст не совпал.'); return; }
+
+    try {
+        adminMessage.textContent = 'Удаление данных...';
+        const batch1 = db.batch();
+        const batch2 = db.batch();
+        const batch3 = db.batch();
+
+        const [usersSnap, usernamesSnap, requestsSnap, txSnap] = await Promise.all([
+            db.collection('users').get(),
+            db.collection('usernames').get(),
+            db.collection('score_requests').get(),
+            db.collection('transactions').get(),
+        ]);
+
+        usersSnap.forEach(d => batch1.delete(d.ref));
+        usernamesSnap.forEach(d => batch1.delete(d.ref));
+        requestsSnap.forEach(d => batch2.delete(d.ref));
+        txSnap.forEach(d => batch3.delete(d.ref));
+
+        await Promise.all([batch1.commit(), batch2.commit(), batch3.commit()]);
+
+        adminMessage.textContent = `✅ Удалено: ${usersSnap.size} игроков, ${requestsSnap.size} заявок, ${txSnap.size} транзакций. Новый сезон начат!`;
+        loadUsersList();
+        showRating();
+    } catch (err) {
+        alert('Ошибка: ' + err.message);
+    }
 };
 
 // ─── DOMContentLoaded ─────────────────────────────────────────────────────────

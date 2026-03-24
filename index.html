@@ -20,7 +20,7 @@
     <div id="login-section">
         <h2>Вход</h2>
         <form id="login-form">
-            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="tel" id="login-phone" placeholder="Номер телефона" required>
             <input type="password" id="login-password" placeholder="Пароль" required>
             <button type="submit">Войти</button>
         </form>
@@ -31,8 +31,8 @@
     <div id="register-section" style="display:none;">
         <h2>Регистрация</h2>
         <form id="register-form">
-            <input type="text" id="register-username" placeholder="Имя пользователя" required>
-            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="text" id="register-fullname" placeholder="Имя и Фамилия" required>
+            <input type="tel" id="register-phone" placeholder="Номер телефона" required>
             <input type="password" id="register-password" placeholder="Пароль" required>
             <input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" required>
             <button type="submit">Зарегистрироваться</button>
@@ -198,6 +198,11 @@
             <button id="admin-reset-all-wins" style="flex:1;">Сбросить победы</button>
             <button id="admin-reset-all-games" style="flex:1;">Сбросить игры</button>
         </div>
+
+        <hr class="section-divider">
+        <h3 class="section-title" style="color:#c0392b;">☢️ Новый сезон</h3>
+        <p style="font-size:0.85em;color:#888;margin:0 0 8px;">Удаляет всех игроков из базы данных. Они смогут зарегистрироваться заново.</p>
+        <button id="admin-nuclear-reset" style="background:linear-gradient(135deg,#c0392b,#922b21);margin-top:4px;">☢️ Удалить всех игроков</button>
 
         <hr class="section-divider">
 
