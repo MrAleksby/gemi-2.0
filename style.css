@@ -2778,5 +2778,14 @@ th {
 .crypto-trade-item.sell { border-left: 3px solid #e53935; }
 .crypto-pnl-positive { color: #27ae60; font-weight: 700; }
 .crypto-pnl-negative { color: #e53935; font-weight: 700; }
+
+/* Итоговый P&L блок */
+.crypto-total-pnl { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; margin-bottom: 14px; }
+.crypto-total-pnl.positive { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border: 1.5px solid #27ae60; }
+.crypto-total-pnl.negative { background: linear-gradient(135deg, #ffebee, #ffcdd2); border: 1.5px solid #e53935; }
+.crypto-pnl-label { color: #555; font-size: 0.88em; }
+.crypto-total-pnl.positive .crypto-pnl-value { color: #1b5e20; font-size: 1.15em; font-weight: 800; }
+.crypto-total-pnl.negative .crypto-pnl-value { color: #b71c1c; font-size: 1.15em; font-weight: 800; }
+
 .crypto-admin-commission { background: linear-gradient(135deg, #1e0a2e22, #5c1f4a22); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
 .crypto-commission-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.82em; border-bottom: 1px solid rgba(0,0,0,0.06); color: #555; }

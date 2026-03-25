@@ -1541,7 +1541,8 @@ function getEmptyUserData() {
         realtyLevel: 0, realty: '-',
         btcAmount: 0,
         exchangeCoins: 0,
-        btcAvgPrice: 0
+        btcAvgPrice: 0,
+        totalPnl: 0
     };
 }
 

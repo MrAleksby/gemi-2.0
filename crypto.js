@@ -78,6 +78,7 @@ async function renderCryptoExchange() {
     const changeSign = change24h >= 0 ? '+' : '';
     const changeColor = change24h >= 0 ? '#27ae60' : '#e53935';
     const btcValue = btcAmount * btcPrice; // value in coins
+    const totalPnl = userData.totalPnl || 0;
 
     cryptoPrices.btc = { price: btcPrice, change24h, fetchedAt: Date.now() };
 
@@ -206,6 +207,11 @@ async function renderCryptoExchange() {
                 <b>≈ ${btcValue.toFixed(2)} монет</b>
             </div>
             ${avgPriceInfo}
+        </div>
+
+        <div class="crypto-total-pnl ${totalPnl >= 0 ? 'positive' : 'negative'}">
+            <span class="crypto-pnl-label">📈 Заработано за всё время</span>
+            <span class="crypto-pnl-value">${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)} монет</span>
         </div>
 
         <div class="crypto-wallet-section">
@@ -546,7 +552,8 @@ async function executeSell() {
 
         await userRef.update({
             exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
-            btcAmount: firebase.firestore.FieldValue.increment(-btcInput)
+            btcAmount: firebase.firestore.FieldValue.increment(-btcInput),
+            totalPnl: firebase.firestore.FieldValue.increment(pnl)
         });
 
         const userName = freshData.name || 'Неизвестно';
