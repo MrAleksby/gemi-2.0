@@ -402,6 +402,9 @@ function showAdulthoodProgress() {
         const progress = lvl < 25
             ? ((data.points - levelThresholds[lvl - 1]) / (levelThresholds[lvl] - levelThresholds[lvl - 1])) * 100
             : 100;
+        const pointsLeft = lvl < 25
+            ? levelThresholds[lvl] - (data.points || 0)
+            : 0;
 
         const html = `
             <div class="adulthood-progress">
@@ -417,7 +420,7 @@ function showAdulthoodProgress() {
                 </div>
                 <div class="next-stage">
                     <span>Следующий: ${getLevelTitle(nextLvl)} ${nextLvl}</span>
-                    <span>${Math.round(progress)}%</span>
+                    <span>${lvl < 25 ? `ещё ${pointsLeft} опыта` : '🏆 MAX'}</span>
                 </div>
             </div>
         `;
