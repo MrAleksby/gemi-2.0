@@ -1223,8 +1223,8 @@ th {
 /* Фиксированные ширины колонок рейтинга (5 колонок) */
 #rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 28px; text-align: center; }
 #rating-table th:nth-child(2), #rating-table td:nth-child(2) { width: 120px; max-width: 120px; text-align: left; padding-left: 8px !important; overflow: hidden; text-overflow: ellipsis; }
-#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 76px; text-align: center; }
-#rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 44px; text-align: center; }
+#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 68px; text-align: center; overflow: hidden; }
+#rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 46px; text-align: center; border-left: 2px solid rgba(0,0,0,0.06); }
 #rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 40px; text-align: center; }
 
 #rating-table .level-badge {
