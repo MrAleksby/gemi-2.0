@@ -27,6 +27,10 @@ const auth = firebase.auth();
 let unsubPlayerRequests = null;
 let unsubAdminRequests = null;
 
+// ─── Кеш рейтинга ─────────────────────────────────────────────────────────────
+let ratingCache = null;
+let ratingCacheTime = 0;
+
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
 /**
@@ -63,8 +67,11 @@ function showMsg(elementId, text, isError = false) {
 }
 
 async function findUserByName(username) {
-    const usersSnap = await db.collection('users').get();
-    return usersSnap.docs.find(doc =>
+    const snap = await db.collection('users').where('name', '==', username.trim()).get();
+    if (!snap.empty) return snap.docs[0];
+    // Fallback: case-insensitive search if exact match not found
+    const allSnap = await db.collection('users').get();
+    return allSnap.docs.find(doc =>
         doc.data().name && doc.data().name.trim().toLowerCase() === username.trim().toLowerCase()
     ) || null;
 }
@@ -797,7 +804,15 @@ function updateShopButton(lvl) {
 // ─── Рейтинг ──────────────────────────────────────────────────────────────────
 
 async function showRating() {
-    const usersSnap = await db.collection('users').orderBy('points', 'desc').get();
+    const now = Date.now();
+    let usersSnap;
+    if (ratingCache && (now - ratingCacheTime) < 30000) {
+        usersSnap = ratingCache;
+    } else {
+        usersSnap = await db.collection('users').orderBy('points', 'desc').get();
+        ratingCache = usersSnap;
+        ratingCacheTime = now;
+    }
     // Строим все строки в памяти — чтобы не мигала пустая таблица
     const fragment = document.createDocumentFragment();
     let place = 1;
@@ -1333,16 +1348,40 @@ async function loadPlayerHistory(userId) {
     const listEl = document.getElementById('player-history-list');
     if (!listEl) return;
     try {
-        const snap = await db.collection('transactions')
-            .where('userId', '==', userId)
-            .orderBy('timestamp', 'desc')
-            .get();
-        if (snap.empty) {
-            listEl.innerHTML = '<p class="empty-hint">История пуста</p>';
-            return;
-        }
+        let lastDoc = null;
+        const PAGE = 20;
+
+        const fetchPage = async () => {
+            let query = db.collection('transactions')
+                .where('userId', '==', userId)
+                .orderBy('timestamp', 'desc')
+                .limit(PAGE);
+            if (lastDoc) query = query.startAfter(lastDoc);
+
+            const snap = await query.get();
+            if (snap.empty && !lastDoc) {
+                listEl.innerHTML = '<p class="empty-hint">История пуста</p>';
+                return;
+            }
+
+            snap.forEach(doc => { listEl.innerHTML += renderTransactionItem(doc.data()); });
+
+            // Удаляем старую кнопку "Показать ещё" если есть
+            const oldBtn = listEl.querySelector('.load-more-btn');
+            if (oldBtn) oldBtn.remove();
+
+            if (snap.size === PAGE) {
+                lastDoc = snap.docs[snap.docs.length - 1];
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.textContent = 'Показать ещё';
+                btn.onclick = () => { btn.remove(); fetchPage(); };
+                listEl.appendChild(btn);
+            }
+        };
+
         listEl.innerHTML = '';
-        snap.forEach(doc => { listEl.innerHTML += renderTransactionItem(doc.data()); });
+        await fetchPage();
     } catch (err) {
         console.error('Ошибка загрузки истории игрока:', err);
     }
@@ -1361,18 +1400,41 @@ const transactionsHistory    = document.getElementById('transactions-history');
 async function loadTransactionsHistory() {
     if (!transactionsHistory) return;
     try {
-        const snap = await db.collection('transactions')
-            .orderBy('timestamp', 'desc').get();
+        let lastDoc = null;
+        const PAGE = 20;
 
-        if (snap.empty) {
-            transactionsHistory.innerHTML = '<p class="empty-hint">История пуста</p>';
-            return;
-        }
+        const fetchPage = async () => {
+            let query = db.collection('transactions')
+                .orderBy('timestamp', 'desc')
+                .limit(PAGE);
+            if (lastDoc) query = query.startAfter(lastDoc);
+
+            const snap = await query.get();
+            if (snap.empty && !lastDoc) {
+                transactionsHistory.innerHTML = '<p class="empty-hint">История пуста</p>';
+                return;
+            }
+
+            snap.forEach(doc => {
+                transactionsHistory.innerHTML += renderTransactionItem(doc.data());
+            });
+
+            // Удаляем старую кнопку "Показать ещё" если есть
+            const oldBtn = transactionsHistory.querySelector('.load-more-btn');
+            if (oldBtn) oldBtn.remove();
+
+            if (snap.size === PAGE) {
+                lastDoc = snap.docs[snap.docs.length - 1];
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.textContent = 'Показать ещё';
+                btn.onclick = () => { btn.remove(); fetchPage(); };
+                transactionsHistory.appendChild(btn);
+            }
+        };
 
         transactionsHistory.innerHTML = '';
-        snap.forEach(doc => {
-            transactionsHistory.innerHTML += renderTransactionItem(doc.data());
-        });
+        await fetchPage();
     } catch (err) {
         console.error('Ошибка загрузки истории:', err);
     }

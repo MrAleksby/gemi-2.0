@@ -110,6 +110,7 @@ async function approveScoreRequest(requestId) {
             req.userId
         );
 
+        if (typeof ratingCache !== 'undefined') ratingCache = null;
         if (typeof showProfile === 'function') showProfile();
         if (typeof showRating  === 'function') showRating();
     } catch (err) {
