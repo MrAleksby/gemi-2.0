@@ -831,7 +831,7 @@ async function showRating() {
         tr.innerHTML = `
             <td>${place++}</td>
             <td>${data.name}</td>
-            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${lvlIcon} ${lvl}</span></td>
+            <td style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;">${lvlIcon} ${lvl}</td>
             <td>${data.points}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
         `;
