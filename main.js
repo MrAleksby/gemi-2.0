@@ -759,7 +759,7 @@ async function showProfile() {
     const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(10).get();
     let top5Html = `<div class="top5-title">🏆 Топ-5 игроков</div>
         <table class="top5-table"><thead><tr>
-            <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th><th>KD</th>
+            <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th>
         </tr></thead><tbody>`;
     let place = 1;
     top5Snap.forEach(doc => {
@@ -775,7 +775,6 @@ async function showProfile() {
             <td>${d.name}</td>
             <td><span class="level-badge" style="background:${getLevelColor(l)};">${lvlIcon} ${l}</span></td>
             <td>${d.points}</td>
-            <td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor:pointer">${kd}</td>
         </tr>`;
         place++;
     });
