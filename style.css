@@ -2471,3 +2471,4 @@ th {
 
 /* отступ снизу чтобы навбар не перекрывал контент */
 #profile-card { padding-bottom: 80px; }
+#admin-section { padding-bottom: 80px; }
