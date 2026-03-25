@@ -405,7 +405,6 @@ function showAdulthoodProgress() {
 
         const html = `
             <div class="adulthood-progress">
-                <h3>🎯 Путь к взрослости</h3>
                 <div class="current-stage">
                     <div class="stage-emoji">${getLevelEmoji(lvl)}</div>
                     <div class="stage-info">
