@@ -9,13 +9,13 @@ let cryptoPrices = {}; // cache: { btc: { price: 104321, change24h: 2.3, fetched
 
 async function fetchCryptoPrice(cgId) {
     try {
-        const res = await fetch(
-            `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd&include_24hr_change=true`
-        );
+        // Binance API — надёжный, бесплатный, без ключа
+        const symbol = cgId === 'bitcoin' ? 'BTCUSDT' : cgId.toUpperCase() + 'USDT';
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
         const data = await res.json();
         return {
-            price: data[cgId].usd,
-            change24h: data[cgId].usd_24h_change
+            price: parseFloat(data.lastPrice),
+            change24h: parseFloat(data.priceChangePercent)
         };
     } catch (e) {
         return null;
