@@ -1495,6 +1495,31 @@ if (clearTransactionsBtn) {
 
 // ─── Сброс данных ─────────────────────────────────────────────────────────────
 
+/**
+ * Возвращает объект с обнулёнными игровыми данными пользователя.
+ * Используется при сбросе одного или всех участников.
+ */
+function getEmptyUserData() {
+    return {
+        points: 0, coins: 0, cf: 0, level: 1,
+        wins: 0, games: 0,
+        badges: [],
+        transferCount: 0, receivedTransfers: 0,
+        exchangeCount: 0,
+        totalRequests: 0, approvedRequests: 0, rejectedRequests: 0,
+        bestRank: 99,
+        savingsLevel: 0, savings: 0,
+        twobigLevel: 0, twobig: 0,
+        ok4uLevel: 0, ok4u: 0,
+        myt4uLevel: 0, myt4u: 0,
+        on2uLevel: 0, on2u: 0,
+        gro4usLevel: 0, gro4us: 0,
+        percentsLevel: 0, percents: '-',
+        passivesLevel: 0, passives: '-',
+        realtyLevel: 0, realty: '-'
+    };
+}
+
 const adminUserInput = document.getElementById('admin-user');
 
 document.getElementById('admin-reset-user').onclick = async () => {
@@ -1503,24 +1528,7 @@ document.getElementById('admin-reset-user').onclick = async () => {
     if (!confirm(`Обнулить данные пользователя ${user}?`)) return;
     const userDoc = await findUserByName(user);
     if (userDoc) {
-        await userDoc.ref.update({
-            points: 0, coins: 0, cf: 0, level: 1,
-            wins: 0, games: 0,
-            badges: [],
-            transferCount: 0, receivedTransfers: 0,
-            exchangeCount: 0,
-            totalRequests: 0, approvedRequests: 0, rejectedRequests: 0,
-            bestRank: 99,
-            savingsLevel: 0, savings: 0,
-            twobigLevel: 0, twobig: 0,
-            ok4uLevel: 0, ok4u: 0,
-            myt4uLevel: 0, myt4u: 0,
-            on2uLevel: 0, on2u: 0,
-            gro4usLevel: 0, gro4us: 0,
-            percentsLevel: 0, percents: '-',
-            passivesLevel: 0, passives: '-',
-            realtyLevel: 0, realty: '-'
-        });
+        await userDoc.ref.update(getEmptyUserData());
         adminMessage.textContent = `Данные ${user} обнулены!`;
         updateUsersList();
         showProfile();
@@ -1536,24 +1544,7 @@ document.getElementById('admin-reset-all').onclick = async () => {
     const usersSnap = await db.collection('users').get();
     const batch = db.batch();
     usersSnap.forEach(doc => {
-        batch.update(doc.ref, {
-            points: 0, coins: 0, cf: 0, level: 1,
-            wins: 0, games: 0,
-            badges: [],
-            transferCount: 0, receivedTransfers: 0,
-            exchangeCount: 0,
-            totalRequests: 0, approvedRequests: 0, rejectedRequests: 0,
-            bestRank: 99,
-            savingsLevel: 0, savings: 0,
-            twobigLevel: 0, twobig: 0,
-            ok4uLevel: 0, ok4u: 0,
-            myt4uLevel: 0, myt4u: 0,
-            on2uLevel: 0, on2u: 0,
-            gro4usLevel: 0, gro4us: 0,
-            percentsLevel: 0, percents: '-',
-            passivesLevel: 0, passives: '-',
-            realtyLevel: 0, realty: '-'
-        });
+        batch.update(doc.ref, getEmptyUserData());
     });
     await batch.commit();
     adminMessage.textContent = 'Все участники обнулены!';
