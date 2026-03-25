@@ -1439,56 +1439,6 @@ document.getElementById('admin-reset-all-games').onclick = async () => {
     showRating(); showProfile();
 };
 
-// ─── Разовая выплата бонусов за старые награды ───────────────────────────────
-
-document.getElementById('admin-award-badge-bonuses').onclick = async () => {
-    const confirmed = confirm('Начислить монеты и опыт всем игрокам за уже полученные награды?\n\nЭто действие нельзя отменить.');
-    if (!confirmed) return;
-
-    const btn = document.getElementById('admin-award-badge-bonuses');
-    btn.disabled = true;
-    btn.textContent = '⏳ Начисляем...';
-
-    try {
-        const snapshot = await db.collection('users').get();
-        let processed = 0;
-
-        for (const doc of snapshot.docs) {
-            const data = doc.data();
-            const badges = Array.isArray(data.badges) ? data.badges : [];
-            if (badges.length === 0) continue;
-
-            let totalCoins = 0, totalPoints = 0;
-            badges.forEach(id => {
-                const b = BADGES.find(x => x.id === id);
-                if (b) {
-                    const bonus = BADGE_TIER_BONUS[b.tier] || { coins: 0, points: 0 };
-                    totalCoins  += bonus.coins;
-                    totalPoints += bonus.points;
-                }
-            });
-
-            if (totalCoins > 0 || totalPoints > 0) {
-                const update = {};
-                if (totalCoins  > 0) update.coins  = firebase.firestore.FieldValue.increment(totalCoins);
-                if (totalPoints > 0) update.points = firebase.firestore.FieldValue.increment(totalPoints);
-                await db.collection('users').doc(doc.id).update(update);
-                processed++;
-            }
-        }
-
-        btn.textContent = `✅ Готово! Начислено ${processed} игрокам`;
-        setTimeout(() => {
-            btn.textContent = '🎖️ Начислить бонусы за награды';
-            btn.disabled = false;
-        }, 4000);
-    } catch (e) {
-        btn.textContent = '❌ Ошибка';
-        btn.disabled = false;
-        console.error(e);
-    }
-};
-
 // ─── Полный сброс (новый сезон) ───────────────────────────────────────────────
 
 document.getElementById('admin-nuclear-reset').onclick = async () => {
