@@ -705,12 +705,12 @@ function updateShopButton(lvl) {
 
 async function showRating() {
     const usersSnap = await db.collection('users').orderBy('points', 'desc').get();
-    ratingTableBody.innerHTML = '';
+    // Строим все строки в памяти — чтобы не мигала пустая таблица
+    const fragment = document.createDocumentFragment();
     let place = 1;
     usersSnap.forEach(doc => {
         const data = doc.data();
         if (!data.name || data.name.trim() === '' || data.isAdmin) return;
-        // Обновляем bestRank для текущего пользователя
         if (doc.id === currentUser && place < (data.bestRank || 99)) {
             db.collection('users').doc(currentUser).update({ bestRank: place }).catch(() => {});
         }
@@ -726,8 +726,11 @@ async function showRating() {
             <td>${(data.cf ?? 0).toFixed(2)}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
         `;
-        ratingTableBody.appendChild(tr);
+        fragment.appendChild(tr);
     });
+    // Заменяем контент одним разом — без мигания
+    ratingTableBody.innerHTML = '';
+    ratingTableBody.appendChild(fragment);
 }
 
 // ─── Обмен CF ─────────────────────────────────────────────────────────────────
