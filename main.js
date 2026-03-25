@@ -718,7 +718,7 @@ async function showRating() {
         tr.innerHTML = `
             <td>${place++}</td>
             <td>${data.name}</td>
-            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${getLevelTitle(lvl)}</span></td>
+            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${getLevelTitle(lvl)} ${lvl}</span></td>
             <td>${data.points}</td>
             <td>${data.coins ?? 0}</td>
             <td>${(data.cf ?? 0).toFixed(2)}</td>
