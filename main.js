@@ -1539,9 +1539,11 @@ function getEmptyUserData() {
         percentsLevel: 0, percents: '-',
         passivesLevel: 0, passives: '-',
         realtyLevel: 0, realty: '-',
-        btcAmount: 0,
+        btcAmount: 0,  btcAvgPrice: 0,
+        tonAmount: 0,  tonAvgPrice: 0,
+        tslaAmount: 0, tslaAvgPrice: 0,
+        aaplAmount: 0, aaplAvgPrice: 0,
         exchangeCoins: 0,
-        btcAvgPrice: 0,
         totalPnl: 0
     };
 }

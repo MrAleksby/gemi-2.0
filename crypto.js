@@ -1,27 +1,75 @@
-// ─── Криптобиржа ───────────────────────────────────────────────────────────────
+// ─── Криптобиржа / Фондовый рынок ─────────────────────────────────────────────
 
 const CRYPTO_COMMISSION = 0.005; // 0.5%
+
 const CRYPTO_ITEMS = [
-    { id: 'btc', name: 'Bitcoin', symbol: 'BTC', icon: '₿', color: '#f7931a', cgId: 'bitcoin' }
+    { id: 'btc',  name: 'Bitcoin', symbol: 'BTC',  icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT' },
+    { id: 'ton',  name: 'Toncoin', symbol: 'TON',  icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT' },
+    { id: 'tsla', name: 'Tesla',   symbol: 'TSLA', icon: '🚗', color: '#e31937', type: 'stock',  yahoo:   'TSLA'    },
+    { id: 'aapl', name: 'Apple',   symbol: 'AAPL', icon: '🍎', color: '#555555', type: 'stock',  yahoo:   'AAPL'    },
 ];
 
-let cryptoPrices = {};
+let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
 let cryptoPriceInterval = null;
+let currentCryptoAsset = 'btc'; // текущий актив
 
-async function fetchCryptoPrice(cgId) {
+// ─── Получение цены ────────────────────────────────────────────────────────────
+
+async function fetchAssetPrice(asset) {
     try {
-        // Binance API — надёжный, бесплатный, без ключа
-        const symbol = cgId === 'bitcoin' ? 'BTCUSDT' : cgId.toUpperCase() + 'USDT';
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-        const data = await res.json();
-        return {
-            price: parseFloat(data.lastPrice),
-            change24h: parseFloat(data.priceChangePercent)
-        };
-    } catch (e) {
+        if (asset.type === 'crypto') {
+            const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${asset.binance}`);
+            const d = await res.json();
+            return { price: parseFloat(d.lastPrice), change24h: parseFloat(d.priceChangePercent) };
+        } else {
+            // Yahoo Finance для акций
+            const res = await fetch(
+                `https://query1.finance.yahoo.com/v8/finance/chart/${asset.yahoo}?interval=1d&range=1d`
+            );
+            const d = await res.json();
+            const meta = d.chart.result[0].meta;
+            const price = meta.regularMarketPrice;
+            const prev  = meta.chartPreviousClose || price;
+            return { price, change24h: ((price - prev) / prev) * 100 };
+        }
+    } catch(e) {
+        // fallback: query2 для Yahoo
+        if (asset.type === 'stock') {
+            try {
+                const res2 = await fetch(
+                    `https://query2.finance.yahoo.com/v8/finance/chart/${asset.yahoo}?interval=1d&range=1d`
+                );
+                const d2 = await res2.json();
+                const meta2 = d2.chart.result[0].meta;
+                const price2 = meta2.regularMarketPrice;
+                const prev2  = meta2.chartPreviousClose || price2;
+                return { price: price2, change24h: ((price2 - prev2) / prev2) * 100 };
+            } catch(e2) { return null; }
+        }
         return null;
     }
 }
+
+// ─── Хелперы ───────────────────────────────────────────────────────────────────
+
+function getAsset(id) {
+    return CRYPTO_ITEMS.find(a => a.id === id);
+}
+
+// Сколько знаков после запятой для данного актива
+function assetDecimals(id) {
+    return (id === 'btc' || id === 'ton') ? 8 : 6;
+}
+
+// Читаем holdings из данных пользователя
+function assetHoldings(userData, id) {
+    return {
+        amount:   userData[`${id}Amount`]   || 0,
+        avgPrice: userData[`${id}AvgPrice`] || 0,
+    };
+}
+
+// ─── Обновление цены (интервал) ────────────────────────────────────────────────
 
 function stopCryptoPriceUpdates() {
     if (cryptoPriceInterval) { clearInterval(cryptoPriceInterval); cryptoPriceInterval = null; }
@@ -29,62 +77,84 @@ function stopCryptoPriceUpdates() {
 
 function startCryptoPriceUpdates() {
     stopCryptoPriceUpdates();
+    const asset = getAsset(currentCryptoAsset);
     cryptoPriceInterval = setInterval(async () => {
-        const priceData = await fetchCryptoPrice('bitcoin');
-        if (!priceData) return;
-        cryptoPrices.btc = { ...priceData, fetchedAt: Date.now() };
-        const priceEl = document.querySelector('.crypto-price');
+        const pd = await fetchAssetPrice(asset);
+        if (!pd) return;
+        cryptoPrices[asset.id] = { ...pd, fetchedAt: Date.now() };
+
+        const priceEl  = document.querySelector('.crypto-price');
         const changeEl = document.querySelector('.crypto-change');
-        if (priceEl) priceEl.innerHTML = `${priceData.price.toLocaleString('ru-RU', {maximumFractionDigits: 2})} <span class="crypto-currency">монет</span>`;
-        if (changeEl) {
-            const s = priceData.change24h >= 0 ? '+' : '';
-            changeEl.style.color = priceData.change24h >= 0 ? '#27ae60' : '#e53935';
-            changeEl.textContent = `${s}${priceData.change24h.toFixed(2)}% за 24ч`;
+        if (priceEl) {
+            priceEl.innerHTML = `${pd.price.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span>`;
         }
-        // обновить превью если поле заполнено
+        if (changeEl) {
+            const s = pd.change24h >= 0 ? '+' : '';
+            changeEl.style.color = pd.change24h >= 0 ? '#27ae60' : '#e53935';
+            changeEl.textContent = `${s}${pd.change24h.toFixed(2)}% за 24ч`;
+        }
         if (document.getElementById('crypto-buy-amount')?.value) updateBuyPreview();
         if (document.getElementById('crypto-sell-amount')?.value) updateSellPreview();
     }, 1000);
 }
 
-async function renderCryptoExchange() {
-    const modal = document.getElementById('crypto-modal');
-    const content = document.getElementById('crypto-content');
-    if (!modal || !content) return;
+// ─── Переключение актива ───────────────────────────────────────────────────────
 
+function switchAsset(id) {
+    currentCryptoAsset = id;
+    renderCryptoExchange();
+}
+
+// ─── Главная функция рендера ───────────────────────────────────────────────────
+
+async function renderCryptoExchange() {
+    const content = document.getElementById('crypto-content');
+    if (!content) return;
     const user = firebase.auth().currentUser;
     if (!user) return;
 
-    content.innerHTML = '<div class="crypto-loading">Загружаем курс... ₿</div>';
+    content.innerHTML = '<div class="crypto-loading">Загружаем данные... ₿</div>';
+
+    const asset = getAsset(currentCryptoAsset);
 
     const [priceData, userDoc] = await Promise.all([
-        fetchCryptoPrice('bitcoin'),
+        fetchAssetPrice(asset),
         firebase.firestore().collection('users').doc(user.uid).get()
     ]);
 
     if (!priceData) {
-        content.innerHTML = '<div class="crypto-error">Не удалось загрузить курс. Проверьте интернет.</div>';
+        content.innerHTML = `<div class="crypto-error">Не удалось загрузить курс ${asset.symbol}. Проверьте интернет.</div>`;
         return;
     }
 
-    const userData = userDoc.data();
-    const coins = userData.coins || 0;
-    const exchangeCoins = userData.exchangeCoins || 0;
-    const btcAmount = userData.btcAmount || 0;
-    const btcAvgPrice = userData.btcAvgPrice || 0;
-    const isAdmin = userData.isAdmin === true;
-    const btcPrice = priceData.price;
-    const change24h = priceData.change24h;
+    const userData     = userDoc.data();
+    const coins        = userData.coins        || 0;
+    const exchangeCoins= userData.exchangeCoins|| 0;
+    const totalPnl     = userData.totalPnl     || 0;
+    const isAdmin      = userData.isAdmin === true;
+
+    const { amount: holding, avgPrice: avgBuyPrice } = assetHoldings(userData, asset.id);
+
+    const btcPrice   = priceData.price;
+    const change24h  = priceData.change24h;
     const changeSign = change24h >= 0 ? '+' : '';
-    const changeColor = change24h >= 0 ? '#27ae60' : '#e53935';
-    const btcValue = btcAmount * btcPrice; // value in coins
-    const totalPnl = userData.totalPnl || 0;
+    const changeColor= change24h >= 0 ? '#27ae60' : '#e53935';
+    const holdingValue = holding * btcPrice;
+    const dec = assetDecimals(asset.id);
 
-    cryptoPrices.btc = { price: btcPrice, change24h, fetchedAt: Date.now() };
+    cryptoPrices[asset.id] = { ...priceData, fetchedAt: Date.now() };
 
+    // ─── Вкладки активов ─────────────────────────────────────────────────────
+    const assetTabsHtml = CRYPTO_ITEMS.map(a => `
+        <button class="asset-tab-btn ${a.id === currentCryptoAsset ? 'active' : ''}"
+                style="${a.id === currentCryptoAsset ? `border-color:${a.color};color:${a.color};` : ''}"
+                onclick="switchAsset('${a.id}')">
+            ${a.icon} ${a.symbol}
+        </button>
+    `).join('');
+
+    // ─── ADMIN VIEW ───────────────────────────────────────────────────────────
     if (isAdmin) {
-        // ─── Вид для АДМИНА ───────────────────────────────────────────────────
-        // Загрузим историю комиссий
         let commissionsHtml = '';
         try {
             const commSnap = await firebase.firestore().collection('exchange_commissions')
@@ -98,7 +168,7 @@ async function renderCryptoExchange() {
                     const dateStr = ts.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                     const typeLabel = d.type === 'buy' ? 'покупка' : 'продажа';
                     return `<div class="crypto-commission-item">
-                        <span>От ${d.userName} | ${typeLabel}</span>
+                        <span>От ${d.userName} | ${d.assetSymbol || 'BTC'} | ${typeLabel}</span>
                         <span>${(d.commission || 0).toFixed(2)} монет | ${dateStr}</span>
                     </div>`;
                 }).join('');
@@ -108,12 +178,14 @@ async function renderCryptoExchange() {
         }
 
         content.innerHTML = `
+            <div class="asset-tabs">${assetTabsHtml}</div>
+
             <div class="crypto-card">
                 <div class="crypto-header">
-                    <span class="crypto-icon">₿</span>
+                    <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
                     <div>
-                        <div class="crypto-name">Bitcoin (BTC)</div>
-                        <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 2})} <span class="crypto-currency">монет</span></div>
+                        <div class="crypto-name">${asset.name} (${asset.symbol})</div>
+                        <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
                         <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
                     </div>
                 </div>
@@ -133,37 +205,36 @@ async function renderCryptoExchange() {
 
             <div id="crypto-msg" class="crypto-msg"></div>
         `;
-
         startCryptoPriceUpdates();
         return;
     }
 
-    // ─── Вид для ИГРОКА ───────────────────────────────────────────────────────
+    // ─── PLAYER VIEW ──────────────────────────────────────────────────────────
 
-    // Загрузим историю сделок игрока
     let tradesHtml = '';
     try {
         const tradesSnap = await firebase.firestore().collection('exchange_trades')
             .where('userId', '==', user.uid)
+            .where('assetId', '==', asset.id)
             .orderBy('timestamp', 'desc')
             .limit(10)
             .get();
         if (tradesSnap.empty) {
-            tradesHtml = '<div style="color:#aaa;font-size:0.85em;">Сделок ещё нет</div>';
+            tradesHtml = '<div style="color:#aaa;font-size:0.85em;">Сделок по этому активу ещё нет</div>';
         } else {
             tradesHtml = tradesSnap.docs.map(doc => {
                 const d = doc.data();
                 if (d.type === 'buy') {
                     return `<div class="crypto-trade-item buy">
-                        <span>[покупка] Купил ${(d.btcAmount||0).toFixed(8)} BTC по ${Math.round(d.price||0).toLocaleString('ru-RU')} монет</span>
+                        <span>[покупка] Купил ${(d.assetAmount||0).toFixed(dec)} ${asset.symbol} по ${Math.round(d.price||0).toLocaleString('ru-RU')} монет</span>
                         <span class="crypto-pnl-negative">-${(d.commission||0).toFixed(2)} монет</span>
                     </div>`;
                 } else {
                     const pnl = d.pnl || 0;
                     const pnlClass = pnl >= 0 ? 'crypto-pnl-positive' : 'crypto-pnl-negative';
-                    const pnlLabel = pnl >= 0 ? `+${pnl.toFixed(2)} монет прибыль ✅` : `${pnl.toFixed(2)} монет убыток ❌`;
+                    const pnlLabel = pnl >= 0 ? `+${pnl.toFixed(2)} монет ✅` : `${pnl.toFixed(2)} монет ❌`;
                     return `<div class="crypto-trade-item sell">
-                        <span>[продажа] Продал ${(d.btcAmount||0).toFixed(8)} BTC</span>
+                        <span>[продажа] Продал ${(d.assetAmount||0).toFixed(dec)} ${asset.symbol}</span>
                         <span class="${pnlClass}">${pnlLabel}</span>
                     </div>`;
                 }
@@ -173,17 +244,22 @@ async function renderCryptoExchange() {
         tradesHtml = '<div style="color:#e53935;font-size:0.85em;">Ошибка загрузки истории</div>';
     }
 
-    const avgPriceInfo = btcAvgPrice > 0 && btcAmount > 0
-        ? `<div class="crypto-portfolio-row"><span>📈 Средняя цена BTC:</span><b>${Math.round(btcAvgPrice).toLocaleString('ru-RU')} монет</b></div>`
+    const avgPriceInfo = avgBuyPrice > 0 && holding > 0
+        ? `<div class="crypto-portfolio-row"><span>📈 Средняя цена:</span><b>${avgBuyPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} монет</b></div>`
         : '';
 
+    const pnlClass = totalPnl >= 0 ? 'positive' : 'negative';
+    const pnlSign  = totalPnl >= 0 ? '+' : '';
+
     content.innerHTML = `
+        <div class="asset-tabs">${assetTabsHtml}</div>
+
         <div class="crypto-card">
             <div class="crypto-header">
-                <span class="crypto-icon">₿</span>
+                <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
                 <div>
-                    <div class="crypto-name">Bitcoin (BTC)</div>
-                    <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 2})} <span class="crypto-currency">монет</span></div>
+                    <div class="crypto-name">${asset.name} (${asset.symbol})${asset.type === 'stock' ? ' <span class="asset-type-badge">Акция</span>' : ''}</div>
+                    <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
                     <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
                 </div>
             </div>
@@ -199,19 +275,19 @@ async function renderCryptoExchange() {
                 <b>${coins.toLocaleString('ru-RU')} монет</b>
             </div>
             <div class="crypto-portfolio-row">
-                <span>₿ Ваш Bitcoin:</span>
-                <b>${btcAmount.toFixed(8)} BTC</b>
+                <span>${asset.icon} Ваш ${asset.symbol}:</span>
+                <b>${holding.toFixed(dec)} ${asset.symbol}</b>
             </div>
             <div class="crypto-portfolio-row">
-                <span>📊 Стоимость BTC:</span>
-                <b>≈ ${btcValue.toFixed(2)} монет</b>
+                <span>📊 Стоимость:</span>
+                <b>≈ ${holdingValue.toFixed(2)} монет</b>
             </div>
             ${avgPriceInfo}
         </div>
 
-        <div class="crypto-total-pnl ${totalPnl >= 0 ? 'positive' : 'negative'}">
+        <div class="crypto-total-pnl ${pnlClass}">
             <span class="crypto-pnl-label">📈 Заработано за всё время</span>
-            <span class="crypto-pnl-value">${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)} монет</span>
+            <span class="crypto-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
         </div>
 
         <div class="crypto-wallet-section">
@@ -240,28 +316,28 @@ async function renderCryptoExchange() {
             <label>Потратить монет (биржевой кошелёк):</label>
             <div style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
                 <input type="number" id="crypto-buy-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму" oninput="updateBuyPreview()" style="margin-bottom:0;">
-                <button class="crypto-all-btn" onclick="buyAll()">Купить на всё</button>
+                <button class="crypto-all-btn" onclick="buyAll()">На всё</button>
             </div>
             <div class="crypto-preview" id="crypto-buy-preview"></div>
             <div class="crypto-commission-note">Комиссия: 0.5% включена в стоимость</div>
-            <button class="crypto-confirm-btn buy" onclick="executeBuy()">Купить BTC</button>
+            <button class="crypto-confirm-btn buy" onclick="executeBuy()">Купить ${asset.symbol}</button>
         </div>
 
         <div id="crypto-sell-form" class="crypto-form" style="display:none">
-            <label>Продать BTC:</label>
+            <label>Продать ${asset.symbol}:</label>
             <div style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
-                <input type="number" id="crypto-sell-amount" min="0.00000001" step="0.00000001" placeholder="Кол-во BTC" oninput="updateSellPreview()" style="margin-bottom:0;">
+                <input type="number" id="crypto-sell-amount" min="0.000001" step="0.000001" placeholder="Количество ${asset.symbol}" oninput="updateSellPreview()" style="margin-bottom:0;">
                 <button class="crypto-all-btn" onclick="sellAll()">Продать всё</button>
             </div>
             <div class="crypto-preview" id="crypto-sell-preview"></div>
             <div class="crypto-commission-note">Комиссия: 0.5% от суммы продажи</div>
-            <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать BTC</button>
+            <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать ${asset.symbol}</button>
         </div>
 
         <div id="crypto-msg" class="crypto-msg"></div>
 
         <div class="crypto-trade-history">
-            <h4>📋 История сделок</h4>
+            <h4>📋 История сделок — ${asset.symbol}</h4>
             ${tradesHtml}
         </div>
     `;
@@ -269,37 +345,83 @@ async function renderCryptoExchange() {
     startCryptoPriceUpdates();
 }
 
+// ─── UI-хелперы ────────────────────────────────────────────────────────────────
+
 function toggleCryptoWallet() {
     const forms = document.getElementById('crypto-wallet-forms');
-    const btn = document.querySelector('.crypto-wallet-toggle');
+    const btn   = document.querySelector('.crypto-wallet-toggle');
     if (!forms) return;
-    if (forms.style.display === 'none') {
-        forms.style.display = '';
-        if (btn) btn.textContent = '💼 Управление кошельком ▲';
-    } else {
-        forms.style.display = 'none';
-        if (btn) btn.textContent = '💼 Управление кошельком ▼';
-    }
+    const show = forms.style.display === 'none';
+    forms.style.display = show ? '' : 'none';
+    if (btn) btn.textContent = show ? '💼 Управление кошельком ▲' : '💼 Управление кошельком ▼';
 }
+
+function switchCryptoTab(tab) {
+    document.getElementById('crypto-buy-form').style.display  = tab === 'buy'  ? '' : 'none';
+    document.getElementById('crypto-sell-form').style.display = tab === 'sell' ? '' : 'none';
+    document.getElementById('crypto-buy-tab').classList.toggle('active',  tab === 'buy');
+    document.getElementById('crypto-sell-tab').classList.toggle('active', tab === 'sell');
+}
+
+function updateBuyPreview() {
+    const coinsInput = parseFloat(document.getElementById('crypto-buy-amount').value) || 0;
+    const preview    = document.getElementById('crypto-buy-preview');
+    const asset      = getAsset(currentCryptoAsset);
+    if (!coinsInput || coinsInput < 1 || !cryptoPrices[asset.id]) { if (preview) preview.textContent = ''; return; }
+    const commission   = coinsInput * CRYPTO_COMMISSION;
+    const coinsForAsset= coinsInput - commission;
+    const received     = coinsForAsset / cryptoPrices[asset.id].price;
+    const dec = assetDecimals(asset.id);
+    preview.innerHTML  = `Получите: <b>${received.toFixed(dec)} ${asset.symbol}</b><br>Комиссия: ${commission.toFixed(2)} монет`;
+}
+
+function updateSellPreview() {
+    const assetInput = parseFloat(document.getElementById('crypto-sell-amount').value) || 0;
+    const preview    = document.getElementById('crypto-sell-preview');
+    const asset      = getAsset(currentCryptoAsset);
+    if (!assetInput || !cryptoPrices[asset.id]) { if (preview) preview.textContent = ''; return; }
+    const coinsGross = assetInput * cryptoPrices[asset.id].price;
+    const commission = coinsGross * CRYPTO_COMMISSION;
+    const coinsNet   = coinsGross - commission;
+    preview.innerHTML= `Получите: <b>${coinsNet.toFixed(2)} монет</b><br>Комиссия: ${commission.toFixed(2)} монет`;
+}
+
+function buyAll() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    firebase.firestore().collection('users').doc(user.uid).get().then(doc => {
+        const input = document.getElementById('crypto-buy-amount');
+        if (input) { input.value = doc.data().exchangeCoins || 0; updateBuyPreview(); }
+    });
+}
+
+function sellAll() {
+    const user  = firebase.auth().currentUser;
+    const asset = getAsset(currentCryptoAsset);
+    if (!user) return;
+    firebase.firestore().collection('users').doc(user.uid).get().then(doc => {
+        const amount = doc.data()[`${asset.id}Amount`] || 0;
+        const input  = document.getElementById('crypto-sell-amount');
+        const dec    = assetDecimals(asset.id);
+        if (input) { input.value = amount.toFixed(dec); updateSellPreview(); }
+    });
+}
+
+// ─── Управление кошельком ──────────────────────────────────────────────────────
 
 async function cryptoDeposit() {
     const amount = parseInt(document.getElementById('crypto-deposit-amount')?.value) || 0;
-    const msgEl = document.getElementById('crypto-wallet-msg');
+    const msgEl  = document.getElementById('crypto-wallet-msg');
     if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
-
     const user = firebase.auth().currentUser;
     if (!user) return;
-
     try {
-        const userRef = firebase.firestore().collection('users').doc(user.uid);
-        const freshDoc = await userRef.get();
-        const freshCoins = freshDoc.data().coins || 0;
-        if (freshCoins < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`;
-            return;
-        }
-        await userRef.update({
-            coins: firebase.firestore.FieldValue.increment(-amount),
+        const ref  = firebase.firestore().collection('users').doc(user.uid);
+        const snap = await ref.get();
+        const freshCoins = snap.data().coins || 0;
+        if (freshCoins < amount) { if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`; return; }
+        await ref.update({
+            coins:         firebase.firestore.FieldValue.increment(-amount),
             exchangeCoins: firebase.firestore.FieldValue.increment(amount)
         });
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
@@ -311,23 +433,18 @@ async function cryptoDeposit() {
 
 async function cryptoWithdraw() {
     const amount = parseInt(document.getElementById('crypto-withdraw-amount')?.value) || 0;
-    const msgEl = document.getElementById('crypto-wallet-msg');
+    const msgEl  = document.getElementById('crypto-wallet-msg');
     if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
-
     const user = firebase.auth().currentUser;
     if (!user) return;
-
     try {
-        const userRef = firebase.firestore().collection('users').doc(user.uid);
-        const freshDoc = await userRef.get();
-        const freshExchange = freshDoc.data().exchangeCoins || 0;
-        if (freshExchange < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshExchange}`;
-            return;
-        }
-        await userRef.update({
+        const ref  = firebase.firestore().collection('users').doc(user.uid);
+        const snap = await ref.get();
+        const freshEx = snap.data().exchangeCoins || 0;
+        if (freshEx < amount) { if (msgEl) msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`; return; }
+        await ref.update({
             exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
-            coins: firebase.firestore.FieldValue.increment(amount)
+            coins:         firebase.firestore.FieldValue.increment(amount)
         });
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${amount} монет`; }
         setTimeout(() => renderCryptoExchange(), 1000);
@@ -337,94 +454,35 @@ async function cryptoWithdraw() {
 }
 
 async function adminWithdrawCommission() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
+    const user  = firebase.auth().currentUser;
     const msgEl = document.getElementById('crypto-msg');
-
+    if (!user) return;
     try {
-        const userRef = firebase.firestore().collection('users').doc(user.uid);
-        const freshDoc = await userRef.get();
-        const freshData = freshDoc.data();
-        const exchangeCoins = freshData.exchangeCoins || 0;
-        if (exchangeCoins <= 0) {
-            if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = 'Биржевой кошелёк пуст'; }
-            return;
-        }
-        await userRef.update({
-            coins: firebase.firestore.FieldValue.increment(exchangeCoins),
-            exchangeCoins: 0
-        });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${exchangeCoins} монет на основной счёт`; }
+        const ref   = firebase.firestore().collection('users').doc(user.uid);
+        const snap  = await ref.get();
+        const exCoins = snap.data().exchangeCoins || 0;
+        if (exCoins <= 0) { if (msgEl) { msgEl.style.color='#e53935'; msgEl.textContent='Биржевой кошелёк пуст'; } return; }
+        await ref.update({ coins: firebase.firestore.FieldValue.increment(exCoins), exchangeCoins: 0 });
+        if (msgEl) { msgEl.style.color='#27ae60'; msgEl.textContent=`✅ Выведено ${exCoins} монет на основной счёт`; }
         setTimeout(() => renderCryptoExchange(), 1000);
     } catch(e) {
-        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (msgEl) { msgEl.style.color='#e53935'; msgEl.textContent='❌ Ошибка: ' + e.message; }
     }
 }
 
-function switchCryptoTab(tab) {
-    document.getElementById('crypto-buy-form').style.display = tab === 'buy' ? '' : 'none';
-    document.getElementById('crypto-sell-form').style.display = tab === 'sell' ? '' : 'none';
-    document.getElementById('crypto-buy-tab').classList.toggle('active', tab === 'buy');
-    document.getElementById('crypto-sell-tab').classList.toggle('active', tab === 'sell');
-}
+// ─── Комиссия → Админу ────────────────────────────────────────────────────────
 
-function buyAll() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    firebase.firestore().collection('users').doc(user.uid).get().then(doc => {
-        const exchangeCoins = doc.data().exchangeCoins || 0;
-        const input = document.getElementById('crypto-buy-amount');
-        if (input) { input.value = exchangeCoins; updateBuyPreview(); }
-    });
-}
-
-function sellAll() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    firebase.firestore().collection('users').doc(user.uid).get().then(doc => {
-        const btcAmount = doc.data().btcAmount || 0;
-        const input = document.getElementById('crypto-sell-amount');
-        if (input) { input.value = btcAmount.toFixed(8); updateSellPreview(); }
-    });
-}
-
-function updateBuyPreview() {
-    const coinsInput = parseFloat(document.getElementById('crypto-buy-amount').value) || 0;
-    const preview = document.getElementById('crypto-buy-preview');
-    if (!coinsInput || coinsInput < 1 || !cryptoPrices.btc) { preview.textContent = ''; return; }
-    const commission = coinsInput * CRYPTO_COMMISSION;
-    const coinsForBtc = coinsInput - commission;
-    const btcReceived = coinsForBtc / cryptoPrices.btc.price;
-    preview.innerHTML = `Получите: <b>${btcReceived.toFixed(8)} BTC</b><br>Комиссия: ${commission.toFixed(2)} монет`;
-}
-
-function updateSellPreview() {
-    const btcInput = parseFloat(document.getElementById('crypto-sell-amount').value) || 0;
-    const preview = document.getElementById('crypto-sell-preview');
-    if (!btcInput || !cryptoPrices.btc) { preview.textContent = ''; return; }
-    const coinsGross = btcInput * cryptoPrices.btc.price;
-    const commission = coinsGross * CRYPTO_COMMISSION;
-    const coinsNet = coinsGross - commission;
-    preview.innerHTML = `Получите: <b>${coinsNet.toFixed(2)} монет</b><br>Комиссия: ${commission.toFixed(2)} монет`;
-}
-
-async function addCommissionToAdmin(userId, userName, type, btcAmount, coinsAmount, commission) {
+async function addCommissionToAdmin(userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission) {
     try {
         const adminSnap = await firebase.firestore().collection('users')
             .where('isAdmin', '==', true).limit(1).get();
         if (!adminSnap.empty) {
-            const adminRef = adminSnap.docs[0].ref;
-            await adminRef.update({
+            await adminSnap.docs[0].ref.update({
                 exchangeCoins: firebase.firestore.FieldValue.increment(commission)
             });
         }
         await firebase.firestore().collection('exchange_commissions').add({
-            userId,
-            userName,
-            type,
-            btcAmount,
-            coinsAmount,
-            commission,
+            userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission,
             timestamp: new Date()
         });
     } catch(e) {
@@ -432,155 +490,137 @@ async function addCommissionToAdmin(userId, userName, type, btcAmount, coinsAmou
     }
 }
 
+// ─── Покупка ───────────────────────────────────────────────────────────────────
+
 async function executeBuy() {
     const coinsInput = parseFloat(document.getElementById('crypto-buy-amount').value) || 0;
-    const msgEl = document.getElementById('crypto-msg');
+    const msgEl      = document.getElementById('crypto-msg');
+    const asset      = getAsset(currentCryptoAsset);
     if (coinsInput < 1) { msgEl.textContent = '❌ Минимум 1 монета'; return; }
 
     const user = firebase.auth().currentUser;
     if (!user) return;
 
     const btn = document.querySelector('.crypto-confirm-btn.buy');
-    btn.disabled = true;
-    btn.textContent = '⏳ Обработка...';
+    btn.disabled = true; btn.textContent = '⏳ Обработка...';
 
     try {
-        const priceData = await fetchCryptoPrice('bitcoin');
+        const priceData = await fetchAssetPrice(asset);
         if (!priceData) throw new Error('Не удалось получить курс');
 
-        const userRef = firebase.firestore().collection('users').doc(user.uid);
-        const freshDoc = await userRef.get();
-        const freshData = freshDoc.data();
-        const freshExchangeCoins = freshData.exchangeCoins || 0;
+        const ref       = firebase.firestore().collection('users').doc(user.uid);
+        const snap      = await ref.get();
+        const freshData = snap.data();
+        const freshEx   = freshData.exchangeCoins || 0;
 
-        if (freshExchangeCoins < coinsInput) {
-            msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshExchangeCoins}`;
-            btn.disabled = false;
-            btn.textContent = 'Купить BTC';
-            return;
+        if (freshEx < coinsInput) {
+            msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`;
+            btn.disabled = false; btn.textContent = `Купить ${asset.symbol}`; return;
         }
 
-        const commission = coinsInput * CRYPTO_COMMISSION;
-        const coinsForBtc = coinsInput - commission;
-        const btcReceived = coinsForBtc / priceData.price;
-        const currentPrice = priceData.price;
+        const commission    = coinsInput * CRYPTO_COMMISSION;
+        const coinsForAsset = coinsInput - commission;
+        const assetReceived = coinsForAsset / priceData.price;
+        const price         = priceData.price;
+        const dec           = assetDecimals(asset.id);
 
-        // Обновляем среднюю цену покупки
-        const oldBtcAmount = freshData.btcAmount || 0;
-        const oldAvgPrice = freshData.btcAvgPrice || 0;
-        let newAvgPrice;
-        if (oldBtcAmount + btcReceived > 0) {
-            newAvgPrice = ((oldBtcAmount * oldAvgPrice) + (btcReceived * currentPrice)) / (oldBtcAmount + btcReceived);
-        } else {
-            newAvgPrice = currentPrice;
-        }
+        const oldAmount   = freshData[`${asset.id}Amount`]   || 0;
+        const oldAvgPrice = freshData[`${asset.id}AvgPrice`] || 0;
+        const newAvgPrice = (oldAmount + assetReceived > 0)
+            ? ((oldAmount * oldAvgPrice) + (assetReceived * price)) / (oldAmount + assetReceived)
+            : price;
 
-        await userRef.update({
+        const update = {
             exchangeCoins: firebase.firestore.FieldValue.increment(-coinsInput),
-            btcAmount: firebase.firestore.FieldValue.increment(btcReceived),
-            btcAvgPrice: newAvgPrice
-        });
+        };
+        update[`${asset.id}Amount`]   = firebase.firestore.FieldValue.increment(assetReceived);
+        update[`${asset.id}AvgPrice`] = newAvgPrice;
+        await ref.update(update);
 
         const userName = freshData.name || 'Неизвестно';
+        await addCommissionToAdmin(user.uid, userName, 'buy', asset.id, asset.symbol, assetReceived, coinsInput, commission);
 
-        // Записать комиссию и добавить на счёт админа
-        await addCommissionToAdmin(user.uid, userName, 'buy', btcReceived, coinsInput, commission);
-
-        // Записать сделку
         await firebase.firestore().collection('exchange_trades').add({
-            userId: user.uid,
-            userName,
-            type: 'buy',
-            btcAmount: btcReceived,
-            price: currentPrice,
-            coinsAmount: coinsInput,
-            commission,
-            pnl: null,
+            userId: user.uid, userName,
+            type: 'buy', assetId: asset.id, assetSymbol: asset.symbol,
+            assetAmount: assetReceived, price, coinsAmount: coinsInput, commission, pnl: null,
             timestamp: new Date()
         });
 
-        msgEl.innerHTML = `✅ Куплено <b>${btcReceived.toFixed(8)} BTC</b> за ${coinsInput} монет`;
+        msgEl.innerHTML = `✅ Куплено <b>${assetReceived.toFixed(dec)} ${asset.symbol}</b> за ${coinsInput} монет`;
         msgEl.style.color = '#27ae60';
-        cryptoPrices.btc = { price: priceData.price, change24h: priceData.change24h, fetchedAt: Date.now() };
+        cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
         setTimeout(() => renderCryptoExchange(), 1500);
-    } catch (e) {
+    } catch(e) {
         msgEl.textContent = '❌ Ошибка: ' + e.message;
-        btn.disabled = false;
-        btn.textContent = 'Купить BTC';
+        btn.disabled = false; btn.textContent = `Купить ${asset.symbol}`;
     }
 }
 
+// ─── Продажа ───────────────────────────────────────────────────────────────────
+
 async function executeSell() {
-    const btcInput = parseFloat(document.getElementById('crypto-sell-amount').value) || 0;
-    const msgEl = document.getElementById('crypto-msg');
-    if (btcInput <= 0) { msgEl.textContent = '❌ Введите количество BTC'; return; }
+    const assetInput = parseFloat(document.getElementById('crypto-sell-amount').value) || 0;
+    const msgEl      = document.getElementById('crypto-msg');
+    const asset      = getAsset(currentCryptoAsset);
+    if (assetInput <= 0) { msgEl.textContent = `❌ Введите количество ${asset.symbol}`; return; }
 
     const user = firebase.auth().currentUser;
     if (!user) return;
 
     const btn = document.querySelector('.crypto-confirm-btn.sell');
-    btn.disabled = true;
-    btn.textContent = '⏳ Обработка...';
+    btn.disabled = true; btn.textContent = '⏳ Обработка...';
 
     try {
-        const priceData = await fetchCryptoPrice('bitcoin');
+        const priceData = await fetchAssetPrice(asset);
         if (!priceData) throw new Error('Не удалось получить курс');
 
-        const userRef = firebase.firestore().collection('users').doc(user.uid);
-        const freshDoc = await userRef.get();
-        const freshData = freshDoc.data();
-        const freshBtc = freshData.btcAmount || 0;
-        // округляем до 8 знаков чтобы избежать ошибок floating point
-        const freshBtcRounded = Math.round(freshBtc * 1e8) / 1e8;
-        const btcInputRounded = Math.round(btcInput * 1e8) / 1e8;
+        const ref       = firebase.firestore().collection('users').doc(user.uid);
+        const snap      = await ref.get();
+        const freshData = snap.data();
+        const freshAmt  = freshData[`${asset.id}Amount`] || 0;
 
-        if (freshBtcRounded < btcInputRounded) {
-            msgEl.textContent = `❌ Недостаточно BTC. У вас: ${freshBtcRounded.toFixed(8)}`;
-            btn.disabled = false;
-            btn.textContent = 'Продать BTC';
-            return;
+        // округление до нужной точности для избежания floating-point ошибок
+        const prec = Math.pow(10, assetDecimals(asset.id));
+        const freshRounded = Math.round(freshAmt  * prec) / prec;
+        const inputRounded = Math.round(assetInput * prec) / prec;
+
+        if (freshRounded < inputRounded) {
+            msgEl.textContent = `❌ Недостаточно ${asset.symbol}. У вас: ${freshRounded.toFixed(assetDecimals(asset.id))}`;
+            btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`; return;
         }
 
-        const currentPrice = priceData.price;
-        const oldAvgPrice = freshData.btcAvgPrice || 0;
-        const coinsGross = btcInput * currentPrice;
+        const price      = priceData.price;
+        const oldAvg     = freshData[`${asset.id}AvgPrice`] || 0;
+        const coinsGross = assetInput * price;
         const commission = coinsGross * CRYPTO_COMMISSION;
-        const coinsNet = Math.floor(coinsGross - commission);
+        const coinsNet   = Math.floor(coinsGross - commission);
+        const pnl        = (price - oldAvg) * assetInput - commission;
+        const dec        = assetDecimals(asset.id);
 
-        // P&L расчёт
-        const pnl = (currentPrice - oldAvgPrice) * btcInput - commission;
-
-        await userRef.update({
+        const update = {
             exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
-            btcAmount: firebase.firestore.FieldValue.increment(-btcInput),
-            totalPnl: firebase.firestore.FieldValue.increment(pnl)
-        });
+            totalPnl:      firebase.firestore.FieldValue.increment(pnl),
+        };
+        update[`${asset.id}Amount`] = firebase.firestore.FieldValue.increment(-assetInput);
+        await ref.update(update);
 
         const userName = freshData.name || 'Неизвестно';
+        await addCommissionToAdmin(user.uid, userName, 'sell', asset.id, asset.symbol, assetInput, coinsNet, commission);
 
-        // Записать комиссию и добавить на счёт админа
-        await addCommissionToAdmin(user.uid, userName, 'sell', btcInput, coinsNet, commission);
-
-        // Записать сделку
         await firebase.firestore().collection('exchange_trades').add({
-            userId: user.uid,
-            userName,
-            type: 'sell',
-            btcAmount: btcInput,
-            price: currentPrice,
-            coinsAmount: coinsNet,
-            commission,
-            pnl,
+            userId: user.uid, userName,
+            type: 'sell', assetId: asset.id, assetSymbol: asset.symbol,
+            assetAmount: assetInput, price, coinsAmount: coinsNet, commission, pnl,
             timestamp: new Date()
         });
 
-        msgEl.innerHTML = `✅ Продано <b>${btcInput} BTC</b> за ${coinsNet} монет`;
+        msgEl.innerHTML = `✅ Продано <b>${assetInput} ${asset.symbol}</b> за ${coinsNet} монет`;
         msgEl.style.color = '#27ae60';
-        cryptoPrices.btc = { price: priceData.price, change24h: priceData.change24h, fetchedAt: Date.now() };
+        cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
         setTimeout(() => renderCryptoExchange(), 1500);
-    } catch (e) {
+    } catch(e) {
         msgEl.textContent = '❌ Ошибка: ' + e.message;
-        btn.disabled = false;
-        btn.textContent = 'Продать BTC';
+        btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
     }
 }
