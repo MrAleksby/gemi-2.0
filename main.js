@@ -827,13 +827,12 @@ async function showRating() {
         const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         const tr = document.createElement('tr');
+        const lvlIcon = getLevelTitle(lvl).split(' ')[0];
         tr.innerHTML = `
             <td>${place++}</td>
             <td>${data.name}</td>
-            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${getLevelTitle(lvl)} ${lvl}</span></td>
+            <td><span class="level-badge" style="background:${getLevelColor(lvl)};">${lvlIcon} ${lvl}</span></td>
             <td>${data.points}</td>
-            <td>${data.coins ?? 0}</td>
-            <td>${(data.cf ?? 0).toFixed(2)}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
         `;
         fragment.appendChild(tr);
