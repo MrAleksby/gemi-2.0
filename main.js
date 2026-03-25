@@ -756,15 +756,17 @@ async function showProfile() {
     }
 
     // Топ-5
-    const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(5).get();
+    const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(10).get();
     let top5Html = `<div class="top5-title">🏆 Топ-5 игроков</div>
         <table class="top5-table"><thead><tr>
             <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th><th>KD</th>
         </tr></thead><tbody>`;
     let place = 1;
     top5Snap.forEach(doc => {
+        if (place > 5) return;
         const d = doc.data();
         if (!d.name || d.name.trim() === '' || d.isAdmin) return;
+        if (d.status && d.status !== 'approved') return;
         const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
         const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
         top5Html += `<tr>
