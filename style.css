@@ -2472,3 +2472,84 @@ th {
 /* отступ снизу чтобы навбар не перекрывал контент */
 #profile-card { padding-bottom: 80px; }
 #admin-section { padding-bottom: 80px; }
+
+/* ─── Карточки заявок на регистрацию ──────────────────────────────────────── */
+.pending-reg-card {
+    background: #fff;
+    border: 1px solid #bbdefb;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+
+.pending-reg-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+}
+
+.pending-reg-phone { color: #888; font-size: 0.85em; }
+
+.pending-name-input {
+    width: 100%;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.pending-reg-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-approve-reg {
+    flex: 1;
+    background: linear-gradient(135deg, #43a047, #66bb6a);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-reject-reg {
+    flex: 1;
+    background: linear-gradient(135deg, #e53935, #ef5350);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pending-reject-row {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.pending-reject-input {
+    flex: 1;
+    border: 1px solid #ffcdd2;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.88em;
+}
+
+.btn-reject-confirm {
+    background: linear-gradient(135deg, #c62828, #b71c1c);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85em;
+    cursor: pointer;
+    white-space: nowrap;
+}

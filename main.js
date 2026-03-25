@@ -439,8 +439,25 @@ auth.onAuthStateChanged(async (user) => {
 
     if (user) {
         currentUser = user.uid;
-        loginSection.style.display = 'none';
+        loginSection.style.display    = 'none';
         registerSection.style.display = 'none';
+
+        const doc = await db.collection('users').doc(currentUser).get();
+        if (!doc.exists) { await auth.signOut(); return; }
+        const data   = doc.data();
+        const status = data.status;
+
+        // Ожидает подтверждения или отклонён — показываем экран ожидания
+        if (status === 'pending' || status === 'rejected') {
+            profileCard.style.display = 'none';
+            adminSection.style.display = 'none';
+            document.getElementById('bottom-nav').style.display = 'none';
+            showPendingScreen(data);
+            return;
+        }
+
+        // Обычный поток (approved или без статуса — старые пользователи)
+        document.getElementById('pending-section').style.display = 'none';
         profileCard.style.display = '';
         document.getElementById('bottom-nav').style.display = 'flex';
         setNavTab('home');
@@ -448,15 +465,13 @@ auth.onAuthStateChanged(async (user) => {
         await showRating();
         showRandomQuote();
 
-        const doc = await db.collection('users').doc(currentUser).get();
-        if (!doc.exists) { await auth.signOut(); return; }
-        const isAdmin = doc.data().isAdmin === true;
-
+        const isAdmin = data.isAdmin === true;
         if (isAdmin) {
             adminSection.style.display = '';
             loadUsersList();
             updateTransactionsLists();
             setupAdminRequestsListener();
+            setupPendingRegistrationsListener();
         } else {
             adminSection.style.display = 'none';
             loadPlayerHistory(currentUser);
@@ -464,11 +479,12 @@ auth.onAuthStateChanged(async (user) => {
         setupPlayerRequestListener();
     } else {
         currentUser = null;
-        loginSection.style.display = '';
+        loginSection.style.display    = '';
         registerSection.style.display = 'none';
-        profileCard.style.display = 'none';
-        adminSection.style.display = 'none';
-        document.getElementById('bottom-nav').style.display = 'none';
+        profileCard.style.display     = 'none';
+        adminSection.style.display    = 'none';
+        document.getElementById('bottom-nav').style.display    = 'none';
+        document.getElementById('pending-section').style.display = 'none';
     }
 });
 
@@ -523,14 +539,12 @@ document.getElementById('register-form').onsubmit = async (e) => {
         await db.collection('usernames').doc(phoneKey).set({ uid });
         await db.collection('users').doc(uid).set({
             name: fullname, phone: phoneKey, level: 1, experience: 0,
-            points: 0, coins: 0, cf: 0, wins: 0, games: 0
+            points: 0, coins: 0, cf: 0, wins: 0, games: 0,
+            status: 'pending'
         });
         currentUser = uid;
         registerSection.style.display = 'none';
-        profileCard.style.display = '';
-        showProfile();
-        showRating();
-        showRandomQuote();
+        showPendingScreen({ name: fullname, status: 'pending' });
 
         // isAdmin выставляется вручную в Firebase Console
     } catch (err) {
@@ -857,6 +871,114 @@ document.getElementById('nav-shop').onclick = () => {
     renderShop();
     setNavTab('shop');
 };
+
+// ─── Экран ожидания подтверждения ─────────────────────────────────────────────
+
+let unsubPendingStatus = null;
+
+function showPendingScreen(data) {
+    const section = document.getElementById('pending-section');
+    section.style.display = '';
+    document.getElementById('pending-user-name').textContent = data.name;
+
+    if (data.status === 'rejected') {
+        document.getElementById('pending-waiting').style.display  = 'none';
+        document.getElementById('pending-rejected').style.display = '';
+        document.getElementById('pending-reject-reason').textContent = data.rejectReason || 'Причина не указана';
+    } else {
+        document.getElementById('pending-waiting').style.display  = '';
+        document.getElementById('pending-rejected').style.display = 'none';
+
+        // Слушаем одобрение в реальном времени
+        if (unsubPendingStatus) unsubPendingStatus();
+        unsubPendingStatus = db.collection('users').doc(currentUser).onSnapshot(snap => {
+            if (!snap.exists) return;
+            const newStatus = snap.data().status;
+            if (newStatus === 'approved') {
+                if (unsubPendingStatus) { unsubPendingStatus(); unsubPendingStatus = null; }
+                window.location.reload();
+            } else if (newStatus === 'rejected') {
+                if (unsubPendingStatus) { unsubPendingStatus(); unsubPendingStatus = null; }
+                showPendingScreen(snap.data());
+            }
+        });
+    }
+}
+
+document.getElementById('pending-logout-btn').onclick = () => auth.signOut();
+
+document.getElementById('pending-delete-btn').onclick = async () => {
+    if (!confirm('Удалить аккаунт?')) return;
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const userData = (await db.collection('users').doc(uid).get()).data();
+    if (userData?.phone) await db.collection('usernames').doc(userData.phone).delete();
+    await db.collection('users').doc(uid).delete();
+    await auth.currentUser.delete();
+};
+
+// ─── Заявки на регистрацию (для админа) ───────────────────────────────────────
+
+let unsubPendingRegs = null;
+
+function setupPendingRegistrationsListener() {
+    if (unsubPendingRegs) unsubPendingRegs();
+    const container = document.getElementById('pending-registrations-list');
+
+    unsubPendingRegs = db.collection('users').where('status', '==', 'pending')
+        .onSnapshot(snap => {
+            if (snap.empty) {
+                container.innerHTML = '<p class="empty-hint">Новых заявок нет</p>';
+                return;
+            }
+            container.innerHTML = snap.docs.map(doc => {
+                const d = doc.data();
+                return `
+                <div class="pending-reg-card" data-uid="${doc.id}">
+                    <div class="pending-reg-info">
+                        <b>${d.name}</b>
+                        <span class="pending-reg-phone">📱 +${d.phone}</span>
+                    </div>
+                    <input class="pending-name-input" type="text" value="${d.name}" placeholder="Исправить имя если нужно">
+                    <div class="pending-reg-btns">
+                        <button class="btn-approve-reg" data-uid="${doc.id}">✅ Подтвердить</button>
+                        <button class="btn-reject-reg"  data-uid="${doc.id}">❌ Отклонить</button>
+                    </div>
+                    <div class="pending-reject-row" style="display:none;">
+                        <input class="pending-reject-input" type="text" placeholder="Причина отклонения">
+                        <button class="btn-reject-confirm" data-uid="${doc.id}">Отправить отказ</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.querySelectorAll('.btn-approve-reg').forEach(btn => {
+                btn.onclick = async () => {
+                    const uid  = btn.dataset.uid;
+                    const card = container.querySelector(`.pending-reg-card[data-uid="${uid}"]`);
+                    const name = card.querySelector('.pending-name-input').value.trim();
+                    if (!name) return;
+                    await db.collection('users').doc(uid).update({ status: 'approved', name });
+                };
+            });
+
+            container.querySelectorAll('.btn-reject-reg').forEach(btn => {
+                btn.onclick = () => {
+                    const card = container.querySelector(`.pending-reg-card[data-uid="${btn.dataset.uid}"]`);
+                    card.querySelector('.pending-reject-row').style.display = '';
+                    btn.style.display = 'none';
+                };
+            });
+
+            container.querySelectorAll('.btn-reject-confirm').forEach(btn => {
+                btn.onclick = async () => {
+                    const uid    = btn.dataset.uid;
+                    const card   = container.querySelector(`.pending-reg-card[data-uid="${uid}"]`);
+                    const reason = card.querySelector('.pending-reject-input').value.trim() || 'Заявка отклонена тренером';
+                    await db.collection('users').doc(uid).update({ status: 'rejected', rejectReason: reason });
+                };
+            });
+        });
+}
 
 // ─── Модалы ───────────────────────────────────────────────────────────────────
 

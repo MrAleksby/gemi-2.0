@@ -40,6 +40,29 @@
         <p>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
     </div>
 
+    <!-- Экран ожидания подтверждения -->
+    <div id="pending-section" class="card" style="display:none; text-align:center; padding: 40px 24px;">
+        <div style="font-size:52px; margin-bottom:12px;">⏳</div>
+        <h2>Привет, <span id="pending-user-name"></span>!</h2>
+
+        <div id="pending-waiting">
+            <p style="color:#888; margin:16px 0 8px;">Твоя заявка отправлена тренеру.<br>Ожидай подтверждения!</p>
+            <div style="font-size:36px; margin:20px 0;">🎮</div>
+            <p style="font-size:0.82em; color:#aaa;">Когда тренер подтвердит — приложение откроется автоматически</p>
+        </div>
+
+        <div id="pending-rejected" style="display:none;">
+            <p style="color:#e53935; margin:16px 0 8px; font-weight:600;">Заявка отклонена тренером</p>
+            <div style="background:#fff3f3; border:1px solid #ffcdd2; border-radius:12px; padding:12px 16px; margin:8px 0; color:#c62828; font-size:0.9em;">
+                Причина: <span id="pending-reject-reason"></span>
+            </div>
+            <p style="font-size:0.82em; color:#999; margin:12px 0;">Удали аккаунт и зарегистрируйся заново с правильными данными</p>
+            <button id="pending-delete-btn" style="background:linear-gradient(135deg,#e53935,#c62828); margin-top:8px; width:100%;">🗑️ Удалить аккаунт и начать заново</button>
+        </div>
+
+        <button id="pending-logout-btn" style="background:none; border:1px solid #ddd; color:#aaa; margin-top:20px; width:100%;">Выйти</button>
+    </div>
+
     <!-- Профиль -->
     <div id="profile-card" class="card" style="display:none;">
         <h2 id="profile-header"></h2>
@@ -187,6 +210,14 @@
     <div id="admin-section" style="display:none;">
         <h2>Админ-панель</h2>
         <p id="admin-message"></p>
+
+        <!-- Новые заявки на регистрацию -->
+        <h3 class="section-title" style="color:#1565c0;">🆕 Новые заявки на регистрацию</h3>
+        <div id="pending-registrations-list" class="requests-list">
+            <p class="empty-hint">Новых заявок нет</p>
+        </div>
+
+        <hr class="section-divider">
 
         <!-- Входящие счета -->
         <h3 class="section-title requests-title">📥 Входящие счета</h3>
