@@ -1272,9 +1272,22 @@ th {
 }
 
 .top5-table th, .top5-table td {
-  width: 1%;
   min-width: 0 !important;
   max-width: none !important;
+}
+
+/* Фиксированные ширины колонок: место / имя / уровень / очки */
+.top5-table th:nth-child(1), .top5-table td:nth-child(1) { width: 28px; text-align: center; }
+.top5-table th:nth-child(2), .top5-table td:nth-child(2) { width: auto; }
+.top5-table th:nth-child(3), .top5-table td:nth-child(3) { width: 72px; text-align: center; }
+.top5-table th:nth-child(4), .top5-table td:nth-child(4) { width: 44px; text-align: center; }
+
+/* Компактный бейдж уровня в мини-таблице */
+.top5-table .level-badge {
+    font-size: 0.78em !important;
+    padding: 3px 7px !important;
+    border-radius: 20px !important;
+    display: inline-block;
 }
 
 
