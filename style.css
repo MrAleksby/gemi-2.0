@@ -1198,33 +1198,49 @@ th {
 #rating-table {
   min-width: 0 !important;
   width: 100%;
-  font-size: 0.98em;
+  table-layout: fixed;
+  font-size: 0.82em;
 }
 
 #rating-table th, #rating-table td {
-    padding: 6px 8px !important;
-  font-size: 0.98em !important;
+  padding: 4px 4px !important;
+  font-size: 0.82em !important;
   border-radius: 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #rating-table th {
-    background: linear-gradient(135deg, #d4517a 0%, #e87c3e 100%);
-    color: white;
-  font-size: 1em !important;
+  background: linear-gradient(135deg, #d4517a 0%, #e87c3e 100%);
+  color: white;
   min-width: 0 !important;
-    font-weight: 600;
+  font-weight: 600;
 }
 
 #rating-table td {
   min-width: 0 !important;
 }
 
+/* Фиксированные ширины колонок рейтинга */
+#rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 24px; text-align: center; }
+#rating-table th:nth-child(2), #rating-table td:nth-child(2) { width: auto; }
+#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 64px; text-align: center; }
+#rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 38px; text-align: center; }
+#rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 38px; text-align: center; }
+#rating-table th:nth-child(6), #rating-table td:nth-child(6) { width: 42px; text-align: center; }
+#rating-table th:nth-child(7), #rating-table td:nth-child(7) { width: 36px; text-align: center; }
+
 #rating-table .level-badge {
   min-width: 0;
-    padding: 2px 4px;
-  font-size: 0.85em;
-    border-radius: 8px;
+  padding: 2px 5px;
+  font-size: 0.82em;
+  border-radius: 8px;
   margin: 0;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #rating-table .profile-badge {
