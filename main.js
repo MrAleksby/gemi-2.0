@@ -155,6 +155,16 @@ const BADGES = [
     { id: 'top1_rank',   icon: '🏅', name: 'Чемпион рейтинга',   desc: 'Занял 1-е место в рейтинге',        cat: 'Особые', tier: 'legendary', check: d => (d.bestRank||99) <= 1 },
 ];
 
+// Бонусы за каждый тир награды
+const BADGE_TIER_BONUS = {
+    common:    { coins: 10,  points: 0  },
+    rare:      { coins: 25,  points: 0  },
+    superrare: { coins: 40,  points: 0  },
+    epic:      { coins: 50,  points: 5  },
+    mythic:    { coins: 100, points: 10 },
+    legendary: { coins: 200, points: 25 }
+};
+
 async function checkAndAwardBadges(data) {
     if (!currentUser) return;
     const earned = new Set(Array.isArray(data.badges) ? data.badges : []);
@@ -164,7 +174,25 @@ async function checkAndAwardBadges(data) {
     });
     if (newBadges.length > 0) {
         const updated = [...earned, ...newBadges];
-        await db.collection('users').doc(currentUser).update({ badges: updated });
+
+        // Считаем суммарный бонус за все новые награды
+        let totalCoins = 0, totalPoints = 0;
+        newBadges.forEach(id => {
+            const b = BADGES.find(x => x.id === id);
+            if (b) {
+                const bonus = BADGE_TIER_BONUS[b.tier] || { coins: 0, points: 0 };
+                totalCoins  += bonus.coins;
+                totalPoints += bonus.points;
+            }
+        });
+
+        // Обновляем в Firestore: бейджи + бонусы
+        const updateData = { badges: updated };
+        if (totalCoins  > 0) updateData.coins  = firebase.firestore.FieldValue.increment(totalCoins);
+        if (totalPoints > 0) updateData.points = firebase.firestore.FieldValue.increment(totalPoints);
+        await db.collection('users').doc(currentUser).update(updateData);
+
+        // Показываем тост для каждой новой награды
         newBadges.forEach(id => {
             const b = BADGES.find(x => x.id === id);
             if (b) showBadgeToast(b);
