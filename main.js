@@ -1105,12 +1105,20 @@ function setupPlayerRequestListener() {
             const submitBtn = document.getElementById('submit-score-btn');
             if (!statusDiv) return;
 
-            // Ищем pending или последний rejected
+            // Ищем pending или последний rejected (только если он новее последнего approved)
             const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             const pending = docs.find(r => r.status === 'pending');
-            const rejected = docs
+            const lastApproved = docs
+                .filter(r => r.status === 'approved')
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+            const lastRejected = docs
                 .filter(r => r.status === 'rejected')
                 .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0];
+            // Показываем rejected только если он новее последнего approved
+            const rejected = lastRejected && (
+                !lastApproved ||
+                (lastRejected.createdAt?.seconds || 0) > (lastApproved.createdAt?.seconds || 0)
+            ) ? lastRejected : null;
 
             if (pending) {
                 statusDiv.style.display = '';
