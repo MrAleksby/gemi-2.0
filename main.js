@@ -1111,7 +1111,7 @@ async function loadPlayerHistory(userId) {
         const snap = await db.collection('transactions')
             .where('userId', '==', userId)
             .orderBy('timestamp', 'desc')
-            .limit(20).get();
+            .get();
         if (snap.empty) {
             listEl.innerHTML = '<p class="empty-hint">История пуста</p>';
             return;
@@ -1137,7 +1137,7 @@ async function loadTransactionsHistory() {
     if (!transactionsHistory) return;
     try {
         const snap = await db.collection('transactions')
-            .orderBy('timestamp', 'desc').limit(20).get();
+            .orderBy('timestamp', 'desc').get();
 
         if (snap.empty) {
             transactionsHistory.innerHTML = '<p class="empty-hint">История пуста</p>';
