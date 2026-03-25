@@ -769,10 +769,11 @@ async function showProfile() {
         if (d.status && d.status !== 'approved') return;
         const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
         const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
+        const lvlIcon = getLevelTitle(l).split(' ')[0]; // только эмодзи
         top5Html += `<tr>
             <td><b>${place}</b></td>
             <td>${d.name}</td>
-            <td><span class="level-badge" style="background:${getLevelColor(l)};">${getLevelTitle(l)} ${l}</span></td>
+            <td><span class="level-badge" style="background:${getLevelColor(l)};">${lvlIcon} ${l}</span></td>
             <td>${d.points}</td>
             <td onclick="showKDDetails(${d.wins ?? 0}, ${d.games ?? 0})" style="cursor:pointer">${kd}</td>
         </tr>`;
