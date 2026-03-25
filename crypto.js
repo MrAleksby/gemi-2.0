@@ -5,7 +5,8 @@ const CRYPTO_ITEMS = [
     { id: 'btc', name: 'Bitcoin', symbol: 'BTC', icon: '₿', color: '#f7931a', cgId: 'bitcoin' }
 ];
 
-let cryptoPrices = {}; // cache: { btc: { price: 104321, change24h: 2.3, fetchedAt: timestamp } }
+let cryptoPrices = {};
+let cryptoPriceInterval = null;
 
 async function fetchCryptoPrice(cgId) {
     try {
@@ -20,6 +21,30 @@ async function fetchCryptoPrice(cgId) {
     } catch (e) {
         return null;
     }
+}
+
+function stopCryptoPriceUpdates() {
+    if (cryptoPriceInterval) { clearInterval(cryptoPriceInterval); cryptoPriceInterval = null; }
+}
+
+function startCryptoPriceUpdates() {
+    stopCryptoPriceUpdates();
+    cryptoPriceInterval = setInterval(async () => {
+        const priceData = await fetchCryptoPrice('bitcoin');
+        if (!priceData) return;
+        cryptoPrices.btc = { ...priceData, fetchedAt: Date.now() };
+        const priceEl = document.querySelector('.crypto-price');
+        const changeEl = document.querySelector('.crypto-change');
+        if (priceEl) priceEl.innerHTML = `${priceData.price.toLocaleString('ru-RU', {maximumFractionDigits: 2})} <span class="crypto-currency">монет</span>`;
+        if (changeEl) {
+            const s = priceData.change24h >= 0 ? '+' : '';
+            changeEl.style.color = priceData.change24h >= 0 ? '#27ae60' : '#e53935';
+            changeEl.textContent = `${s}${priceData.change24h.toFixed(2)}% за 24ч`;
+        }
+        // обновить превью если поле заполнено
+        if (document.getElementById('crypto-buy-amount')?.value) updateBuyPreview();
+        if (document.getElementById('crypto-sell-amount')?.value) updateSellPreview();
+    }, 1000);
 }
 
 async function renderCryptoExchange() {
@@ -103,6 +128,8 @@ async function renderCryptoExchange() {
 
         <div id="crypto-msg" class="crypto-msg"></div>
     `;
+
+    startCryptoPriceUpdates();
 }
 
 function switchCryptoTab(tab) {
@@ -200,9 +227,12 @@ async function executeSell() {
         const freshDoc = await userRef.get();
         const freshData = freshDoc.data();
         const freshBtc = freshData.btcAmount || 0;
+        // округляем до 8 знаков чтобы избежать ошибок floating point
+        const freshBtcRounded = Math.round(freshBtc * 1e8) / 1e8;
+        const btcInputRounded = Math.round(btcInput * 1e8) / 1e8;
 
-        if (freshBtc < btcInput) {
-            msgEl.textContent = `❌ Недостаточно BTC. У вас: ${freshBtc.toFixed(8)}`;
+        if (freshBtcRounded < btcInputRounded) {
+            msgEl.textContent = `❌ Недостаточно BTC. У вас: ${freshBtcRounded.toFixed(8)}`;
             btn.disabled = false;
             btn.textContent = 'Продать BTC';
             return;

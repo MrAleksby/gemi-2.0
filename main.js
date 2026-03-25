@@ -1100,11 +1100,13 @@ document.getElementById('rating-close').onclick = () => { ratingModal.style.disp
 ratingModal.onclick = (e) => { if (e.target === ratingModal) { ratingModal.style.display = 'none'; setNavTab('home'); } };
 document.getElementById('crypto-close').onclick = () => {
     document.getElementById('crypto-modal').style.display = 'none';
+    if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
     setNavTab('home');
 };
 document.getElementById('crypto-modal').onclick = (e) => {
     if (e.target === document.getElementById('crypto-modal')) {
         document.getElementById('crypto-modal').style.display = 'none';
+        if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
         setNavTab('home');
     }
 };
