@@ -955,6 +955,7 @@ function setNavTab(name) {
 document.getElementById('nav-home').onclick = () => {
     document.getElementById('rating-modal').style.display = 'none';
     document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('crypto-modal').style.display = 'none';
     setNavTab('home');
 };
 
@@ -970,6 +971,14 @@ document.getElementById('nav-shop').onclick = () => {
     document.getElementById('shop-modal').style.display = 'block';
     renderShop();
     setNavTab('shop');
+};
+
+document.getElementById('nav-crypto').onclick = () => {
+    document.getElementById('rating-modal').style.display = 'none';
+    document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('crypto-modal').style.display = 'flex';
+    renderCryptoExchange();
+    setNavTab('crypto');
 };
 
 // ─── Экран ожидания подтверждения ─────────────────────────────────────────────
@@ -1089,6 +1098,16 @@ document.getElementById('toggle-rating-btn').onclick = () => {
 };
 document.getElementById('rating-close').onclick = () => { ratingModal.style.display = 'none'; setNavTab('home'); };
 ratingModal.onclick = (e) => { if (e.target === ratingModal) { ratingModal.style.display = 'none'; setNavTab('home'); } };
+document.getElementById('crypto-close').onclick = () => {
+    document.getElementById('crypto-modal').style.display = 'none';
+    setNavTab('home');
+};
+document.getElementById('crypto-modal').onclick = (e) => {
+    if (e.target === document.getElementById('crypto-modal')) {
+        document.getElementById('crypto-modal').style.display = 'none';
+        setNavTab('home');
+    }
+};
 
 const scoreRequestModal = document.getElementById('score-request-modal');
 document.getElementById('submit-score-btn').onclick = () => {
@@ -1517,7 +1536,8 @@ function getEmptyUserData() {
         gro4usLevel: 0, gro4us: 0,
         percentsLevel: 0, percents: '-',
         passivesLevel: 0, passives: '-',
-        realtyLevel: 0, realty: '-'
+        realtyLevel: 0, realty: '-',
+        btcAmount: 0
     };
 }
 

@@ -2591,3 +2591,173 @@ th {
   max-width: 420px !important;
   width: 96vw;
 }
+
+/* ─── Криптобиржа ──────────────────────────────────────────────────────────── */
+.crypto-modal-content {
+    max-width: 420px !important;
+    width: 96vw;
+}
+
+.crypto-loading, .crypto-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+    font-size: 1.1em;
+}
+
+.crypto-card {
+    background: linear-gradient(135deg, #f7931a22, #f7931a11);
+    border: 2px solid #f7931a44;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.crypto-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.crypto-icon {
+    font-size: 2.5em;
+    line-height: 1;
+}
+
+.crypto-name {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #1e0a2e;
+}
+
+.crypto-price {
+    font-size: 1.3em;
+    font-weight: 800;
+    color: #f7931a;
+}
+
+.crypto-currency {
+    font-size: 0.7em;
+    font-weight: 400;
+    color: #888;
+}
+
+.crypto-change {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.crypto-portfolio {
+    background: rgba(255,248,244,0.8);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(232,149,109,0.3);
+}
+
+.crypto-portfolio-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.9em;
+    color: #444;
+}
+
+.crypto-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.crypto-tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    background: #eee;
+    color: #888;
+    transition: all 0.2s;
+}
+
+.crypto-tab-btn.active {
+    background: linear-gradient(135deg, #1e0a2e, #5c1f4a);
+    color: white;
+}
+
+.crypto-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+    font-size: 0.9em;
+}
+
+.crypto-form input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0d0ff;
+    border-radius: 10px;
+    font-size: 1em;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
+
+.crypto-form input:focus {
+    outline: none;
+    border-color: #f7931a;
+}
+
+.crypto-preview {
+    background: #f9f0e8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.88em;
+    color: #444;
+    margin-bottom: 6px;
+    min-height: 20px;
+}
+
+.crypto-commission-note {
+    font-size: 0.78em;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.crypto-confirm-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    color: white;
+    min-height: 44px;
+}
+
+.crypto-confirm-btn.buy {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.crypto-confirm-btn.sell {
+    background: linear-gradient(135deg, #e53935, #f44336);
+}
+
+.crypto-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.crypto-msg {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9em;
+    min-height: 20px;
+}

@@ -296,10 +296,23 @@
         <span class="nav-icon">🛒</span>
         <span class="nav-label">Магазин</span>
     </button>
+    <button class="nav-tab" id="nav-crypto">
+        <span class="nav-icon">📈</span>
+        <span class="nav-label">Биржа</span>
+    </button>
 </nav>
+
+<div id="crypto-modal" class="modal" style="display:none">
+    <div class="modal-content crypto-modal-content">
+        <span class="close" id="crypto-close">&times;</span>
+        <h2 style="text-align:center;margin-bottom:16px;">📈 Биржа</h2>
+        <div id="crypto-content"></div>
+    </div>
+</div>
 
 </body>
 </html>
 <script src="shop.js"></script>
 <script src="transfer.js"></script>
 <script src="admin-actions.js"></script>
+<script src="crypto.js"></script>
