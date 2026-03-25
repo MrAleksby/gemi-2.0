@@ -2761,3 +2761,22 @@ th {
     font-size: 0.9em;
     min-height: 20px;
 }
+
+.crypto-wallet-section { background: rgba(247,147,26,0.08); border: 1px solid rgba(247,147,26,0.3); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+.crypto-wallet-toggle { background: none; border: none; font-weight: 700; cursor: pointer; color: #f7931a; font-size: 0.9em; padding: 4px 0; width: 100%; text-align: left; }
+.crypto-wallet-forms { padding-top: 10px; }
+.crypto-wallet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.crypto-wallet-row input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9em; }
+.crypto-wallet-row button { padding: 8px 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85em; white-space: nowrap; }
+.crypto-deposit-btn { background: #27ae60; color: white; }
+.crypto-withdraw-btn { background: #e53935; color: white; }
+.crypto-all-btn { background: rgba(247,147,26,0.15); border: 1px solid #f7931a !important; color: #f7931a; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; cursor: pointer; margin-left: 4px; }
+.crypto-trade-history { margin-top: 16px; }
+.crypto-trade-history h4 { font-size: 0.9em; color: #888; margin-bottom: 8px; }
+.crypto-trade-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; font-size: 0.82em; background: rgba(0,0,0,0.03); }
+.crypto-trade-item.buy { border-left: 3px solid #27ae60; }
+.crypto-trade-item.sell { border-left: 3px solid #e53935; }
+.crypto-pnl-positive { color: #27ae60; font-weight: 700; }
+.crypto-pnl-negative { color: #e53935; font-weight: 700; }
+.crypto-admin-commission { background: linear-gradient(135deg, #1e0a2e22, #5c1f4a22); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.crypto-commission-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.82em; border-bottom: 1px solid rgba(0,0,0,0.06); color: #555; }
