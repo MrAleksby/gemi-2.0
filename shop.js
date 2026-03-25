@@ -322,9 +322,9 @@ if (shopBtn && shopModal && shopClose) {
         renderShop();
     };
 
-    shopClose.onclick = () => { shopModal.style.display = 'none'; };
+    shopClose.onclick = () => { shopModal.style.display = 'none'; if (typeof setNavTab === 'function') setNavTab('home'); };
 
     window.addEventListener('click', e => {
-        if (e.target === shopModal) shopModal.style.display = 'none';
+        if (e.target === shopModal) { shopModal.style.display = 'none'; if (typeof setNavTab === 'function') setNavTab('home'); }
     });
 }

@@ -442,6 +442,8 @@ auth.onAuthStateChanged(async (user) => {
         loginSection.style.display = 'none';
         registerSection.style.display = 'none';
         profileCard.style.display = '';
+        document.getElementById('bottom-nav').style.display = 'flex';
+        setNavTab('home');
         await showProfile();
         await showRating();
         showRandomQuote();
@@ -466,6 +468,7 @@ auth.onAuthStateChanged(async (user) => {
         registerSection.style.display = 'none';
         profileCard.style.display = 'none';
         adminSection.style.display = 'none';
+        document.getElementById('bottom-nav').style.display = 'none';
     }
 });
 
@@ -824,6 +827,34 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
     }
 };
 
+// ─── Нижняя навигация ─────────────────────────────────────────────────────────
+
+function setNavTab(name) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const tab = document.getElementById('nav-' + name);
+    if (tab) tab.classList.add('active');
+}
+
+document.getElementById('nav-home').onclick = () => {
+    document.getElementById('rating-modal').style.display = 'none';
+    document.getElementById('shop-modal').style.display = 'none';
+    setNavTab('home');
+};
+
+document.getElementById('nav-rating').onclick = () => {
+    document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('rating-modal').style.display = 'flex';
+    showRating();
+    setNavTab('rating');
+};
+
+document.getElementById('nav-shop').onclick = () => {
+    document.getElementById('rating-modal').style.display = 'none';
+    document.getElementById('shop-modal').style.display = 'block';
+    renderShop();
+    setNavTab('shop');
+};
+
 // ─── Модалы ───────────────────────────────────────────────────────────────────
 
 const ratingModal = document.getElementById('rating-modal');
@@ -831,8 +862,8 @@ document.getElementById('toggle-rating-btn').onclick = () => {
     ratingModal.style.display = 'flex';
     showRating();
 };
-document.getElementById('rating-close').onclick = () => { ratingModal.style.display = 'none'; };
-ratingModal.onclick = (e) => { if (e.target === ratingModal) ratingModal.style.display = 'none'; };
+document.getElementById('rating-close').onclick = () => { ratingModal.style.display = 'none'; setNavTab('home'); };
+ratingModal.onclick = (e) => { if (e.target === ratingModal) { ratingModal.style.display = 'none'; setNavTab('home'); } };
 
 const scoreRequestModal = document.getElementById('score-request-modal');
 document.getElementById('submit-score-btn').onclick = () => {
