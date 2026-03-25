@@ -1206,9 +1206,14 @@ th {
   padding: 4px 4px !important;
   font-size: 0.82em !important;
   border-radius: 0 !important;
+  white-space: nowrap;
+}
+
+/* Обрезать только колонку имени */
+#rating-table td:nth-child(2) {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 0;
 }
 
 #rating-table th {
