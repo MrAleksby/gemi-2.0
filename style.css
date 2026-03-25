@@ -1223,22 +1223,19 @@ th {
 }
 
 /* Фиксированные ширины колонок рейтинга (5 колонок) */
-#rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 26px; text-align: center; }
-#rating-table th:nth-child(2), #rating-table td:nth-child(2) { width: auto; }
-#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 58px; text-align: center; }
-#rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 40px; text-align: center; }
-#rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 38px; text-align: center; }
+#rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 30px; text-align: center; }
+#rating-table th:nth-child(2), #rating-table td:nth-child(2) { text-align: left; padding-left: 8px !important; }
+#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 74px; text-align: center; }
+#rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 44px; text-align: center; }
+#rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 42px; text-align: center; }
 
 #rating-table .level-badge {
-  min-width: 0;
-  padding: 2px 5px;
+  padding: 2px 6px;
   font-size: 0.82em;
   border-radius: 8px;
   margin: 0;
   display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #rating-table .profile-badge {
