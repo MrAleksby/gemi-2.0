@@ -1209,13 +1209,6 @@ th {
   white-space: nowrap;
 }
 
-/* Обрезать только колонку имени */
-#rating-table td:nth-child(2) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 0;
-}
-
 #rating-table th {
   background: linear-gradient(135deg, #d4517a 0%, #e87c3e 100%);
   color: white;
@@ -1228,11 +1221,11 @@ th {
 }
 
 /* Фиксированные ширины колонок рейтинга (5 колонок) */
-#rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 30px; text-align: center; }
-#rating-table th:nth-child(2), #rating-table td:nth-child(2) { text-align: left; padding-left: 8px !important; }
-#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 74px; text-align: center; }
+#rating-table th:nth-child(1), #rating-table td:nth-child(1) { width: 28px; text-align: center; }
+#rating-table th:nth-child(2), #rating-table td:nth-child(2) { width: 120px; max-width: 120px; text-align: left; padding-left: 8px !important; overflow: hidden; text-overflow: ellipsis; }
+#rating-table th:nth-child(3), #rating-table td:nth-child(3) { width: 76px; text-align: center; }
 #rating-table th:nth-child(4), #rating-table td:nth-child(4) { width: 44px; text-align: center; }
-#rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 42px; text-align: center; }
+#rating-table th:nth-child(5), #rating-table td:nth-child(5) { width: 40px; text-align: center; }
 
 #rating-table .level-badge {
   padding: 2px 6px;
@@ -2588,4 +2581,10 @@ th {
     font-size: 0.85em;
     cursor: pointer;
     white-space: nowrap;
+}
+
+/* Рейтинг модал — фиксированная ширина на десктопе */
+#rating-modal .modal-content {
+  max-width: 420px !important;
+  width: 96vw;
 }
