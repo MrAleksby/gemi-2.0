@@ -29,6 +29,39 @@ let unsubAdminRequests = null;
 
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
+/**
+ * Показывает/скрывает спиннер на кнопке.
+ * @param {HTMLButtonElement} btn
+ * @param {boolean} isLoading
+ */
+function setLoading(btn, isLoading) {
+    if (!btn) return;
+    if (isLoading) {
+        btn.dataset.origText = btn.innerHTML;
+        btn.innerHTML = '⏳ ...';
+        btn.disabled = true;
+    } else {
+        if (btn.dataset.origText !== undefined) {
+            btn.innerHTML = btn.dataset.origText;
+            delete btn.dataset.origText;
+        }
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Показывает inline-сообщение в элементе.
+ * @param {string} elementId
+ * @param {string} text
+ * @param {boolean} isError
+ */
+function showMsg(elementId, text, isError = false) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'transfer-message' + (isError ? ' error' : (text ? ' success' : ''));
+}
+
 async function findUserByName(username) {
     const usersSnap = await db.collection('users').get();
     return usersSnap.docs.find(doc =>
@@ -550,15 +583,28 @@ document.getElementById('register-form').onsubmit = async (e) => {
     const password = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
 
-    if (!fullname) { alert('Введите имя и фамилию!'); submitBtn.disabled = false; return; }
-    if (!phone)    { alert('Введите номер телефона!'); submitBtn.disabled = false; return; }
-    if (password !== passwordConfirm) { alert('Пароли не совпадают!'); submitBtn.disabled = false; return; }
+    const registerMsg = document.getElementById('register-msg');
+    if (!fullname) {
+        if (registerMsg) { registerMsg.textContent = 'Введите имя и фамилию!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
+    if (!phone) {
+        if (registerMsg) { registerMsg.textContent = 'Введите номер телефона!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
+    if (password !== passwordConfirm) {
+        if (registerMsg) { registerMsg.textContent = 'Пароли не совпадают!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
 
     const phoneKey = phone.replace(/\D/g, '');
 
     // Проверяем уникальность телефона
     const phoneDoc = await db.collection('usernames').doc(phoneKey).get();
-    if (phoneDoc.exists) { alert('Этот номер телефона уже зарегистрирован!'); submitBtn.disabled = false; return; }
+    if (phoneDoc.exists) {
+        if (registerMsg) { registerMsg.textContent = 'Этот номер телефона уже зарегистрирован!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
 
     try {
         const fakeEmail = phoneToEmail(phone);
@@ -579,7 +625,8 @@ document.getElementById('register-form').onsubmit = async (e) => {
 
         // isAdmin выставляется вручную в Firebase Console
     } catch (err) {
-        alert('Ошибка регистрации: ' + err.message);
+        const registerMsg = document.getElementById('register-msg');
+        if (registerMsg) { registerMsg.textContent = 'Ошибка регистрации: ' + err.message; registerMsg.className = 'transfer-message error'; }
     }
     submitBtn.disabled = false;
 };
@@ -595,7 +642,8 @@ document.getElementById('login-form').onsubmit = async (e) => {
         const cred = await auth.signInWithEmailAndPassword(fakeEmail, password);
         currentUser = cred.user.uid;
     } catch (err) {
-        alert('Неверный номер телефона или пароль');
+        const loginMsg = document.getElementById('login-msg');
+        if (loginMsg) { loginMsg.textContent = 'Неверный номер телефона или пароль'; loginMsg.className = 'transfer-message error'; }
     }
 };
 
@@ -813,6 +861,7 @@ document.getElementById('exchange-cf-amount').oninput = () => {
 document.getElementById('exchange-form').onsubmit = async (e) => {
     e.preventDefault();
     const msg = document.getElementById('exchange-msg');
+    const exchangeBtn = e.target.querySelector('button[type="submit"]');
     const amt = parseInt(document.getElementById('exchange-cf-amount').value) || 0;
 
     if (amt < 50) {
@@ -823,6 +872,7 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
 
     msg.textContent = 'Обмен...';
     msg.className = 'transfer-message';
+    setLoading(exchangeBtn, true);
 
     try {
         const userRef = db.collection('users').doc(currentUser);
@@ -833,6 +883,7 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
         if (currentCF < amt) {
             msg.textContent = `Недостаточно CF! У вас ${currentCF.toFixed(2)} CF`;
             msg.className = 'transfer-message error';
+            setLoading(exchangeBtn, false);
             return;
         }
 
@@ -864,6 +915,7 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
 
         showProfile();
         showRating();
+        setLoading(exchangeBtn, false);
 
         setTimeout(() => {
             exchangeModal.style.display = 'none';
@@ -872,6 +924,7 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
     } catch (err) {
         msg.textContent = 'Ошибка: ' + err.message;
         msg.className = 'transfer-message error';
+        setLoading(exchangeBtn, false);
     }
 };
 
@@ -1037,6 +1090,7 @@ scoreRequestModal.onclick = (e) => {
 document.getElementById('score-request-form').onsubmit = async (e) => {
     e.preventDefault();
     const msg = document.getElementById('score-request-msg');
+    const submitBtn = document.getElementById('submit-score-btn');
     const games  = parseInt(document.getElementById('req-games').value)  || 0;
     const wins   = parseInt(document.getElementById('req-wins').value)   || 0;
     const cf     = parseInt(document.getElementById('req-cf').value)     || 0;
@@ -1050,8 +1104,15 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
         return;
     }
 
+    if (games < 0 || wins < 0 || cf < 0 || points < 0 || coins < 0) {
+        msg.textContent = 'Значения не могут быть отрицательными!';
+        msg.className = 'transfer-message error';
+        return;
+    }
+
     msg.textContent = 'Отправка...';
     msg.className = 'transfer-message';
+    setLoading(submitBtn, true);
 
     try {
         // Проверяем нет ли уже pending счёта
@@ -1063,6 +1124,7 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
         if (!existing.empty) {
             msg.textContent = 'У вас уже есть счёт на рассмотрении!';
             msg.className = 'transfer-message error';
+            setLoading(submitBtn, false);
             return;
         }
 
@@ -1083,6 +1145,7 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
 
         msg.textContent = 'Счёт отправлен! Ожидайте подтверждения.';
         msg.className = 'transfer-message success';
+        setLoading(submitBtn, false);
         e.target.reset();
         setTimeout(() => {
             scoreRequestModal.style.display = 'none';
@@ -1091,6 +1154,7 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
     } catch (err) {
         msg.textContent = 'Ошибка: ' + err.message;
         msg.className = 'transfer-message error';
+        setLoading(submitBtn, false);
     }
 };
 
@@ -1323,9 +1387,14 @@ if (adminAddCFBtn) {
         const user   = adminTransactionUser.value.trim();
         const amount = parseInt(adminTransactionAmount.value, 10);
         const reason = adminTransactionReason.value.trim();
-        if (!user || isNaN(amount) || amount <= 0) { alert('Заполните все поля!'); return; }
+        if (!user || isNaN(amount) || amount <= 0) {
+            if (adminMessage) { adminMessage.textContent = 'Заполните все поля!'; adminMessage.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)'; }
+            return;
+        }
+        setLoading(adminAddCFBtn, true);
         await window.adminAddCF(user, amount, reason);
         loadTransactionsHistory();
+        setLoading(adminAddCFBtn, false);
     };
 }
 
@@ -1334,9 +1403,14 @@ if (adminWithdrawCFBtn) {
         const user   = adminTransactionUser.value.trim();
         const amount = parseInt(adminTransactionAmount.value, 10);
         const reason = adminTransactionReason.value.trim();
-        if (!user || isNaN(amount) || amount <= 0) { alert('Заполните все поля!'); return; }
+        if (!user || isNaN(amount) || amount <= 0) {
+            if (adminMessage) { adminMessage.textContent = 'Заполните все поля!'; adminMessage.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)'; }
+            return;
+        }
+        setLoading(adminWithdrawCFBtn, true);
         await window.adminWithdrawCF(user, amount, reason);
         loadTransactionsHistory();
+        setLoading(adminWithdrawCFBtn, false);
     };
 }
 
@@ -1352,7 +1426,7 @@ if (clearTransactionsBtn) {
             adminMessage.textContent = `Удалено ${snap.size} транзакций!`;
             loadTransactionsHistory();
         } catch (err) {
-            alert('Ошибка: ' + err.message);
+            if (adminMessage) adminMessage.textContent = 'Ошибка: ' + err.message;
         }
     };
 }
@@ -1461,7 +1535,7 @@ document.getElementById('admin-nuclear-reset').onclick = async () => {
     );
     if (!confirmed) return;
     const code = prompt('Введите: НОВЫЙ СЕЗОН');
-    if (code !== 'НОВЫЙ СЕЗОН') { alert('Отменено — текст не совпал.'); return; }
+    if (code !== 'НОВЫЙ СЕЗОН') { if (adminMessage) adminMessage.textContent = 'Отменено — текст не совпал.'; return; }
 
     try {
         adminMessage.textContent = 'Удаление данных...';
@@ -1487,7 +1561,7 @@ document.getElementById('admin-nuclear-reset').onclick = async () => {
         loadUsersList();
         showRating();
     } catch (err) {
-        alert('Ошибка: ' + err.message);
+        if (adminMessage) adminMessage.textContent = 'Ошибка: ' + err.message;
     }
 };
 

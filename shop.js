@@ -312,11 +312,11 @@ const shopItems = document.getElementById('shop-items');
 if (shopBtn && shopModal && shopClose) {
     shopBtn.onclick = async () => {
         const user = firebase.auth().currentUser;
-        if (!user) { alert('Войдите в аккаунт.'); return; }
+        if (!user) { console.error('Магазин: пользователь не авторизован'); return; }
 
         const doc  = await firebase.firestore().collection('users').doc(user.uid).get();
         const data = doc.exists ? doc.data() : null;
-        if (!data) { alert('Ошибка загрузки данных.'); return; }
+        if (!data) { console.error('Магазин: ошибка загрузки данных пользователя'); return; }
 
         shopModal.style.display = 'block';
         renderShop();

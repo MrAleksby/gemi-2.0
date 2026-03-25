@@ -1589,22 +1589,29 @@ th {
 }
 .cancel-request-btn:hover { background: rgba(231,76,60,0.08); opacity: 1; }
 
-/* Кнопка удаления аккаунта */
+/* Разделитель между кнопками Выйти и Удалить аккаунт */
+.delete-account-separator {
+    height: 1px;
+    background: rgba(0,0,0,0.08);
+    margin: 18px 0 10px;
+}
+
+/* Кнопка удаления аккаунта — неприметная, серая, чтобы не нажали случайно */
 .btn-delete-account {
     display: block;
     width: 100%;
-    margin-top: 10px;
-    padding: 12px;
+    margin-top: 0;
+    padding: 8px 12px;
     background: none;
-    border: 2px solid rgba(231, 76, 60, 0.4);
-    border-radius: 14px;
-    color: #e74c3c;
-    font-size: 0.88rem;
+    border: 1px solid rgba(150, 150, 150, 0.35);
+    border-radius: 10px;
+    color: #aaa;
+    font-size: 0.78rem;
     cursor: pointer;
     transition: all 0.2s;
-    opacity: 0.75;
+    opacity: 0.6;
 }
-.btn-delete-account:hover { opacity: 1; background: rgba(231,76,60,0.08); }
+.btn-delete-account:hover { opacity: 0.9; color: #e74c3c; border-color: rgba(231,76,60,0.4); background: rgba(231,76,60,0.05); }
 
 /* Предупреждение в модале удаления */
 .delete-warning {

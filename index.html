@@ -24,6 +24,7 @@
             <input type="password" id="login-password" placeholder="Пароль" required>
             <button type="submit">Войти</button>
         </form>
+        <div id="login-msg" class="transfer-message"></div>
         <p>Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a></p>
     </div>
 
@@ -37,6 +38,7 @@
             <input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" required>
             <button type="submit">Зарегистрироваться</button>
         </form>
+        <div id="register-msg" class="transfer-message"></div>
         <p>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
     </div>
 
@@ -98,6 +100,7 @@
         <div id="profile-buttons">
             <button id="logout-btn">Выйти</button>
         </div>
+        <div class="delete-account-separator"></div>
         <button id="delete-account-btn" class="btn-delete-account">🗑 Удалить мой аккаунт</button>
         <!-- shop-btn и toggle-rating-btn перенесены в нижнюю навигацию -->
         <button id="shop-btn" style="display:none"></button>

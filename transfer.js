@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const toName = document.getElementById('transfer-to').value.trim();
             const amount = parseInt(amountInput.value, 10);
             const msg    = document.getElementById('transfer-message');
+            const transferBtn = e.target.querySelector('button[type="submit"]');
             msg.textContent = '';
             msg.className   = 'transfer-message';
 
@@ -117,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 msg.classList.add('error');
                 return;
             }
+
+            if (typeof setLoading === 'function') setLoading(transferBtn, true);
 
             try {
                 const user = firebase.auth().currentUser;
@@ -157,9 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (typeof showProfile === 'function') showProfile();
                 if (typeof showRating  === 'function') showRating();
+                if (typeof setLoading === 'function') setLoading(transferBtn, false);
             } catch (err) {
                 msg.textContent = err.message || 'Ошибка перевода!';
                 msg.classList.add('error');
+                if (typeof setLoading === 'function') setLoading(transferBtn, false);
             }
         };
     };

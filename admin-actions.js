@@ -77,7 +77,7 @@ async function approveScoreRequest(requestId) {
         // Ищем пользователя по userId
         const userRef = db.collection('users').doc(req.userId);
         const userDoc = await userRef.get();
-        if (!userDoc.exists) { alert('Пользователь не найден!'); return; }
+        if (!userDoc.exists) { console.error('approveScoreRequest: пользователь не найден, userId=' + req.userId); return; }
 
         const data = userDoc.data();
         const newPoints = (data.points || 0) + (req.points || 0);
@@ -113,7 +113,8 @@ async function approveScoreRequest(requestId) {
         if (typeof showProfile === 'function') showProfile();
         if (typeof showRating  === 'function') showRating();
     } catch (err) {
-        alert('Ошибка при подтверждении: ' + err.message);
+        console.error('Ошибка при подтверждении счёта:', err);
+        if (typeof adminMessage !== 'undefined' && adminMessage) adminMessage.textContent = 'Ошибка при подтверждении: ' + err.message;
     }
 }
 
@@ -133,7 +134,8 @@ async function rejectScoreRequest(requestId, reason = '') {
         const note = reason ? `Счёт отклонён: ${reason}` : 'Счёт отклонён администратором';
         await addTransactionRecord(req.username, 0, 'reject', note, req.userId);
     } catch (err) {
-        alert('Ошибка при отклонении: ' + err.message);
+        console.error('Ошибка при отклонении счёта:', err);
+        if (typeof adminMessage !== 'undefined' && adminMessage) adminMessage.textContent = 'Ошибка при отклонении: ' + err.message;
     }
 }
 
