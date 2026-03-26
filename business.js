@@ -13,6 +13,10 @@ const BUSINESS_STAGES = [
         maxWorkers: 1,
         dailyCapacity: 10,
         nextStage: 'kiosk',
+        expField: 'bizExpCart',       // поле опыта который копится при работе здесь
+        workerRequiredExp: null,      // требований для новичков нет
+        workerRequiredField: null,
+        workerRequiredLabel: null,
         desc: 'Маленькая тележка на колёсах. 1 рабочее место, 10 энергий в день.'
     },
     {
@@ -25,6 +29,10 @@ const BUSINESS_STAGES = [
         maxWorkers: 2,
         dailyCapacity: 24,
         nextStage: 'cafe',
+        expField: 'bizExpKiosk',
+        workerRequiredExp: 50,        // нужно 50 ч. в тележке
+        workerRequiredField: 'bizExpCart',
+        workerRequiredLabel: 'Тележка мороженного',
         desc: 'Киоск с витриной. 2 рабочих места, 24 энергии в день.'
     },
     {
@@ -37,6 +45,10 @@ const BUSINESS_STAGES = [
         maxWorkers: 5,
         dailyCapacity: 60,
         nextStage: 'factory',
+        expField: 'bizExpCafe',
+        workerRequiredExp: 50,        // нужно 50 ч. в киоске
+        workerRequiredField: 'bizExpKiosk',
+        workerRequiredLabel: 'Киоск мороженого',
         desc: 'Уютное кафе. 5 рабочих мест, 60 энергий в день.'
     },
     {
@@ -49,6 +61,10 @@ const BUSINESS_STAGES = [
         maxWorkers: 10,
         dailyCapacity: 120,
         nextStage: null,
+        expField: 'bizExpFactory',
+        workerRequiredExp: 50,        // нужно 50 ч. в кафе
+        workerRequiredField: 'bizExpCafe',
+        workerRequiredLabel: 'Кафе-мороженое',
         desc: 'Максимальный уровень. 10 рабочих мест, 120 энергий в день!'
     }
 ];
@@ -453,10 +469,14 @@ async function workInBusiness(bizId) {
         const workerName = freshUserSnap.data().name || 'Неизвестно';
         const remaining = stage.dailyCapacity - energyUsed - 1;
 
+        const expUpdate = {};
+        expUpdate[stage.expField] = firebase.firestore.FieldValue.increment(1);
+
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
                 businessCoins: firebase.firestore.FieldValue.increment(income),
-                energy: firebase.firestore.FieldValue.increment(-1)
+                energy: firebase.firestore.FieldValue.increment(-1),
+                ...expUpdate
             }),
             bizRef.update({
                 totalEarned: firebase.firestore.FieldValue.increment(income),
@@ -532,6 +552,7 @@ async function postVacancy(bizId) {
             ownerName: biz.ownerName,
             bizName: stage.name,
             bizIcon: stage.icon,
+            bizStage: biz.stage,
             salary,
             incomePerEnergy: stage.incomePerEnergy,
             updatedAt: new Date()
@@ -582,16 +603,38 @@ async function renderJobBoard() {
     const myBizSnap = await firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
     const myBizId = myBizSnap.empty ? null : myBizSnap.docs[0].id;
 
-    const energy = await getOrResetEnergy(user.uid);
+    const [energy, myUserSnap] = await Promise.all([
+        getOrResetEnergy(user.uid),
+        firebase.firestore().collection('users').doc(user.uid).get()
+    ]);
+    const myData = myUserSnap.data();
 
     const jobsSnap = await firebase.firestore().collection('job_board').get();
     const jobs = jobsSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(j => j.ownerId !== user.uid); // не показываем собственную вакансию
+        .filter(j => j.ownerId !== user.uid);
 
     const jobsHtml = jobs.length === 0
         ? '<div style="color:#aaa;text-align:center;padding:20px;">Пока нет открытых вакансий</div>'
-        : jobs.map(j => `
+        : jobs.map(j => {
+            const stage = getStage(j.bizStage || 'cart');
+            const hasReq = stage.workerRequiredExp && stage.workerRequiredField;
+            const myExp = hasReq ? (myData[stage.workerRequiredField] || 0) : 0;
+            const reqMet = !hasReq || myExp >= stage.workerRequiredExp;
+            const expPct = hasReq ? Math.min(100, Math.round((myExp / stage.workerRequiredExp) * 100)) : 100;
+
+            const reqHtml = hasReq ? `
+                <div class="biz-exp-req ${reqMet ? 'met' : 'unmet'}">
+                    <div class="biz-exp-req-label">
+                        <span>${reqMet ? '✅' : '🔒'} Опыт «${stage.workerRequiredLabel}»: ${myExp}/${stage.workerRequiredExp} ч.</span>
+                    </div>
+                    <div class="biz-exp-bar-bg">
+                        <div class="biz-exp-bar-fill ${reqMet ? 'met' : ''}" style="width:${expPct}%"></div>
+                    </div>
+                </div>` : '';
+
+            const canApply = energy > 0 && reqMet;
+            return `
             <div class="biz-job-card">
                 <div class="biz-job-header">
                     <span class="biz-job-icon">${j.bizIcon}</span>
@@ -602,15 +645,16 @@ async function renderJobBoard() {
                 </div>
                 <div class="biz-job-details">
                     <span>💰 Зарплата: <b>${j.salary} монет</b></span>
-                    <span>📊 Доход бизнеса: ${j.incomePerEnergy} монет</span>
+                    <span>📊 Доход: ${j.incomePerEnergy} монет/ч.</span>
                 </div>
+                ${reqHtml}
                 <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary})"
-                    ${energy > 0 ? '' : 'disabled'}
+                    ${canApply ? '' : 'disabled'}
                     style="width:100% !important; margin-top:8px;">
-                    ${energy > 0 ? '🔨 Выйти на работу (−1 ⚡)' : '😴 Нет энергии'}
+                    ${!energy ? '😴 Нет энергии' : !reqMet ? '🔒 Нет опыта' : '🔨 Выйти на работу (−1 ⚡)'}
                 </button>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
     content.innerHTML = `
         <div class="biz-jobboard-header">
@@ -650,13 +694,29 @@ async function workForOwner(bizId, salary) {
         if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; } return; }
 
         const workerSnap = await firebase.firestore().collection('users').doc(user.uid).get();
-        const workerName = workerSnap.data().name || 'Неизвестно';
+        const workerData = workerSnap.data();
+        const workerName = workerData.name || 'Неизвестно';
+
+        // Проверяем требования к опыту
+        if (stage.workerRequiredExp && stage.workerRequiredField) {
+            const workerExp = workerData[stage.workerRequiredField] || 0;
+            if (workerExp < stage.workerRequiredExp) {
+                showBizMsg(`❌ Нужен опыт в «${stage.workerRequiredLabel}»: ${workerExp}/${stage.workerRequiredExp} ч.`);
+                if (btn) { btn.disabled = false; btn.textContent = '🔒 Нет опыта'; }
+                return;
+            }
+        }
+
         const remaining = stage.dailyCapacity - energyUsed - 1;
+
+        const workerExpUpdate = {};
+        workerExpUpdate[stage.expField] = firebase.firestore.FieldValue.increment(1);
 
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
                 energy: firebase.firestore.FieldValue.increment(-1),
-                businessCoins: firebase.firestore.FieldValue.increment(salary)
+                businessCoins: firebase.firestore.FieldValue.increment(salary),
+                ...workerExpUpdate
             }),
             firebase.firestore().collection('users').doc(biz.ownerId).update({
                 businessCoins: firebase.firestore.FieldValue.increment(ownerIncome)
