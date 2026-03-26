@@ -1542,6 +1542,8 @@ function getEmptyUserData() {
         btcAmount: 0, btcAvgPrice: 0,
         tonAmount: 0, tonAvgPrice: 0,
         ethAmount: 0, ethAvgPrice: 0,
+        xauAmount: 0, xauAvgPrice: 0,
+        xagAmount: 0, xagAvgPrice: 0,
         exchangeCoins: 0,
         totalPnl: 0
     };
