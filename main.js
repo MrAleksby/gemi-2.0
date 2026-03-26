@@ -1543,6 +1543,7 @@ function getEmptyUserData() {
         tonAmount: 0,  tonAvgPrice: 0,
         ethAmount: 0,  ethAvgPrice: 0,
         paxgAmount: 0, paxgAvgPrice: 0,
+        xagAmount: 0,  xagAvgPrice: 0,
         exchangeCoins: 0,
         totalPnl: 0
     };
