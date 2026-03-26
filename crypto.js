@@ -3,11 +3,9 @@
 const CRYPTO_COMMISSION = 0.005; // 0.5%
 
 const CRYPTO_ITEMS = [
-    { id: 'btc',    name: 'Bitcoin',  symbol: 'BTC',    icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT'    },
-    { id: 'ton',    name: 'Toncoin',  symbol: 'TON',    icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT'    },
-    { id: 'eth',    name: 'Ethereum', symbol: 'ETH',    icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT'    },
-    { id: 'meta',   name: 'Meta',     symbol: 'META',   icon: '🌐', color: '#0082fb', type: 'crypto', binance: 'METAUSDT'   },
-    { id: 'google', name: 'Google',   symbol: 'GOOGLE', icon: '🔍', color: '#34a853', type: 'crypto', binance: 'GOOGLEUSDT' },
+    { id: 'btc', name: 'Bitcoin',  symbol: 'BTC', icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT' },
+    { id: 'ton', name: 'Toncoin',  symbol: 'TON', icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT' },
+    { id: 'eth', name: 'Ethereum', symbol: 'ETH', icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT' },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
