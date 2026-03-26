@@ -2931,3 +2931,7 @@ th {
 .biz-apply-btn:disabled { background: #ccc !important; cursor: not-allowed; }
 
 .biz-msg { display: none; text-align: center; padding: 10px; border-radius: 10px; font-size: 0.9em; background: #f0f0f0; margin-top: 12px; }
+
+.biz-wallet-section { background: #f9f9f9; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 2px 14px 12px; margin-bottom: 14px; }
+.biz-wallet-balance { display: flex; flex-direction: column; gap: 4px; font-size: 0.88em; color: #555; padding: 10px 0 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+.biz-wallet-balance b { color: #5c1f4a; }

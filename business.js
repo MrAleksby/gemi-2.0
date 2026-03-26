@@ -89,19 +89,53 @@ async function renderBusinessTab() {
 
     const userData = userSnap.data();
     const coins = userData.coins || 0;
+    const businessCoins = userData.businessCoins || 0;
     const hasBusiness = !bizSnap.empty;
 
     if (!hasBusiness) {
-        renderNoBusiness(content, coins, energy);
+        renderNoBusiness(content, coins, businessCoins, energy);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
-        renderMyBusiness(content, biz, coins, energy, user.uid, userData.name || '');
+        renderMyBusiness(content, biz, coins, businessCoins, energy, user.uid, userData.name || '');
     }
 }
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
 
-function renderNoBusiness(content, coins, energy) {
+function bizWalletSection(coins, businessCoins) {
+    return `
+        <div class="biz-wallet-section">
+            <button class="crypto-wallet-toggle" onclick="toggleBizWallet()">💼 Бизнес-кошелёк ▼</button>
+            <div id="biz-wallet-forms" style="display:none;">
+                <div class="biz-wallet-balance">
+                    <div>💼 Бизнес-кошелёк: <b>${businessCoins.toLocaleString('ru-RU')} монет</b></div>
+                    <div>💰 Основной счёт: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
+                </div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Пополнить (из основного):</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                    <input type="number" id="biz-deposit-amount" min="1" placeholder="Сумма монет"
+                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                    <button onclick="document.getElementById('biz-deposit-amount').value=${coins}"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
+                    <button class="biz-deposit-btn" onclick="bizDeposit()"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
+                </div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной):</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+                    <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
+                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                    <button onclick="document.getElementById('biz-withdraw-amount').value=${businessCoins}"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
+                    <button class="biz-withdraw-btn" onclick="bizWithdraw()"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
+                </div>
+                <div id="biz-wallet-msg" style="font-size:0.85em;margin-top:6px;"></div>
+            </div>
+        </div>
+    `;
+}
+
+function renderNoBusiness(content, coins, businessCoins, energy) {
     const stage = BUSINESS_STAGES[0];
     const canBuy = coins >= stage.buyCost;
 
@@ -142,19 +176,20 @@ function renderNoBusiness(content, coins, energy) {
             </div>
         </div>
 
+        ${bizWalletSection(coins, businessCoins)}
         <div id="biz-msg" class="biz-msg"></div>
     `;
 }
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, energy, uid, userName) {
+function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userName) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
     const workers = biz.workers || [];
     const canWork = energy > 0;
-    const canUpgrade = nextStage && coins >= nextStage.upgradeCost;
+    const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost;
 
     // Доска вакансий — открытые вакансии в этом бизнесе
     const vacancySection = biz.vacancyOpen ? `
@@ -196,6 +231,8 @@ function renderMyBusiness(content, biz, coins, energy, uid, userName) {
                 <div class="biz-header-total">Заработано всего: <b>${(biz.totalEarned || 0).toLocaleString('ru-RU')} монет</b></div>
             </div>
         </div>
+
+        ${bizWalletSection(coins, businessCoins)}
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>
@@ -313,7 +350,7 @@ async function workInBusiness(bizId) {
 
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
-                coins: firebase.firestore.FieldValue.increment(income),
+                businessCoins: firebase.firestore.FieldValue.increment(income),
                 energy: firebase.firestore.FieldValue.increment(-1)
             }),
             bizRef.update({
@@ -321,7 +358,7 @@ async function workInBusiness(bizId) {
             })
         ]);
 
-        showBizMsg(`✅ Заработал +${income} монет! ⚡ Осталось энергии: ${energy - 1}`);
+        showBizMsg(`✅ Заработал +${income} монет в бизнес-кошелёк! ⚡ Осталось: ${energy - 1}`);
         setTimeout(() => renderBusinessTab(), 900);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -345,15 +382,15 @@ async function upgradeBusiness(bizId) {
 
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const userSnap = await userRef.get();
-        const coins = userSnap.data().coins || 0;
-        if (coins < nextStage.upgradeCost) {
-            showBizMsg(`❌ Нужно ${nextStage.upgradeCost} монет, у вас ${coins}`);
+        const businessCoins = userSnap.data().businessCoins || 0;
+        if (businessCoins < nextStage.upgradeCost) {
+            showBizMsg(`❌ Нужно ${nextStage.upgradeCost} монет в бизнес-кошельке, у вас ${businessCoins}`);
             if (btn) { btn.disabled = false; btn.textContent = `🚀 Улучшить за ${nextStage.upgradeCost} монет`; }
             return;
         }
 
         await Promise.all([
-            userRef.update({ coins: firebase.firestore.FieldValue.increment(-nextStage.upgradeCost) }),
+            userRef.update({ businessCoins: firebase.firestore.FieldValue.increment(-nextStage.upgradeCost) }),
             bizRef.update({ stage: currentStage.nextStage })
         ]);
 
@@ -494,22 +531,22 @@ async function workForOwner(bizId, salary) {
 
         if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); return; }
 
-        // Работник теряет энергию, получает зарплату
-        // Владелец получает разницу
+        // Работник теряет энергию, получает зарплату в бизнес-кошелёк
+        // Владелец получает разницу в бизнес-кошелёк
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
                 energy: firebase.firestore.FieldValue.increment(-1),
-                coins: firebase.firestore.FieldValue.increment(salary)
+                businessCoins: firebase.firestore.FieldValue.increment(salary)
             }),
             firebase.firestore().collection('users').doc(biz.ownerId).update({
-                coins: firebase.firestore.FieldValue.increment(ownerIncome)
+                businessCoins: firebase.firestore.FieldValue.increment(ownerIncome)
             }),
             bizRef.update({
                 totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy)
             })
         ]);
 
-        showBizMsg(`✅ Ты заработал +${salary} монет! Владелец получил +${ownerIncome} монет.`);
+        showBizMsg(`✅ Ты заработал +${salary} монет в бизнес-кошелёк! Владелец получил +${ownerIncome} монет.`);
         setTimeout(() => renderJobBoard(), 900);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -524,6 +561,73 @@ function switchBizTab(tab) {
     document.getElementById('biz-tab-jobs').classList.toggle('active', tab === 'jobs');
     if (tab === 'my') renderBusinessTab();
     else renderJobBoard();
+}
+
+function toggleBizWallet() {
+    const forms = document.getElementById('biz-wallet-forms');
+    const btn = document.querySelector('.crypto-wallet-toggle');
+    if (!forms) return;
+    const open = forms.style.display === 'none';
+    forms.style.display = open ? '' : 'none';
+    if (btn) btn.textContent = open ? '💼 Бизнес-кошелёк ▲' : '💼 Бизнес-кошелёк ▼';
+}
+
+async function bizDeposit() {
+    const amount = parseInt(document.getElementById('biz-deposit-amount')?.value) || 0;
+    const msgEl = document.getElementById('biz-wallet-msg');
+    const btn = document.querySelector('.biz-deposit-btn');
+    if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    try {
+        const ref = firebase.firestore().collection('users').doc(user.uid);
+        const snap = await ref.get();
+        const freshCoins = snap.data().coins || 0;
+        if (freshCoins < amount) {
+            if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`;
+            if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
+            return;
+        }
+        await ref.update({
+            coins: firebase.firestore.FieldValue.increment(-amount),
+            businessCoins: firebase.firestore.FieldValue.increment(amount)
+        });
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
+        setTimeout(() => renderBusinessTab(), 900);
+    } catch(e) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
+    }
+}
+
+async function bizWithdraw() {
+    const amount = parseInt(document.getElementById('biz-withdraw-amount')?.value) || 0;
+    const msgEl = document.getElementById('biz-wallet-msg');
+    const btn = document.querySelector('.biz-withdraw-btn');
+    if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    try {
+        const ref = firebase.firestore().collection('users').doc(user.uid);
+        const snap = await ref.get();
+        const freshBiz = snap.data().businessCoins || 0;
+        if (freshBiz < amount) {
+            if (msgEl) msgEl.textContent = `❌ Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`;
+            if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
+            return;
+        }
+        await ref.update({
+            businessCoins: firebase.firestore.FieldValue.increment(-amount),
+            coins: firebase.firestore.FieldValue.increment(amount)
+        });
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${amount} монет`; }
+        setTimeout(() => renderBusinessTab(), 900);
+    } catch(e) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
+    }
 }
 
 function showBizMsg(text) {

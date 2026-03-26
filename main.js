@@ -1600,7 +1600,8 @@ function getEmptyUserData() {
         exchangeCoins: 0,
         totalPnl: 0,
         energy: 8,
-        energyDate: ''
+        energyDate: '',
+        businessCoins: 0
     };
 }
 
