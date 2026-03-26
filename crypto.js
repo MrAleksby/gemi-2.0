@@ -3,10 +3,11 @@
 const CRYPTO_COMMISSION = 0.005; // 0.5%
 
 const CRYPTO_ITEMS = [
-    { id: 'btc',  name: 'Bitcoin', symbol: 'BTC',  icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT' },
-    { id: 'ton',  name: 'Toncoin', symbol: 'TON',  icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT' },
-    { id: 'tsla', name: 'Tesla',   symbol: 'TSLA', icon: '🚗', color: '#e31937', type: 'stock',  yahoo:   'TSLA'    },
-    { id: 'aapl', name: 'Apple',   symbol: 'AAPL', icon: '🍎', color: '#555555', type: 'stock',  yahoo:   'AAPL'    },
+    { id: 'btc',    name: 'Bitcoin',  symbol: 'BTC',    icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT'    },
+    { id: 'ton',    name: 'Toncoin',  symbol: 'TON',    icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT'    },
+    { id: 'eth',    name: 'Ethereum', symbol: 'ETH',    icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT'    },
+    { id: 'meta',   name: 'Meta',     symbol: 'META',   icon: '🌐', color: '#0082fb', type: 'crypto', binance: 'METAUSDT'   },
+    { id: 'google', name: 'Google',   symbol: 'GOOGLE', icon: '🔍', color: '#34a853', type: 'crypto', binance: 'GOOGLEUSDT' },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
