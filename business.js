@@ -96,7 +96,16 @@ async function renderBusinessTab() {
         renderNoBusiness(content, coins, businessCoins, energy);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
-        renderMyBusiness(content, biz, coins, businessCoins, energy, user.uid, userData.name || '');
+        // Загружаем историю работы
+        let workLogs = [];
+        try {
+            const logsSnap = await firebase.firestore()
+                .collection('businesses').doc(biz.id)
+                .collection('work_logs')
+                .orderBy('timestamp', 'desc').limit(15).get();
+            workLogs = logsSnap.docs.map(d => d.data());
+        } catch(e) { workLogs = []; }
+        renderMyBusiness(content, biz, coins, businessCoins, energy, user.uid, userData.name || '', workLogs);
     }
 }
 
@@ -183,7 +192,7 @@ function renderNoBusiness(content, coins, businessCoins, energy) {
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userName) {
+function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userName, workLogs = []) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
@@ -223,12 +232,44 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userN
         </div>
     ` : '';
 
+    // История работы
+    const logsHtml = workLogs.length === 0
+        ? '<div style="color:#aaa;font-size:0.85em;text-align:center;padding:10px;">Пока никто не работал</div>'
+        : workLogs.map(l => {
+            const ts = l.timestamp?.toDate ? l.timestamp.toDate() : new Date(l.timestamp);
+            const dateStr = ts.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            const isOwner = l.isOwner;
+            return `<div class="biz-log-item">
+                <div class="biz-log-left">
+                    <span class="biz-log-who">${isOwner ? '👑' : '👤'} ${l.workerName}</span>
+                    <span class="biz-log-date">${dateStr}</span>
+                </div>
+                <div class="biz-log-right">
+                    ${isOwner
+                        ? `<span class="biz-log-income">+${l.income} монет</span>`
+                        : `<span class="biz-log-income">+${l.ownerProfit} прибыль</span><span class="biz-log-salary">зп: ${l.salary}</span>`
+                    }
+                </div>
+            </div>`;
+        }).join('');
+
     content.innerHTML = `
         <div class="biz-header-card">
             <div class="biz-stage-badge">${stage.icon}</div>
             <div class="biz-header-info">
                 <div class="biz-header-name">${stage.name}</div>
                 <div class="biz-header-total">Заработано всего: <b>${(biz.totalEarned || 0).toLocaleString('ru-RU')} монет</b></div>
+            </div>
+        </div>
+
+        <div class="biz-balance-banner">
+            <div class="biz-balance-item">
+                <span>💼 Бизнес-кошелёк</span>
+                <b>${businessCoins.toLocaleString('ru-RU')} монет</b>
+            </div>
+            <div class="biz-balance-item">
+                <span>💰 Основной счёт</span>
+                <b>${coins.toLocaleString('ru-RU')} монет</b>
             </div>
         </div>
 
@@ -281,6 +322,11 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userN
             </button>
         </div>
         ` : '<div class="biz-max-level">🏆 Максимальный уровень достигнут!</div>'}
+
+        <div class="biz-work-history">
+            <div class="biz-work-history-title">📋 История работы</div>
+            ${logsHtml}
+        </div>
 
         <div id="biz-msg" class="biz-msg"></div>
     `;
@@ -349,6 +395,9 @@ async function workInBusiness(bizId) {
         const stage = getStage(biz.stage);
         const income = stage.incomePerEnergy;
 
+        const freshUserSnap = await firebase.firestore().collection('users').doc(user.uid).get();
+        const workerName = freshUserSnap.data().name || 'Неизвестно';
+
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
                 businessCoins: firebase.firestore.FieldValue.increment(income),
@@ -356,6 +405,14 @@ async function workInBusiness(bizId) {
             }),
             bizRef.update({
                 totalEarned: firebase.firestore.FieldValue.increment(income)
+            }),
+            bizRef.collection('work_logs').add({
+                workerName,
+                isOwner: true,
+                income,
+                salary: 0,
+                ownerProfit: income,
+                timestamp: new Date()
             })
         ]);
 
@@ -532,6 +589,9 @@ async function workForOwner(bizId, salary) {
 
         if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); return; }
 
+        const workerSnap = await firebase.firestore().collection('users').doc(user.uid).get();
+        const workerName = workerSnap.data().name || 'Неизвестно';
+
         // Работник теряет энергию, получает зарплату в бизнес-кошелёк
         // Владелец получает разницу в бизнес-кошелёк
         await Promise.all([
@@ -544,6 +604,14 @@ async function workForOwner(bizId, salary) {
             }),
             bizRef.update({
                 totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy)
+            }),
+            bizRef.collection('work_logs').add({
+                workerName,
+                isOwner: false,
+                income: stage.incomePerEnergy,
+                salary,
+                ownerProfit: ownerIncome,
+                timestamp: new Date()
             })
         ]);
 

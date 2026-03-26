@@ -2935,3 +2935,19 @@ th {
 .biz-wallet-section { background: #f9f9f9; border: 1.5px solid #e0e0e0; border-radius: 14px; padding: 2px 14px 12px; margin-bottom: 14px; }
 .biz-wallet-balance { display: flex; flex-direction: column; gap: 4px; font-size: 0.88em; color: #555; padding: 10px 0 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
 .biz-wallet-balance b { color: #5c1f4a; }
+
+.biz-balance-banner { display: flex; gap: 8px; margin-bottom: 14px; }
+.biz-balance-item { flex: 1; background: linear-gradient(135deg, #5c1f4a, #8b3a6e); color: #fff; border-radius: 12px; padding: 12px; text-align: center; font-size: 0.82em; }
+.biz-balance-item span { display: block; opacity: 0.8; margin-bottom: 4px; }
+.biz-balance-item b { font-size: 1.15em; }
+
+.biz-work-history { background: #f9f9f9; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+.biz-work-history-title { font-weight: 700; color: #5c1f4a; font-size: 0.95em; margin-bottom: 10px; }
+.biz-log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.83em; }
+.biz-log-item:last-child { border-bottom: none; }
+.biz-log-left { display: flex; flex-direction: column; gap: 2px; }
+.biz-log-who { font-weight: 600; color: #333; }
+.biz-log-date { color: #aaa; font-size: 0.9em; }
+.biz-log-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.biz-log-income { color: #27ae60; font-weight: 700; }
+.biz-log-salary { color: #e8956d; font-size: 0.85em; }
