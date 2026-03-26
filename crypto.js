@@ -335,7 +335,7 @@ async function renderCryptoExchange() {
                 <button class="crypto-all-btn" onclick="buyAll()">На всё</button>
             </div>
             <div class="crypto-preview" id="crypto-buy-preview"></div>
-            <div class="crypto-commission-note">Комиссия: 0.5% включена в стоимость</div>
+            <div class="crypto-commission-note">Комиссия: 0.1% включена в стоимость</div>
             <button class="crypto-confirm-btn buy" onclick="executeBuy()">Купить ${asset.symbol}</button>
         </div>
 
@@ -346,7 +346,7 @@ async function renderCryptoExchange() {
                 <button class="crypto-all-btn" onclick="sellAll()">Продать всё</button>
             </div>
             <div class="crypto-preview" id="crypto-sell-preview"></div>
-            <div class="crypto-commission-note">Комиссия: 0.5% от суммы продажи</div>
+            <div class="crypto-commission-note">Комиссия: 0.1% от суммы продажи</div>
             <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать ${asset.symbol}</button>
         </div>
 
