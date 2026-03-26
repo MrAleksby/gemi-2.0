@@ -11,6 +11,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUser = null;
+let currentUserLevel = 1; // обновляется при загрузке профиля
 const adminName = "admin";
 
 // DOM элементы
@@ -729,6 +730,8 @@ async function showProfile() {
     if (!doc.exists) return;
     const data = doc.data();
     const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
+    currentUserLevel = lvl;
+    updateNavLocks(lvl);
     const lvlTitle = getLevelTitle(lvl);
     const lvlColor = getLevelColor(lvl);
     const totalCF = data.cf ?? 0;
@@ -981,7 +984,35 @@ document.getElementById('nav-shop').onclick = () => {
     setNavTab('shop');
 };
 
+const MIN_LEVEL_FOR_ADVANCED = 5;
+
+function updateNavLocks(lvl) {
+    const locked = lvl < MIN_LEVEL_FOR_ADVANCED;
+    const cryptoBtn = document.getElementById('nav-crypto');
+    const bizBtn = document.getElementById('nav-business');
+    if (cryptoBtn) {
+        cryptoBtn.querySelector('.nav-icon').textContent = locked ? '🔒' : '📈';
+        cryptoBtn.querySelector('.nav-label').textContent = locked ? `Биржа (ур.${MIN_LEVEL_FOR_ADVANCED})` : 'Биржа';
+        cryptoBtn.style.opacity = locked ? '0.5' : '1';
+    }
+    if (bizBtn) {
+        bizBtn.querySelector('.nav-icon').textContent = locked ? '🔒' : '🏪';
+        bizBtn.querySelector('.nav-label').textContent = locked ? `Бизнес (ур.${MIN_LEVEL_FOR_ADVANCED})` : 'Бизнес';
+        bizBtn.style.opacity = locked ? '0.5' : '1';
+    }
+}
+
+function showLevelLockMsg() {
+    const lvlName = typeof getLevelTitle === 'function' ? getLevelTitle(MIN_LEVEL_FOR_ADVANCED) : `Уровень ${MIN_LEVEL_FOR_ADVANCED}`;
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 20px;border-radius:12px;font-size:0.9em;z-index:9999;text-align:center;max-width:280px;';
+    toast.innerHTML = `🔒 Открывается на ${lvlName}<br><span style="opacity:0.7;font-size:0.85em;">Набирай опыт на занятиях!</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
 document.getElementById('nav-crypto').onclick = () => {
+    if (currentUserLevel < MIN_LEVEL_FOR_ADVANCED) { showLevelLockMsg(); return; }
     document.getElementById('rating-modal').style.display = 'none';
     document.getElementById('shop-modal').style.display = 'none';
     document.getElementById('business-modal').style.display = 'none';
@@ -991,6 +1022,7 @@ document.getElementById('nav-crypto').onclick = () => {
 };
 
 document.getElementById('nav-business').onclick = () => {
+    if (currentUserLevel < MIN_LEVEL_FOR_ADVANCED) { showLevelLockMsg(); return; }
     document.getElementById('rating-modal').style.display = 'none';
     document.getElementById('shop-modal').style.display = 'none';
     document.getElementById('crypto-modal').style.display = 'none';
