@@ -2966,3 +2966,9 @@ th {
 .biz-exp-bar-bg { background: #ddd; border-radius: 6px; height: 8px; overflow: hidden; }
 .biz-exp-bar-fill { height: 100%; border-radius: 6px; background: #f7931a; transition: width 0.4s; }
 .biz-exp-bar-fill.met { background: #27ae60; }
+
+.crypto-level-lock { text-align:center; background:linear-gradient(135deg,#f9f0ff,#fff3e8); border:2px dashed #e8956d; border-radius:16px; padding:20px; margin-bottom:14px; }
+.crypto-lock-icon { font-size:2.5rem; margin-bottom:8px; }
+.crypto-lock-title { font-weight:800; font-size:1.05em; color:#5c1f4a; margin-bottom:6px; }
+.crypto-lock-desc { font-size:0.88em; color:#888; line-height:1.5; margin-bottom:10px; }
+.crypto-lock-progress { font-size:0.9em; color:#e8956d; }

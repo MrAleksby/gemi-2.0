@@ -192,7 +192,8 @@ function bizWalletSection(coins, businessCoins) {
 
 function renderNoBusiness(content, coins, businessCoins, energy) {
     const stage = BUSINESS_STAGES[0];
-    const canBuy = businessCoins >= stage.buyCost;
+    const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
+    const canBuy = businessCoins >= stage.buyCost && userLvl >= 5;
 
     content.innerHTML = `
         <div class="biz-welcome">
@@ -211,10 +212,14 @@ function renderNoBusiness(content, coins, businessCoins, energy) {
             </div>
             <div class="biz-cost ${canBuy ? '' : 'biz-cost-poor'}">
                 Стоимость: <b>${stage.buyCost} монет</b> (из бизнес-кошелька)
-                ${canBuy ? '' : `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - businessCoins} монет в бизнес-кошельке</div>`}
+                ${userLvl < 5
+                    ? `<div style="font-size:0.8em;margin-top:4px;">🔒 Открывается на уровне 5 ⚡ Пикачу (у тебя ур. ${userLvl})</div>`
+                    : businessCoins < stage.buyCost
+                        ? `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - businessCoins} монет в бизнес-кошельке</div>`
+                        : ''}
             </div>
             <button class="biz-buy-btn" onclick="buyBusiness()" ${canBuy ? '' : 'disabled'}>
-                ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
+                ${userLvl < 5 ? '🔒 Нужен уровень 5 (Пикачу)' : canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
             </button>
         </div>
 
@@ -414,6 +419,8 @@ async function buyBusiness() {
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const snap = await userRef.get();
         const data = snap.data();
+        const lvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
+        if (lvl < 5) { showBizMsg('🔒 Нужен уровень 5 (Пикачу)!'); if (btn) { btn.disabled = false; btn.textContent = '🔒 Нужен уровень 5'; } return; }
         if ((data.businessCoins || 0) < stage.buyCost) {
             showBizMsg(`❌ Нужно ${stage.buyCost} монет в бизнес-кошельке. Сначала пополни его!`);
             if (btn) { btn.disabled = false; btn.textContent = '🔒 Пополни бизнес-кошелёк'; } return;

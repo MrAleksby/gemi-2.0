@@ -136,6 +136,9 @@ async function renderCryptoExchange() {
     const exchangeCoins= userData.exchangeCoins|| 0;
     const totalPnl     = userData.totalPnl     || 0;
     const isAdmin      = userData.isAdmin === true;
+    const userLevel    = typeof getLevelByPoints === 'function'
+        ? Math.max(1, getLevelByPoints(userData.points || 0)) : (currentUserLevel || 1);
+    const canTrade     = isAdmin || userLevel >= 5;
 
     const { amount: holding, avgPrice: avgBuyPrice } = assetHoldings(userData, asset.id);
 
@@ -323,6 +326,14 @@ async function renderCryptoExchange() {
             </div>
         </div>
 
+        ${!canTrade ? `
+        <div class="crypto-level-lock">
+            <div class="crypto-lock-icon">🔒</div>
+            <div class="crypto-lock-title">Торговля заблокирована</div>
+            <div class="crypto-lock-desc">Достигни уровня 5 ⚡ Пикачу чтобы покупать и продавать активы.<br>Пока можешь наблюдать за ценами!</div>
+            <div class="crypto-lock-progress">Твой уровень: <b>${userLevel}</b> / 5</div>
+        </div>
+        ` : `
         <div class="crypto-tabs">
             <button class="crypto-tab-btn active" id="crypto-buy-tab" onclick="switchCryptoTab('buy')">🟢 Купить</button>
             <button class="crypto-tab-btn" id="crypto-sell-tab" onclick="switchCryptoTab('sell')">🔴 Продать</button>
@@ -349,6 +360,7 @@ async function renderCryptoExchange() {
             <div class="crypto-commission-note">Комиссия: 0.1% от суммы продажи</div>
             <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать ${asset.symbol}</button>
         </div>
+        `}
 
         <div id="crypto-msg" class="crypto-msg"></div>
 
