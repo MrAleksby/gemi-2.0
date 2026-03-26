@@ -213,7 +213,10 @@
         <p id="admin-message"></p>
 
         <!-- Новые заявки на регистрацию -->
-        <h3 class="section-title" style="color:#1565c0;">🆕 Новые заявки на регистрацию</h3>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 class="section-title" style="color:#1565c0;margin:0;">🆕 Новые заявки на регистрацию</h3>
+            <button onclick="setupPendingRegistrationsListener()" style="font-size:0.8em;padding:4px 10px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;cursor:pointer;">🔄 Обновить</button>
+        </div>
         <div id="pending-registrations-list" class="requests-list">
             <p class="empty-hint">Новых заявок нет</p>
         </div>

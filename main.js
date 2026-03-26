@@ -506,7 +506,8 @@ function showAdulthoodProgress() {
 auth.onAuthStateChanged(async (user) => {
     // Отписываемся от старых слушателей
     if (unsubPlayerRequests) { unsubPlayerRequests(); unsubPlayerRequests = null; }
-    if (unsubAdminRequests) { unsubAdminRequests(); unsubAdminRequests = null; }
+    if (unsubAdminRequests)  { unsubAdminRequests();  unsubAdminRequests  = null; }
+    if (unsubPendingRegs)    { unsubPendingRegs();    unsubPendingRegs    = null; }
 
     if (user) {
         currentUser = user.uid;
@@ -957,6 +958,8 @@ document.getElementById('nav-home').onclick = () => {
     document.getElementById('shop-modal').style.display = 'none';
     document.getElementById('crypto-modal').style.display = 'none';
     setNavTab('home');
+    // Переподключаем слушатель заявок если это админ
+    if (unsubPendingRegs !== undefined) setupPendingRegistrationsListener();
 };
 
 document.getElementById('nav-rating').onclick = () => {
