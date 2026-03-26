@@ -161,12 +161,14 @@ async function renderCryptoExchange() {
     if (isAdmin) {
         let commissionsHtml = '';
         try {
-            const commSnap = await firebase.firestore().collection('exchange_commissions')
-                .orderBy('timestamp', 'desc').limit(20).get();
-            if (commSnap.empty) {
+            const commSnap = await firebase.firestore().collection('exchange_commissions').get();
+            const commDocs = commSnap.docs
+                .sort((a, b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0))
+                .slice(0, 20);
+            if (commDocs.length === 0) {
                 commissionsHtml = '<div style="color:#aaa;font-size:0.85em;">Комиссий ещё нет</div>';
             } else {
-                commissionsHtml = commSnap.docs.map(doc => {
+                commissionsHtml = commDocs.map(doc => {
                     const d = doc.data();
                     const ts = d.timestamp?.toDate ? d.timestamp.toDate() : new Date(d.timestamp);
                     const dateStr = ts.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -220,13 +222,15 @@ async function renderCryptoExchange() {
         const tradesSnap = await firebase.firestore().collection('exchange_trades')
             .where('userId', '==', user.uid)
             .where('assetId', '==', asset.id)
-            .orderBy('timestamp', 'desc')
-            .limit(10)
             .get();
-        if (tradesSnap.empty) {
+        // Сортируем на клиенте, чтобы не нужен был составной индекс Firestore
+        const tradeDocs = tradesSnap.docs
+            .sort((a, b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0))
+            .slice(0, 10);
+        if (tradeDocs.length === 0) {
             tradesHtml = '<div style="color:#aaa;font-size:0.85em;">Сделок по этому активу ещё нет</div>';
         } else {
-            tradesHtml = tradesSnap.docs.map(doc => {
+            tradesHtml = tradeDocs.map(doc => {
                 const d = doc.data();
                 if (d.type === 'buy') {
                     return `<div class="crypto-trade-item buy">
