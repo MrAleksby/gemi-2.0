@@ -545,6 +545,7 @@ auth.onAuthStateChanged(async (user) => {
         if (isAdmin) {
             adminSection.style.display = '';
             loadUsersList();
+            loadAdminFinanceStats();
             updateTransactionsLists();
             setupAdminRequestsListener();
             setupPendingRegistrationsListener();
@@ -1327,6 +1328,29 @@ window.rejectRequest  = (id) => {
 };
 
 // ─── Список пользователей для datalist ───────────────────────────────────────
+
+async function loadAdminFinanceStats() {
+    try {
+        const snap = await db.collection('users').get();
+        let totalCF = 0, totalCoins = 0, totalPlayers = 0;
+        snap.docs.forEach(doc => {
+            const d = doc.data();
+            if (d.isAdmin || !d.name) return; // пропускаем админа и пустые
+            totalPlayers++;
+            totalCF    += (d.cf    || 0);
+            totalCoins += (d.coins || 0);
+        });
+        const fmt = n => n.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+        const cfEl     = document.getElementById('stat-total-cf');
+        const playEl   = document.getElementById('stat-total-players');
+        const coinsEl  = document.getElementById('stat-total-coins');
+        if (cfEl)    cfEl.textContent    = fmt(totalCF);
+        if (playEl)  playEl.textContent  = totalPlayers;
+        if (coinsEl) coinsEl.textContent = fmt(totalCoins);
+    } catch(e) {
+        console.error('loadAdminFinanceStats:', e);
+    }
+}
 
 async function loadUsersList() {
     const usersSnap = await db.collection('users').get();

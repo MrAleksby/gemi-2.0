@@ -2002,6 +2002,27 @@ th {
     border: 1px solid rgba(102, 126, 234, 0.18);
 }
 
+/* ─── Финансовая сводка админа ─── */
+.admin-finance-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+.admin-stat-card {
+    flex: 1;
+    min-width: 90px;
+    border-radius: 14px;
+    padding: 14px 12px;
+    text-align: center;
+}
+.admin-stat-card.debt   { background: linear-gradient(135deg, #fff3e0, #ffe0b2); border: 1.5px solid #ffb74d; }
+.admin-stat-card.players { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border: 1.5px solid #66bb6a; }
+.admin-stat-card.coins  { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1.5px solid #64b5f6; }
+.admin-stat-label { font-size: 0.78em; color: #666; margin-bottom: 4px; }
+.admin-stat-value { font-size: 1.5em; font-weight: 800; color: #333; line-height: 1.1; }
+.admin-stat-sub   { font-size: 0.7em; color: #999; margin-top: 3px; }
+
 .history-header {
     display: flex;
     justify-content: space-between;

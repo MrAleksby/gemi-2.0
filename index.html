@@ -212,6 +212,27 @@
         <h2>Админ-панель</h2>
         <p id="admin-message"></p>
 
+        <!-- Финансовая сводка -->
+        <div id="admin-finance-stats" class="admin-finance-stats">
+            <div class="admin-stat-card debt">
+                <div class="admin-stat-label">💸 Всего CF у игроков</div>
+                <div class="admin-stat-value" id="stat-total-cf">—</div>
+                <div class="admin-stat-sub">сколько должен игрокам</div>
+            </div>
+            <div class="admin-stat-card players">
+                <div class="admin-stat-label">👥 Игроков</div>
+                <div class="admin-stat-value" id="stat-total-players">—</div>
+                <div class="admin-stat-sub">активных аккаунтов</div>
+            </div>
+            <div class="admin-stat-card coins">
+                <div class="admin-stat-label">💰 Всего монет</div>
+                <div class="admin-stat-value" id="stat-total-coins">—</div>
+                <div class="admin-stat-sub">у всех игроков</div>
+            </div>
+        </div>
+
+        <hr class="section-divider">
+
         <!-- Новые заявки на регистрацию -->
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <h3 class="section-title" style="color:#1565c0;margin:0;">🆕 Новые заявки на регистрацию</h3>
