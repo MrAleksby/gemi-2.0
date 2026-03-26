@@ -644,8 +644,7 @@ async function renderJobBoard() {
                     </div>
                 </div>
                 <div class="biz-job-details">
-                    <span>💰 Зарплата: <b>${j.salary} монет</b></span>
-                    <span>📊 Доход: ${j.incomePerEnergy} монет/ч.</span>
+                    <span>💰 Зарплата: <b>${j.salary} монет / работа</b></span>
                 </div>
                 ${reqHtml}
                 <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary})"
