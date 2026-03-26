@@ -137,7 +137,7 @@ function bizWalletSection(coins, businessCoins) {
 
 function renderNoBusiness(content, coins, businessCoins, energy) {
     const stage = BUSINESS_STAGES[0];
-    const canBuy = coins >= stage.buyCost;
+    const canBuy = businessCoins >= stage.buyCost;
 
     content.innerHTML = `
         <div class="biz-welcome">
@@ -155,11 +155,11 @@ function renderNoBusiness(content, coins, businessCoins, energy) {
                 <div class="biz-stat"><span>👤 Работники</span><b>до ${stage.maxWorkers}</b></div>
             </div>
             <div class="biz-cost ${canBuy ? '' : 'biz-cost-poor'}">
-                Стоимость: <b>${stage.buyCost} монет</b>
-                ${canBuy ? '' : `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - coins} монет</div>`}
+                Стоимость: <b>${stage.buyCost} монет</b> (из бизнес-кошелька)
+                ${canBuy ? '' : `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - businessCoins} монет в бизнес-кошельке</div>`}
             </div>
             <button class="biz-buy-btn" onclick="buyBusiness()" ${canBuy ? '' : 'disabled'}>
-                ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Недостаточно монет'}
+                ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
             </button>
         </div>
 
@@ -307,14 +307,15 @@ async function buyBusiness() {
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const snap = await userRef.get();
         const data = snap.data();
-        if ((data.coins || 0) < stage.buyCost) {
-            showBizMsg('❌ Недостаточно монет!'); if (btn) { btn.disabled = false; btn.textContent = '🚀 Открыть бизнес!'; } return;
+        if ((data.businessCoins || 0) < stage.buyCost) {
+            showBizMsg(`❌ Нужно ${stage.buyCost} монет в бизнес-кошельке. Сначала пополни его!`);
+            if (btn) { btn.disabled = false; btn.textContent = '🔒 Пополни бизнес-кошелёк'; } return;
         }
         // Проверяем что бизнеса ещё нет
         const existing = await firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
         if (!existing.empty) { showBizMsg('❌ У вас уже есть бизнес!'); return; }
 
-        await userRef.update({ coins: firebase.firestore.FieldValue.increment(-stage.buyCost) });
+        await userRef.update({ businessCoins: firebase.firestore.FieldValue.increment(-stage.buyCost) });
         await firebase.firestore().collection('businesses').add({
             ownerId: user.uid,
             ownerName: data.name || '',
