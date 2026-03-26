@@ -515,7 +515,11 @@ auth.onAuthStateChanged(async (user) => {
         registerSection.style.display = 'none';
 
         const doc = await db.collection('users').doc(currentUser).get();
-        if (!doc.exists) { await auth.signOut(); return; }
+        if (!doc.exists) {
+            // Если регистрация ещё не завершила запись документа — ждём, не выходим
+            if (isRegistering) return;
+            await auth.signOut(); return;
+        }
         const data   = doc.data();
         const status = data.status;
 
@@ -615,24 +619,24 @@ document.getElementById('register-form').onsubmit = async (e) => {
     }
 
     try {
+        isRegistering = true;
         const fakeEmail = phoneToEmail(phone);
         const cred = await auth.createUserWithEmailAndPassword(fakeEmail, password);
-        await new Promise(resolve => {
-            const unsub = auth.onAuthStateChanged(u => { if (u) { unsub(); resolve(); } });
-        });
-        const uid = auth.currentUser.uid;
+        const uid = cred.user.uid; // берём uid сразу из cred, не ждём onAuthStateChanged
         await db.collection('usernames').doc(phoneKey).set({ uid });
         await db.collection('users').doc(uid).set({
             name: fullname, phone: phoneKey, level: 1, experience: 0,
             points: 0, coins: 0, cf: 0, wins: 0, games: 0,
             status: 'pending'
         });
+        isRegistering = false;
         currentUser = uid;
         registerSection.style.display = 'none';
         showPendingScreen({ name: fullname, status: 'pending' });
 
         // isAdmin выставляется вручную в Firebase Console
     } catch (err) {
+        isRegistering = false;
         const registerMsg = document.getElementById('register-msg');
         if (registerMsg) { registerMsg.textContent = 'Ошибка регистрации: ' + err.message; registerMsg.className = 'transfer-message error'; }
     }
@@ -1032,6 +1036,7 @@ document.getElementById('pending-delete-btn').onclick = async () => {
 // ─── Заявки на регистрацию (для админа) ───────────────────────────────────────
 
 let unsubPendingRegs = null;
+let isRegistering = false; // флаг: регистрация в процессе, не выходить из аккаунта
 
 function setupPendingRegistrationsListener() {
     if (unsubPendingRegs) unsubPendingRegs();
