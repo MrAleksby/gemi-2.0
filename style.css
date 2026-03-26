@@ -2805,6 +2805,9 @@ th {
 .crypto-wallet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .crypto-wallet-row input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9em; }
 .crypto-wallet-row button { padding: 8px 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85em; white-space: nowrap; }
+.crypto-wallet-input-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.crypto-wallet-input-row input { flex: 1; min-width: 0; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 1em; box-sizing: border-box; }
+.crypto-wallet-action-btn { display: block; width: 100%; padding: 11px; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer; margin-bottom: 4px; }
 .crypto-deposit-btn { background: #27ae60; color: white; }
 .crypto-withdraw-btn { background: #e53935; color: white; }
 .crypto-all-btn { background: rgba(247,147,26,0.15); border: 1px solid #f7931a !important; color: #f7931a; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; cursor: pointer; margin-left: 4px; }
