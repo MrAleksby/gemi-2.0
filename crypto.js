@@ -99,7 +99,7 @@ function startCryptoPriceUpdates() {
         }
         if (document.getElementById('crypto-buy-amount')?.value) updateBuyPreview();
         if (document.getElementById('crypto-sell-amount')?.value) updateSellPreview();
-    }, 1000);
+    }, 3000);
 }
 
 // ─── Переключение актива ───────────────────────────────────────────────────────
