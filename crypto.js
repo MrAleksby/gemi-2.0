@@ -420,14 +420,20 @@ function sellAll() {
 async function cryptoDeposit() {
     const amount = parseInt(document.getElementById('crypto-deposit-amount')?.value) || 0;
     const msgEl  = document.getElementById('crypto-wallet-msg');
+    const btn    = document.querySelector('.crypto-deposit-btn');
     if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
     const user = firebase.auth().currentUser;
     if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
         const ref  = firebase.firestore().collection('users').doc(user.uid);
         const snap = await ref.get();
         const freshCoins = snap.data().coins || 0;
-        if (freshCoins < amount) { if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`; return; }
+        if (freshCoins < amount) {
+            if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`;
+            if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
+            return;
+        }
         await ref.update({
             coins:         firebase.firestore.FieldValue.increment(-amount),
             exchangeCoins: firebase.firestore.FieldValue.increment(amount)
@@ -436,20 +442,27 @@ async function cryptoDeposit() {
         setTimeout(() => renderCryptoExchange(), 1000);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
     }
 }
 
 async function cryptoWithdraw() {
     const amount = parseInt(document.getElementById('crypto-withdraw-amount')?.value) || 0;
     const msgEl  = document.getElementById('crypto-wallet-msg');
+    const btn    = document.querySelector('.crypto-withdraw-btn');
     if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
     const user = firebase.auth().currentUser;
     if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
         const ref  = firebase.firestore().collection('users').doc(user.uid);
         const snap = await ref.get();
         const freshEx = snap.data().exchangeCoins || 0;
-        if (freshEx < amount) { if (msgEl) msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`; return; }
+        if (freshEx < amount) {
+            if (msgEl) msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`;
+            if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
+            return;
+        }
         await ref.update({
             exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
             coins:         firebase.firestore.FieldValue.increment(amount)
@@ -458,6 +471,7 @@ async function cryptoWithdraw() {
         setTimeout(() => renderCryptoExchange(), 1000);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
     }
 }
 
