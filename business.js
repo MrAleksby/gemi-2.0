@@ -11,8 +11,9 @@ const BUSINESS_STAGES = [
         upgradeCost: 300,
         incomePerEnergy: 8,
         maxWorkers: 1,
+        dailyCapacity: 12,   // макс. единиц энергии в день
         nextStage: 'kiosk',
-        desc: 'Маленькая тележка на колёсах. Можно нанять 1 продавца.'
+        desc: 'Маленькая тележка на колёсах. 1 рабочее место, 12 энергий в день.'
     },
     {
         id: 'kiosk',
@@ -22,8 +23,9 @@ const BUSINESS_STAGES = [
         upgradeCost: 1500,
         incomePerEnergy: 15,
         maxWorkers: 2,
+        dailyCapacity: 24,
         nextStage: 'cafe',
-        desc: 'Киоск с витриной. До 2 продавцов одновременно.'
+        desc: 'Киоск с витриной. 2 рабочих места, 24 энергии в день.'
     },
     {
         id: 'cafe',
@@ -33,8 +35,9 @@ const BUSINESS_STAGES = [
         upgradeCost: 8000,
         incomePerEnergy: 25,
         maxWorkers: 5,
+        dailyCapacity: 60,
         nextStage: 'factory',
-        desc: 'Уютное кафе. До 5 сотрудников.'
+        desc: 'Уютное кафе. 5 рабочих мест, 60 энергий в день.'
     },
     {
         id: 'factory',
@@ -44,8 +47,9 @@ const BUSINESS_STAGES = [
         upgradeCost: null,
         incomePerEnergy: 40,
         maxWorkers: 10,
+        dailyCapacity: 120,
         nextStage: null,
-        desc: 'Максимальный уровень. 10 рабочих мест!'
+        desc: 'Максимальный уровень. 10 рабочих мест, 120 энергий в день!'
     }
 ];
 
@@ -58,14 +62,38 @@ function todayStr() {
     return new Date().toISOString().slice(0, 10);
 }
 
-// Проверить/сбросить энергию игрока
+// Ключ дня — сбрасывается в 6:00 утра
+function bizDayKey() {
+    const now = new Date();
+    // если время меньше 6:00 — считаем что это ещё «вчерашний» день
+    if (now.getHours() < 6) {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().slice(0, 10);
+    }
+    return now.toISOString().slice(0, 10);
+}
+
+// Получить текущую загрузку бизнеса, сбросить если новый день (в 6:00)
+async function getOrResetBizCapacity(bizRef) {
+    const snap = await bizRef.get();
+    const data = snap.data();
+    const key = bizDayKey();
+    if ((data.bizEnergyDate || '') !== key) {
+        await bizRef.update({ energyUsedToday: 0, bizEnergyDate: key });
+        return 0;
+    }
+    return data.energyUsedToday || 0;
+}
+
+// Проверить/сбросить энергию игрока (сброс в 6:00 утра)
 async function getOrResetEnergy(uid) {
     const ref = firebase.firestore().collection('users').doc(uid);
     const snap = await ref.get();
     const data = snap.data();
-    const today = todayStr();
-    if ((data.energyDate || '') !== today) {
-        await ref.update({ energy: ENERGY_MAX, energyDate: today });
+    const key = bizDayKey();
+    if ((data.energyDate || '') !== key) {
+        await ref.update({ energy: ENERGY_MAX, energyDate: key });
         return ENERGY_MAX;
     }
     return (data.energy !== undefined ? data.energy : ENERGY_MAX);
@@ -96,7 +124,9 @@ async function renderBusinessTab() {
         renderNoBusiness(content, coins, businessCoins, energy);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
-        // Загружаем историю работы
+        // Загружаем дневную загрузку и историю работы
+        const bizRef = firebase.firestore().collection('businesses').doc(biz.id);
+        const energyUsedToday = await getOrResetBizCapacity(bizRef);
         let workLogs = [];
         try {
             const logsSnap = await firebase.firestore()
@@ -105,7 +135,7 @@ async function renderBusinessTab() {
                 .orderBy('timestamp', 'desc').limit(15).get();
             workLogs = logsSnap.docs.map(d => d.data());
         } catch(e) { workLogs = []; }
-        renderMyBusiness(content, biz, coins, businessCoins, energy, user.uid, userData.name || '', workLogs);
+        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs);
     }
 }
 
@@ -192,12 +222,14 @@ function renderNoBusiness(content, coins, businessCoins, energy) {
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userName, workLogs = []) {
+function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = []) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
     const workers = biz.workers || [];
-    const canWork = energy > 0;
+    const capacityFull = energyUsedToday >= stage.dailyCapacity;
+    const canWork = energy > 0 && !capacityFull;
+    const capacityPct = Math.min(100, Math.round((energyUsedToday / stage.dailyCapacity) * 100));
     const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost;
 
     // Доска вакансий — открытые вакансии в этом бизнесе
@@ -281,10 +313,23 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, uid, userN
             <div class="biz-energy-count">${energy} / ${ENERGY_MAX}</div>
         </div>
 
+        <div class="biz-capacity-bar-wrap">
+            <div class="biz-capacity-label">
+                <span>📦 Загрузка на сегодня</span>
+                <span><b>${energyUsedToday}/${stage.dailyCapacity}</b> энергий</span>
+            </div>
+            <div class="biz-capacity-bar-bg">
+                <div class="biz-capacity-bar-fill ${capacityFull ? 'full' : ''}" style="width:${capacityPct}%"></div>
+            </div>
+            <div class="biz-capacity-reset">🕕 Сбрасывается в 6:00 утра</div>
+        </div>
+
         <button class="biz-work-btn ${canWork ? '' : 'disabled'}" onclick="workInBusiness('${biz.id}')" ${canWork ? '' : 'disabled'}>
-            ${canWork
-                ? `🔨 Работать (+${stage.incomePerEnergy} монет)`
-                : '😴 Энергия закончилась. Завтра восстановится!'}
+            ${capacityFull
+                ? '🏁 Бизнес заполнен на сегодня'
+                : canWork
+                    ? `🔨 Работать (+${stage.incomePerEnergy} монет)`
+                    : '😴 Твоя энергия закончилась'}
         </button>
 
         <div class="biz-stats-row">
@@ -386,17 +431,27 @@ async function workInBusiness(bizId) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
-        const energy = await getOrResetEnergy(user.uid);
-        if (energy <= 0) { showBizMsg('😴 Энергия закончилась!'); if (btn) { btn.disabled = false; } return; }
-
         const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const [energy, energyUsed] = await Promise.all([
+            getOrResetEnergy(user.uid),
+            getOrResetBizCapacity(bizRef)
+        ]);
+
+        if (energy <= 0) { showBizMsg('😴 Твоя энергия закончилась!'); if (btn) { btn.disabled = false; } return; }
+
         const bizSnap = await bizRef.get();
         const biz = bizSnap.data();
         const stage = getStage(biz.stage);
-        const income = stage.incomePerEnergy;
 
+        if (energyUsed >= stage.dailyCapacity) {
+            showBizMsg(`🏁 Бизнес заполнен на сегодня! (${stage.dailyCapacity}/${stage.dailyCapacity}) Завтра откроется снова.`);
+            if (btn) { btn.disabled = false; } return;
+        }
+
+        const income = stage.incomePerEnergy;
         const freshUserSnap = await firebase.firestore().collection('users').doc(user.uid).get();
         const workerName = freshUserSnap.data().name || 'Неизвестно';
+        const remaining = stage.dailyCapacity - energyUsed - 1;
 
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
@@ -404,19 +459,15 @@ async function workInBusiness(bizId) {
                 energy: firebase.firestore.FieldValue.increment(-1)
             }),
             bizRef.update({
-                totalEarned: firebase.firestore.FieldValue.increment(income)
+                totalEarned: firebase.firestore.FieldValue.increment(income),
+                energyUsedToday: firebase.firestore.FieldValue.increment(1)
             }),
             bizRef.collection('work_logs').add({
-                workerName,
-                isOwner: true,
-                income,
-                salary: 0,
-                ownerProfit: income,
-                timestamp: new Date()
+                workerName, isOwner: true, income, salary: 0, ownerProfit: income, timestamp: new Date()
             })
         ]);
 
-        showBizMsg(`✅ Заработал +${income} монет в бизнес-кошелёк! ⚡ Осталось: ${energy - 1}`);
+        showBizMsg(`✅ +${income} монет! ⚡ Твоя энергия: ${energy - 1} | 📦 Осталось мест: ${remaining}`);
         setTimeout(() => renderBusinessTab(), 900);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -578,22 +629,30 @@ async function workForOwner(bizId, salary) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
-        const energy = await getOrResetEnergy(user.uid);
-        if (energy <= 0) { showBizMsg('😴 Энергия закончилась!'); return; }
-
         const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const [energy, energyUsed] = await Promise.all([
+            getOrResetEnergy(user.uid),
+            getOrResetBizCapacity(bizRef)
+        ]);
+
+        if (energy <= 0) { showBizMsg('😴 Твоя энергия закончилась!'); if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; } return; }
+
         const bizSnap = await bizRef.get();
         const biz = bizSnap.data();
         const stage = getStage(biz.stage);
-        const ownerIncome = stage.incomePerEnergy - salary;
 
-        if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); return; }
+        if (energyUsed >= stage.dailyCapacity) {
+            showBizMsg(`🏁 Бизнес заполнен на сегодня! (${stage.dailyCapacity}/${stage.dailyCapacity})`);
+            if (btn) { btn.disabled = false; btn.textContent = '🏁 Заполнено на сегодня'; } return;
+        }
+
+        const ownerIncome = stage.incomePerEnergy - salary;
+        if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; } return; }
 
         const workerSnap = await firebase.firestore().collection('users').doc(user.uid).get();
         const workerName = workerSnap.data().name || 'Неизвестно';
+        const remaining = stage.dailyCapacity - energyUsed - 1;
 
-        // Работник теряет энергию, получает зарплату в бизнес-кошелёк
-        // Владелец получает разницу в бизнес-кошелёк
         await Promise.all([
             firebase.firestore().collection('users').doc(user.uid).update({
                 energy: firebase.firestore.FieldValue.increment(-1),
@@ -603,19 +662,16 @@ async function workForOwner(bizId, salary) {
                 businessCoins: firebase.firestore.FieldValue.increment(ownerIncome)
             }),
             bizRef.update({
-                totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy)
+                totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy),
+                energyUsedToday: firebase.firestore.FieldValue.increment(1)
             }),
             bizRef.collection('work_logs').add({
-                workerName,
-                isOwner: false,
-                income: stage.incomePerEnergy,
-                salary,
-                ownerProfit: ownerIncome,
-                timestamp: new Date()
+                workerName, isOwner: false, income: stage.incomePerEnergy,
+                salary, ownerProfit: ownerIncome, timestamp: new Date()
             })
         ]);
 
-        showBizMsg(`✅ Ты заработал +${salary} монет в бизнес-кошелёк! Владелец получил +${ownerIncome} монет.`);
+        showBizMsg(`✅ +${salary} монет тебе! Владелец +${ownerIncome}. 📦 Осталось мест: ${remaining}`);
         setTimeout(() => renderJobBoard(), 900);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
