@@ -1,6 +1,6 @@
 // ─── Криптобиржа / Фондовый рынок ─────────────────────────────────────────────
 
-const CRYPTO_COMMISSION = 0.005; // 0.5%
+const CRYPTO_COMMISSION = 0.001; // 0.1%
 
 const CRYPTO_ITEMS = [
     { id: 'btc',  name: 'Bitcoin',  symbol: 'BTC',  icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT'  },
