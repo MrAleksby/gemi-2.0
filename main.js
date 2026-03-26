@@ -984,9 +984,20 @@ document.getElementById('nav-shop').onclick = () => {
 document.getElementById('nav-crypto').onclick = () => {
     document.getElementById('rating-modal').style.display = 'none';
     document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('business-modal').style.display = 'none';
     document.getElementById('crypto-modal').style.display = 'flex';
     renderCryptoExchange();
     setNavTab('crypto');
+};
+
+document.getElementById('nav-business').onclick = () => {
+    document.getElementById('rating-modal').style.display = 'none';
+    document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('crypto-modal').style.display = 'none';
+    if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
+    document.getElementById('business-modal').style.display = 'flex';
+    renderBusinessTab();
+    setNavTab('business');
 };
 
 // ─── Экран ожидания подтверждения ─────────────────────────────────────────────
@@ -1111,6 +1122,16 @@ document.getElementById('crypto-close').onclick = () => {
     document.getElementById('crypto-modal').style.display = 'none';
     if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
     setNavTab('home');
+};
+document.getElementById('business-close').onclick = () => {
+    document.getElementById('business-modal').style.display = 'none';
+    setNavTab('home');
+};
+document.getElementById('business-modal').onclick = (e) => {
+    if (e.target === document.getElementById('business-modal')) {
+        document.getElementById('business-modal').style.display = 'none';
+        setNavTab('home');
+    }
 };
 document.getElementById('crypto-modal').onclick = (e) => {
     if (e.target === document.getElementById('crypto-modal')) {
@@ -1577,7 +1598,9 @@ function getEmptyUserData() {
         paxgAmount: 0, paxgAvgPrice: 0,
         xagAmount: 0,  xagAvgPrice: 0,
         exchangeCoins: 0,
-        totalPnl: 0
+        totalPnl: 0,
+        energy: 8,
+        energyDate: ''
     };
 }
 

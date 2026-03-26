@@ -324,7 +324,23 @@
         <span class="nav-icon">📈</span>
         <span class="nav-label">Биржа</span>
     </button>
+    <button class="nav-tab" id="nav-business">
+        <span class="nav-icon">🏪</span>
+        <span class="nav-label">Бизнес</span>
+    </button>
 </nav>
+
+<div id="business-modal" class="modal" style="display:none">
+    <div class="modal-content crypto-modal-content">
+        <span class="close" id="business-close">&times;</span>
+        <h2 style="text-align:center;margin-bottom:12px;">🏪 Бизнес</h2>
+        <div class="biz-nav-tabs">
+            <button class="biz-nav-tab active" id="biz-tab-my" onclick="switchBizTab('my')">🏪 Мой бизнес</button>
+            <button class="biz-nav-tab" id="biz-tab-jobs" onclick="switchBizTab('jobs')">📋 Вакансии</button>
+        </div>
+        <div id="business-content"></div>
+    </div>
+</div>
 
 <div id="crypto-modal" class="modal" style="display:none">
     <div class="modal-content crypto-modal-content">
@@ -340,3 +356,4 @@
 <script src="transfer.js"></script>
 <script src="admin-actions.js"></script>
 <script src="crypto.js"></script>
+<script src="business.js"></script>

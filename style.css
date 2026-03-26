@@ -2850,3 +2850,84 @@ th {
 
 .crypto-admin-commission { background: linear-gradient(135deg, #1e0a2e22, #5c1f4a22); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
 .crypto-commission-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.82em; border-bottom: 1px solid rgba(0,0,0,0.06); color: #555; }
+
+/* ─── Бизнес-модуль ──────────────────────────────────────────────────────── */
+
+.biz-nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.biz-nav-tab { flex: 1; padding: 10px; border-radius: 10px; font-size: 0.9em; font-weight: 600; cursor: pointer; border: 2px solid #e8956d; background: transparent; color: #e8956d; width: auto !important; margin-top: 0; }
+.biz-nav-tab.active { background: #e8956d; color: #fff; }
+
+.biz-welcome { text-align: center; padding: 20px 10px 12px; }
+.biz-welcome-icon { font-size: 3.5rem; margin-bottom: 8px; }
+.biz-welcome-title { font-size: 1.3em; font-weight: 800; color: #5c1f4a; margin-bottom: 6px; }
+.biz-welcome-desc { font-size: 0.9em; color: #888; line-height: 1.5; }
+
+.biz-start-card { background: linear-gradient(135deg, #fff8f0, #fff3e8); border: 2px solid #f7931a33; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+.biz-stage-icon { font-size: 2.5rem; text-align: center; margin-bottom: 6px; }
+.biz-stage-name { font-size: 1.1em; font-weight: 700; color: #5c1f4a; text-align: center; margin-bottom: 4px; }
+.biz-stage-desc { font-size: 0.85em; color: #888; text-align: center; margin-bottom: 12px; }
+.biz-stage-stats { display: flex; gap: 10px; margin-bottom: 12px; }
+.biz-stat { flex: 1; background: #fff; border-radius: 10px; padding: 10px; text-align: center; font-size: 0.82em; color: #666; }
+.biz-stat b { display: block; color: #5c1f4a; font-size: 1em; margin-top: 2px; }
+.biz-cost { text-align: center; font-size: 0.95em; color: #555; margin-bottom: 12px; }
+.biz-cost-poor { color: #e53935; }
+.biz-buy-btn { width: 100% !important; background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 1.05em; font-weight: 700; cursor: pointer; margin-top: 0; }
+.biz-buy-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+.biz-path { background: #f9f9f9; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+.biz-path-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; }
+.biz-path-step { text-align: center; padding: 6px 8px; border-radius: 8px; background: #eee; min-width: 54px; }
+.biz-path-step.current { background: #f7931a22; border: 2px solid #f7931a; }
+.biz-path-icon { font-size: 1.3rem; }
+.biz-path-label { font-size: 0.7em; color: #666; }
+.biz-path-arrow { color: #ccc; font-size: 1.1em; padding: 0 2px; }
+
+.biz-header-card { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #5c1f4a, #8b3a6e); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; color: #fff; }
+.biz-stage-badge { font-size: 2.2rem; }
+.biz-header-name { font-size: 1.05em; font-weight: 700; }
+.biz-header-total { font-size: 0.82em; opacity: 0.85; margin-top: 2px; }
+
+.biz-energy-section { text-align: center; margin-bottom: 14px; }
+.biz-energy-label { font-size: 0.85em; color: #888; margin-bottom: 6px; }
+.biz-energy-bars { display: flex; gap: 5px; justify-content: center; margin-bottom: 4px; }
+.biz-energy-bar { width: 28px; height: 12px; border-radius: 4px; background: #eee; transition: background 0.3s; }
+.biz-energy-bar.filled { background: linear-gradient(90deg, #f7931a, #f9c74f); }
+.biz-energy-count { font-size: 0.8em; color: #aaa; }
+
+.biz-work-btn { width: 100% !important; background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; border: none; padding: 16px; border-radius: 14px; font-size: 1.1em; font-weight: 700; cursor: pointer; margin-bottom: 14px; margin-top: 0; }
+.biz-work-btn.disabled, .biz-work-btn:disabled { background: linear-gradient(135deg, #bbb, #ccc); cursor: not-allowed; font-size: 0.9em; }
+
+.biz-stats-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.biz-stat-box { flex: 1; background: #f9f0ff; border-radius: 12px; padding: 12px 6px; text-align: center; }
+.biz-stat-icon { font-size: 1.2rem; margin-bottom: 4px; }
+.biz-stat-val { font-size: 1.1em; font-weight: 800; color: #5c1f4a; }
+.biz-stat-label { font-size: 0.7em; color: #999; margin-top: 2px; }
+
+.biz-upgrade-section { background: linear-gradient(135deg, #fff8e8, #fff3d0); border: 2px solid #f7931a44; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+.biz-upgrade-title { font-weight: 700; color: #5c1f4a; margin-bottom: 8px; }
+.biz-upgrade-info { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85em; color: #666; margin-bottom: 10px; }
+.biz-upgrade-btn { width: 100% !important; background: linear-gradient(135deg, #f7931a, #f9c74f); color: #fff; border: none; padding: 13px; border-radius: 12px; font-size: 0.95em; font-weight: 700; cursor: pointer; margin-top: 0; }
+.biz-upgrade-btn.disabled, .biz-upgrade-btn:disabled { background: #ccc; cursor: not-allowed; }
+.biz-max-level { text-align: center; color: #f7931a; font-weight: 700; padding: 14px; background: #fff8e8; border-radius: 12px; margin-bottom: 14px; }
+
+.biz-workers { margin-bottom: 12px; }
+.biz-worker-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f5f5f5; border-radius: 10px; margin-bottom: 6px; font-size: 0.88em; }
+.biz-fire-btn { background: #e53935 !important; color: #fff; border: none; padding: 4px 10px; border-radius: 8px; font-size: 0.8em; cursor: pointer; width: auto !important; margin-top: 0; }
+
+.biz-vacancy-active { background: #e8f5e9; border: 1.5px solid #27ae60; border-radius: 12px; padding: 12px; margin-bottom: 12px; font-size: 0.88em; color: #1b5e20; }
+.biz-close-vacancy-btn { background: #e53935 !important; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.85em; cursor: pointer; width: auto !important; margin-top: 8px; }
+.biz-open-vacancy { background: #f9f9f9; border: 1.5px dashed #ccc; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+.biz-post-vacancy-btn { background: linear-gradient(135deg, #5c1f4a, #8b3a6e) !important; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.biz-full { text-align: center; color: #27ae60; font-size: 0.88em; padding: 8px; }
+
+.biz-jobboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.biz-job-card { background: #fff; border: 1.5px solid #e8956d44; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.biz-job-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.biz-job-icon { font-size: 1.8rem; }
+.biz-job-name { font-weight: 700; color: #5c1f4a; }
+.biz-job-owner { font-size: 0.8em; color: #999; }
+.biz-job-details { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85em; color: #666; margin-bottom: 8px; }
+.biz-apply-btn { background: linear-gradient(135deg, #27ae60, #2ecc71) !important; color: #fff; border: none; padding: 11px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em; }
+.biz-apply-btn:disabled { background: #ccc !important; cursor: not-allowed; }
+
+.biz-msg { display: none; text-align: center; padding: 10px; border-radius: 10px; font-size: 0.9em; background: #f0f0f0; margin-top: 12px; }

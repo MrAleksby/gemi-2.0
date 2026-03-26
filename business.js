@@ -1,0 +1,535 @@
+// ─── Бизнес (Квадрант Б — Кийосаки) ─────────────────────────────────────────
+
+const ENERGY_MAX = 8;
+
+const BUSINESS_STAGES = [
+    {
+        id: 'cart',
+        name: 'Тележка мороженного',
+        icon: '🛒',
+        buyCost: 50,
+        upgradeCost: 300,
+        incomePerEnergy: 8,
+        maxWorkers: 1,
+        nextStage: 'kiosk',
+        desc: 'Маленькая тележка на колёсах. Можно нанять 1 продавца.'
+    },
+    {
+        id: 'kiosk',
+        name: 'Киоск мороженого',
+        icon: '🏪',
+        buyCost: null,
+        upgradeCost: 1500,
+        incomePerEnergy: 15,
+        maxWorkers: 2,
+        nextStage: 'cafe',
+        desc: 'Киоск с витриной. До 2 продавцов одновременно.'
+    },
+    {
+        id: 'cafe',
+        name: 'Кафе-мороженое',
+        icon: '🏬',
+        buyCost: null,
+        upgradeCost: 8000,
+        incomePerEnergy: 25,
+        maxWorkers: 5,
+        nextStage: 'factory',
+        desc: 'Уютное кафе. До 5 сотрудников.'
+    },
+    {
+        id: 'factory',
+        name: 'Фабрика мороженого',
+        icon: '🏭',
+        buyCost: null,
+        upgradeCost: null,
+        incomePerEnergy: 40,
+        maxWorkers: 10,
+        nextStage: null,
+        desc: 'Максимальный уровень. 10 рабочих мест!'
+    }
+];
+
+function getStage(stageId) {
+    return BUSINESS_STAGES.find(s => s.id === stageId) || BUSINESS_STAGES[0];
+}
+
+// Получить сегодняшнюю дату как строку YYYY-MM-DD
+function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+// Проверить/сбросить энергию игрока
+async function getOrResetEnergy(uid) {
+    const ref = firebase.firestore().collection('users').doc(uid);
+    const snap = await ref.get();
+    const data = snap.data();
+    const today = todayStr();
+    if ((data.energyDate || '') !== today) {
+        await ref.update({ energy: ENERGY_MAX, energyDate: today });
+        return ENERGY_MAX;
+    }
+    return (data.energy !== undefined ? data.energy : ENERGY_MAX);
+}
+
+// ─── Главный рендер вкладки Бизнес ───────────────────────────────────────────
+
+async function renderBusinessTab() {
+    const content = document.getElementById('business-content');
+    if (!content) return;
+    content.innerHTML = '<div class="crypto-loading">Загружаем бизнес... 🏪</div>';
+
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    const [energy, userSnap, bizSnap] = await Promise.all([
+        getOrResetEnergy(user.uid),
+        firebase.firestore().collection('users').doc(user.uid).get(),
+        firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get()
+    ]);
+
+    const userData = userSnap.data();
+    const coins = userData.coins || 0;
+    const hasBusiness = !bizSnap.empty;
+
+    if (!hasBusiness) {
+        renderNoBusiness(content, coins, energy);
+    } else {
+        const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
+        renderMyBusiness(content, biz, coins, energy, user.uid, userData.name || '');
+    }
+}
+
+// ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
+
+function renderNoBusiness(content, coins, energy) {
+    const stage = BUSINESS_STAGES[0];
+    const canBuy = coins >= stage.buyCost;
+
+    content.innerHTML = `
+        <div class="biz-welcome">
+            <div class="biz-welcome-icon">🍦</div>
+            <div class="biz-welcome-title">Открой свой бизнес!</div>
+            <div class="biz-welcome-desc">Купи тележку мороженого и начни зарабатывать как настоящий предприниматель</div>
+        </div>
+
+        <div class="biz-start-card">
+            <div class="biz-stage-icon">${stage.icon}</div>
+            <div class="biz-stage-name">${stage.name}</div>
+            <div class="biz-stage-desc">${stage.desc}</div>
+            <div class="biz-stage-stats">
+                <div class="biz-stat"><span>💰 Доход</span><b>${stage.incomePerEnergy} монет / работа</b></div>
+                <div class="biz-stat"><span>👤 Работники</span><b>до ${stage.maxWorkers}</b></div>
+            </div>
+            <div class="biz-cost ${canBuy ? '' : 'biz-cost-poor'}">
+                Стоимость: <b>${stage.buyCost} монет</b>
+                ${canBuy ? '' : `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - coins} монет</div>`}
+            </div>
+            <button class="biz-buy-btn" onclick="buyBusiness()" ${canBuy ? '' : 'disabled'}>
+                ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Недостаточно монет'}
+            </button>
+        </div>
+
+        <div class="biz-path">
+            <div style="font-size:0.85em;color:#888;margin-bottom:10px;text-align:center;">Путь развития бизнеса:</div>
+            <div class="biz-path-row">
+                ${BUSINESS_STAGES.map((s, i) => `
+                    <div class="biz-path-step ${i === 0 ? 'current' : ''}">
+                        <div class="biz-path-icon">${s.icon}</div>
+                        <div class="biz-path-label">${s.name.split(' ')[0]}</div>
+                    </div>
+                    ${s.nextStage ? '<div class="biz-path-arrow">→</div>' : ''}
+                `).join('')}
+            </div>
+        </div>
+
+        <div id="biz-msg" class="biz-msg"></div>
+    `;
+}
+
+// ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
+
+function renderMyBusiness(content, biz, coins, energy, uid, userName) {
+    const stage = getStage(biz.stage);
+    const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
+    const energyBars = renderEnergyBars(energy);
+    const workers = biz.workers || [];
+    const canWork = energy > 0;
+    const canUpgrade = nextStage && coins >= nextStage.upgradeCost;
+
+    // Доска вакансий — открытые вакансии в этом бизнесе
+    const vacancySection = biz.vacancyOpen ? `
+        <div class="biz-vacancy-active">
+            <div>📢 Вакансия открыта — зарплата <b>${biz.vacancySalary} монет / работа</b></div>
+            <button class="biz-close-vacancy-btn" onclick="closeVacancy('${biz.id}')">Закрыть вакансию</button>
+        </div>
+    ` : workers.length < stage.maxWorkers ? `
+        <div class="biz-open-vacancy">
+            <div style="font-size:0.9em;color:#666;margin-bottom:8px;">Открой вакансию — наними работника</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" id="biz-salary-input" min="1" placeholder="Зарплата монет"
+                    style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                <button class="biz-post-vacancy-btn" onclick="postVacancy('${biz.id}')"
+                    style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;">📢 Открыть</button>
+            </div>
+        </div>
+    ` : '<div class="biz-full">✅ Все рабочие места заняты</div>';
+
+    // Список работников
+    const workersHtml = workers.length > 0 ? `
+        <div class="biz-workers">
+            <div style="font-size:0.85em;color:#888;margin-bottom:6px;">👥 Работники:</div>
+            ${workers.map(w => `
+                <div class="biz-worker-item">
+                    <span>👤 ${w.name}</span>
+                    <span>${w.salary} монет / работа</span>
+                    <button class="biz-fire-btn" onclick="fireWorker('${biz.id}', '${w.userId}')">Уволить</button>
+                </div>
+            `).join('')}
+        </div>
+    ` : '';
+
+    content.innerHTML = `
+        <div class="biz-header-card">
+            <div class="biz-stage-badge">${stage.icon}</div>
+            <div class="biz-header-info">
+                <div class="biz-header-name">${stage.name}</div>
+                <div class="biz-header-total">Заработано всего: <b>${(biz.totalEarned || 0).toLocaleString('ru-RU')} монет</b></div>
+            </div>
+        </div>
+
+        <div class="biz-energy-section">
+            <div class="biz-energy-label">⚡ Энергия на сегодня</div>
+            <div class="biz-energy-bars">${energyBars}</div>
+            <div class="biz-energy-count">${energy} / ${ENERGY_MAX}</div>
+        </div>
+
+        <button class="biz-work-btn ${canWork ? '' : 'disabled'}" onclick="workInBusiness('${biz.id}')" ${canWork ? '' : 'disabled'}>
+            ${canWork
+                ? `🔨 Работать (+${stage.incomePerEnergy} монет)`
+                : '😴 Энергия закончилась. Завтра восстановится!'}
+        </button>
+
+        <div class="biz-stats-row">
+            <div class="biz-stat-box">
+                <div class="biz-stat-icon">💰</div>
+                <div class="biz-stat-val">${stage.incomePerEnergy}</div>
+                <div class="biz-stat-label">монет / работа</div>
+            </div>
+            <div class="biz-stat-box">
+                <div class="biz-stat-icon">👤</div>
+                <div class="biz-stat-val">${workers.length}/${stage.maxWorkers}</div>
+                <div class="biz-stat-label">работников</div>
+            </div>
+            <div class="biz-stat-box">
+                <div class="biz-stat-icon">📊</div>
+                <div class="biz-stat-val">${biz.totalEarned || 0}</div>
+                <div class="biz-stat-label">всего монет</div>
+            </div>
+        </div>
+
+        ${workersHtml}
+        ${vacancySection}
+
+        ${nextStage ? `
+        <div class="biz-upgrade-section">
+            <div class="biz-upgrade-title">⬆️ Апгрейд до «${nextStage.name}»</div>
+            <div class="biz-upgrade-info">
+                <span>Доход: <b>${stage.incomePerEnergy} → ${nextStage.incomePerEnergy} монет</b></span>
+                <span>Работников: <b>${stage.maxWorkers} → ${nextStage.maxWorkers}</b></span>
+            </div>
+            <button class="biz-upgrade-btn ${canUpgrade ? '' : 'disabled'}" onclick="upgradeBusiness('${biz.id}')" ${canUpgrade ? '' : 'disabled'}>
+                ${canUpgrade
+                    ? `🚀 Улучшить за ${nextStage.upgradeCost} монет`
+                    : `🔒 Нужно ${nextStage.upgradeCost} монет (у вас ${coins})`}
+            </button>
+        </div>
+        ` : '<div class="biz-max-level">🏆 Максимальный уровень достигнут!</div>'}
+
+        <div id="biz-msg" class="biz-msg"></div>
+    `;
+}
+
+function renderEnergyBars(energy) {
+    let html = '';
+    for (let i = 0; i < ENERGY_MAX; i++) {
+        html += `<div class="biz-energy-bar ${i < energy ? 'filled' : ''}"></div>`;
+    }
+    return html;
+}
+
+// ─── Действия ─────────────────────────────────────────────────────────────────
+
+async function buyBusiness() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const btn = document.querySelector('.biz-buy-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Открываем...'; }
+
+    try {
+        const stage = BUSINESS_STAGES[0];
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+        const snap = await userRef.get();
+        const data = snap.data();
+        if ((data.coins || 0) < stage.buyCost) {
+            showBizMsg('❌ Недостаточно монет!'); if (btn) { btn.disabled = false; btn.textContent = '🚀 Открыть бизнес!'; } return;
+        }
+        // Проверяем что бизнеса ещё нет
+        const existing = await firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
+        if (!existing.empty) { showBizMsg('❌ У вас уже есть бизнес!'); return; }
+
+        await userRef.update({ coins: firebase.firestore.FieldValue.increment(-stage.buyCost) });
+        await firebase.firestore().collection('businesses').add({
+            ownerId: user.uid,
+            ownerName: data.name || '',
+            stage: 'cart',
+            workers: [],
+            vacancyOpen: false,
+            vacancySalary: 0,
+            totalEarned: 0,
+            createdAt: new Date()
+        });
+        setTimeout(() => renderBusinessTab(), 800);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '🚀 Открыть бизнес!'; }
+    }
+}
+
+async function workInBusiness(bizId) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const btn = document.querySelector('.biz-work-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+
+    try {
+        const energy = await getOrResetEnergy(user.uid);
+        if (energy <= 0) { showBizMsg('😴 Энергия закончилась!'); if (btn) { btn.disabled = false; } return; }
+
+        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const bizSnap = await bizRef.get();
+        const biz = bizSnap.data();
+        const stage = getStage(biz.stage);
+        const income = stage.incomePerEnergy;
+
+        await Promise.all([
+            firebase.firestore().collection('users').doc(user.uid).update({
+                coins: firebase.firestore.FieldValue.increment(income),
+                energy: firebase.firestore.FieldValue.increment(-1)
+            }),
+            bizRef.update({
+                totalEarned: firebase.firestore.FieldValue.increment(income)
+            })
+        ]);
+
+        showBizMsg(`✅ Заработал +${income} монет! ⚡ Осталось энергии: ${energy - 1}`);
+        setTimeout(() => renderBusinessTab(), 900);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+        if (btn) { btn.disabled = false; }
+    }
+}
+
+async function upgradeBusiness(bizId) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const btn = document.querySelector('.biz-upgrade-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+
+    try {
+        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const bizSnap = await bizRef.get();
+        const biz = bizSnap.data();
+        const currentStage = getStage(biz.stage);
+        if (!currentStage.nextStage) { showBizMsg('❌ Уже максимальный уровень!'); return; }
+        const nextStage = getStage(currentStage.nextStage);
+
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+        const userSnap = await userRef.get();
+        const coins = userSnap.data().coins || 0;
+        if (coins < nextStage.upgradeCost) {
+            showBizMsg(`❌ Нужно ${nextStage.upgradeCost} монет, у вас ${coins}`);
+            if (btn) { btn.disabled = false; btn.textContent = `🚀 Улучшить за ${nextStage.upgradeCost} монет`; }
+            return;
+        }
+
+        await Promise.all([
+            userRef.update({ coins: firebase.firestore.FieldValue.increment(-nextStage.upgradeCost) }),
+            bizRef.update({ stage: currentStage.nextStage })
+        ]);
+
+        showBizMsg(`🎉 Бизнес улучшен до «${nextStage.name}»!`);
+        setTimeout(() => renderBusinessTab(), 900);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+        if (btn) { btn.disabled = false; }
+    }
+}
+
+async function postVacancy(bizId) {
+    const salary = parseInt(document.getElementById('biz-salary-input')?.value) || 0;
+    if (salary < 1) { showBizMsg('❌ Введите зарплату!'); return; }
+    const btn = document.querySelector('.biz-post-vacancy-btn');
+    if (btn) { btn.disabled = true; }
+
+    try {
+        await firebase.firestore().collection('businesses').doc(bizId).update({
+            vacancyOpen: true,
+            vacancySalary: salary
+        });
+        // Добавляем в доску вакансий
+        const bizSnap = await firebase.firestore().collection('businesses').doc(bizId).get();
+        const biz = bizSnap.data();
+        const stage = getStage(biz.stage);
+        await firebase.firestore().collection('job_board').doc(bizId).set({
+            bizId,
+            ownerId: biz.ownerId,
+            ownerName: biz.ownerName,
+            bizName: stage.name,
+            bizIcon: stage.icon,
+            salary,
+            incomePerEnergy: stage.incomePerEnergy,
+            updatedAt: new Date()
+        });
+        showBizMsg('📢 Вакансия открыта! Игроки смогут откликнуться.');
+        setTimeout(() => renderBusinessTab(), 900);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+        if (btn) { btn.disabled = false; }
+    }
+}
+
+async function closeVacancy(bizId) {
+    try {
+        await firebase.firestore().collection('businesses').doc(bizId).update({ vacancyOpen: false, vacancySalary: 0 });
+        await firebase.firestore().collection('job_board').doc(bizId).delete();
+        showBizMsg('✅ Вакансия закрыта.');
+        setTimeout(() => renderBusinessTab(), 800);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+    }
+}
+
+async function fireWorker(bizId, workerId) {
+    if (!confirm('Уволить этого работника?')) return;
+    try {
+        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const bizSnap = await bizRef.get();
+        const workers = (bizSnap.data().workers || []).filter(w => w.userId !== workerId);
+        await bizRef.update({ workers });
+        showBizMsg('✅ Работник уволен.');
+        setTimeout(() => renderBusinessTab(), 800);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+    }
+}
+
+// ─── Доска вакансий (вид для работника) ──────────────────────────────────────
+
+async function renderJobBoard() {
+    const content = document.getElementById('business-content');
+    if (!content) return;
+
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    // Проверяем — есть ли у самого бизнес (нельзя работать у себя)
+    const myBizSnap = await firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
+    const myBizId = myBizSnap.empty ? null : myBizSnap.docs[0].id;
+
+    const energy = await getOrResetEnergy(user.uid);
+
+    const jobsSnap = await firebase.firestore().collection('job_board').get();
+    const jobs = jobsSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(j => j.ownerId !== user.uid); // не показываем собственную вакансию
+
+    const jobsHtml = jobs.length === 0
+        ? '<div style="color:#aaa;text-align:center;padding:20px;">Пока нет открытых вакансий</div>'
+        : jobs.map(j => `
+            <div class="biz-job-card">
+                <div class="biz-job-header">
+                    <span class="biz-job-icon">${j.bizIcon}</span>
+                    <div>
+                        <div class="biz-job-name">${j.bizName}</div>
+                        <div class="biz-job-owner">Владелец: ${j.ownerName}</div>
+                    </div>
+                </div>
+                <div class="biz-job-details">
+                    <span>💰 Зарплата: <b>${j.salary} монет</b></span>
+                    <span>📊 Доход бизнеса: ${j.incomePerEnergy} монет</span>
+                </div>
+                <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary})"
+                    ${energy > 0 ? '' : 'disabled'}
+                    style="width:100% !important; margin-top:8px;">
+                    ${energy > 0 ? '🔨 Выйти на работу (−1 ⚡)' : '😴 Нет энергии'}
+                </button>
+            </div>
+        `).join('');
+
+    content.innerHTML = `
+        <div class="biz-jobboard-header">
+            <div style="font-size:1.1em;font-weight:700;color:#5c1f4a;">📋 Доска вакансий</div>
+            <div style="font-size:0.85em;color:#888;">⚡ Твоя энергия: ${energy}/${ENERGY_MAX}</div>
+        </div>
+        ${jobsHtml}
+        <div id="biz-msg" class="biz-msg"></div>
+    `;
+}
+
+async function workForOwner(bizId, salary) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const btn = event.target;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+
+    try {
+        const energy = await getOrResetEnergy(user.uid);
+        if (energy <= 0) { showBizMsg('😴 Энергия закончилась!'); return; }
+
+        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
+        const bizSnap = await bizRef.get();
+        const biz = bizSnap.data();
+        const stage = getStage(biz.stage);
+        const ownerIncome = stage.incomePerEnergy - salary;
+
+        if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); return; }
+
+        // Работник теряет энергию, получает зарплату
+        // Владелец получает разницу
+        await Promise.all([
+            firebase.firestore().collection('users').doc(user.uid).update({
+                energy: firebase.firestore.FieldValue.increment(-1),
+                coins: firebase.firestore.FieldValue.increment(salary)
+            }),
+            firebase.firestore().collection('users').doc(biz.ownerId).update({
+                coins: firebase.firestore.FieldValue.increment(ownerIncome)
+            }),
+            bizRef.update({
+                totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy)
+            })
+        ]);
+
+        showBizMsg(`✅ Ты заработал +${salary} монет! Владелец получил +${ownerIncome} монет.`);
+        setTimeout(() => renderJobBoard(), 900);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; }
+    }
+}
+
+// ─── Переключение вкладок внутри бизнес-модала ───────────────────────────────
+
+function switchBizTab(tab) {
+    document.getElementById('biz-tab-my').classList.toggle('active', tab === 'my');
+    document.getElementById('biz-tab-jobs').classList.toggle('active', tab === 'jobs');
+    if (tab === 'my') renderBusinessTab();
+    else renderJobBoard();
+}
+
+function showBizMsg(text) {
+    const el = document.getElementById('biz-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = '';
+    setTimeout(() => { if (el) el.style.display = 'none'; }, 3500);
+}
