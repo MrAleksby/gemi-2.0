@@ -7,7 +7,7 @@ const CRYPTO_ITEMS = [
     { id: 'ton',  name: 'Toncoin',  symbol: 'TON',  icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT'  },
     { id: 'eth',  name: 'Ethereum', symbol: 'ETH',  icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT'  },
     { id: 'paxg', name: 'Золото',   symbol: 'PAXG', icon: '🥇', color: '#d4a017', type: 'crypto', binance: 'PAXGUSDT' },
-    { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT'  },
+    { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT', futures: true },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
@@ -19,7 +19,10 @@ let currentCryptoAsset = 'btc'; // текущий актив
 async function fetchAssetPrice(asset) {
     try {
         if (asset.type === 'crypto') {
-            const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${asset.binance}`);
+            const base = asset.futures
+                ? 'https://fapi.binance.com/fapi/v1/ticker/24hr'
+                : 'https://api.binance.com/api/v3/ticker/24hr';
+            const res = await fetch(`${base}?symbol=${asset.binance}`);
             const d = await res.json();
             return { price: parseFloat(d.lastPrice), change24h: parseFloat(d.priceChangePercent) };
         } else {
