@@ -7,13 +7,13 @@ const BUSINESS_STAGES = [
         id: 'cart',
         name: 'Тележка мороженного',
         icon: '🛒',
-        buyCost: 50,
-        upgradeCost: 300,
-        incomePerEnergy: 8,
+        buyCost: 300,
+        upgradeCost: 1000,
+        incomePerEnergy: 5,
         maxWorkers: 1,
-        dailyCapacity: 12,   // макс. единиц энергии в день
+        dailyCapacity: 10,
         nextStage: 'kiosk',
-        desc: 'Маленькая тележка на колёсах. 1 рабочее место, 12 энергий в день.'
+        desc: 'Маленькая тележка на колёсах. 1 рабочее место, 10 энергий в день.'
     },
     {
         id: 'kiosk',
