@@ -149,6 +149,12 @@ const BADGES = [
     { id: 'kd_05', icon: '🎯', name: 'Меткий',              desc: 'KD ≥ 0.5 (5+ игр)',    cat: 'KD',       tier: 'superrare', check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.5 },
     { id: 'kd_07', icon: '🔭', name: 'Снайпер',             desc: 'KD ≥ 0.7 (5+ игр)',    cat: 'KD',       tier: 'epic',      check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.7 },
     { id: 'kd_09', icon: '💎', name: 'Безупречный',         desc: 'KD ≥ 0.9 (5+ игр)',    cat: 'KD',       tier: 'mythic',    check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.9 },
+    // 💎 CF
+    { id: 'cf_100',  icon: '🪙', name: 'CF Старт',          desc: 'Накопил 100 CF',        cat: 'CF',       tier: 'common',    check: d => (d.cf||0) >= 100  },
+    { id: 'cf_300',  icon: '💵', name: 'CF Накопитель',     desc: 'Накопил 300 CF',        cat: 'CF',       tier: 'rare',      check: d => (d.cf||0) >= 300  },
+    { id: 'cf_500',  icon: '💴', name: 'CF Инвестор',       desc: 'Накопил 500 CF',        cat: 'CF',       tier: 'superrare', check: d => (d.cf||0) >= 500  },
+    { id: 'cf_1000', icon: '💸', name: 'CF Богатей',        desc: 'Накопил 1000 CF',       cat: 'CF',       tier: 'epic',      check: d => (d.cf||0) >= 1000 },
+    { id: 'cf_1500', icon: '🤑', name: 'CF Магнат',         desc: 'Накопил 1500 CF',       cat: 'CF',       tier: 'mythic',    check: d => (d.cf||0) >= 1500 },
     // 💰 Монеты
     { id: 'coin_100',   icon: '🐷', name: 'Копилка',        desc: 'Накопил 100 монет',     cat: 'Монеты',   tier: 'common',    check: d => (d.coins||0) >= 100   },
     { id: 'coin_500',   icon: '🏦', name: 'Банкир',         desc: 'Накопил 500 монет',     cat: 'Монеты',   tier: 'rare',      check: d => (d.coins||0) >= 500   },
