@@ -219,6 +219,19 @@ function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
 }
 
 function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = [], isAdmin = false) {
+    if (isAdmin) {
+        content.innerHTML = `
+            <div style="text-align:center; padding:16px 0 8px;">
+                <div style="font-size:2.5rem;">🏛</div>
+                <div style="font-weight:700; color:#5c1f4a; font-size:1.1em; margin-top:4px;">Панель администратора</div>
+                <div style="font-size:0.85em; color:#888; margin-top:4px;">Налоги и бизнес-кошелёк</div>
+            </div>
+            ${bizWalletSection(coins, businessCoins, taxLogs, true)}
+            <div id="biz-msg" class="biz-msg"></div>
+        `;
+        return;
+    }
+
     const stage = BUSINESS_STAGES[0];
     const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
     const canBuy = businessCoins >= stage.buyCost && userLvl >= 5;
