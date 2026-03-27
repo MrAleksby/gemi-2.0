@@ -7,14 +7,15 @@ const BUSINESS_STAGES = [
         id: 'cart',
         name: 'Тележка мороженного',
         icon: '🛒',
+        minLevel: 5,
         buyCost: 300,
         upgradeCost: 1000,
         incomePerEnergy: 5,
         maxWorkers: 1,
         dailyCapacity: 10,
         nextStage: 'kiosk',
-        expField: 'bizExpCart',       // поле опыта который копится при работе здесь
-        workerRequiredExp: null,      // требований для новичков нет
+        expField: 'bizExpCart',
+        workerRequiredExp: null,
         workerRequiredField: null,
         workerRequiredLabel: null,
         desc: 'Маленькая тележка на колёсах. 1 рабочее место, 10 энергий в день.'
@@ -23,6 +24,7 @@ const BUSINESS_STAGES = [
         id: 'kiosk',
         name: 'Киоск мороженого',
         icon: '🏪',
+        minLevel: 9,
         buyCost: null,
         upgradeCost: 1500,
         incomePerEnergy: 15,
@@ -30,7 +32,7 @@ const BUSINESS_STAGES = [
         dailyCapacity: 24,
         nextStage: 'cafe',
         expField: 'bizExpKiosk',
-        workerRequiredExp: 50,        // нужно 50 ч. в тележке
+        workerRequiredExp: 50,
         workerRequiredField: 'bizExpCart',
         workerRequiredLabel: 'Тележка мороженного',
         desc: 'Киоск с витриной. 2 рабочих места, 24 энергии в день.'
@@ -39,6 +41,7 @@ const BUSINESS_STAGES = [
         id: 'cafe',
         name: 'Кафе-мороженое',
         icon: '🏬',
+        minLevel: 13,
         buyCost: null,
         upgradeCost: 8000,
         incomePerEnergy: 25,
@@ -46,7 +49,7 @@ const BUSINESS_STAGES = [
         dailyCapacity: 60,
         nextStage: 'factory',
         expField: 'bizExpCafe',
-        workerRequiredExp: 50,        // нужно 50 ч. в киоске
+        workerRequiredExp: 50,
         workerRequiredField: 'bizExpKiosk',
         workerRequiredLabel: 'Киоск мороженого',
         desc: 'Уютное кафе. 5 рабочих мест, 60 энергий в день.'
@@ -55,6 +58,7 @@ const BUSINESS_STAGES = [
         id: 'factory',
         name: 'Фабрика мороженого',
         icon: '🏭',
+        minLevel: 17,
         buyCost: null,
         upgradeCost: null,
         incomePerEnergy: 40,
@@ -62,7 +66,7 @@ const BUSINESS_STAGES = [
         dailyCapacity: 120,
         nextStage: null,
         expField: 'bizExpFactory',
-        workerRequiredExp: 50,        // нужно 50 ч. в кафе
+        workerRequiredExp: 50,
         workerRequiredField: 'bizExpCafe',
         workerRequiredLabel: 'Кафе-мороженое',
         desc: 'Максимальный уровень. 10 рабочих мест, 120 энергий в день!'
@@ -296,6 +300,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
                     <div class="biz-path-step ${i === 0 ? 'current' : ''}">
                         <div class="biz-path-icon">${s.icon}</div>
                         <div class="biz-path-label">${s.name.split(' ')[0]}</div>
+                        <div style="font-size:0.72em;color:#e8956d;margin-top:2px;">ур. ${s.minLevel}+</div>
                     </div>
                     ${s.nextStage ? '<div class="biz-path-arrow">→</div>' : ''}
                 `).join('')}
@@ -317,7 +322,9 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
     const capacityFull = energyUsedToday >= stage.dailyCapacity;
     const canWork = energy > 0 && !capacityFull;
     const capacityPct = Math.min(100, Math.round((energyUsedToday / stage.dailyCapacity) * 100));
-    const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost;
+    const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
+    const levelOkForUpgrade = nextStage && userLvl >= nextStage.minLevel;
+    const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost && levelOkForUpgrade;
 
     // Доска вакансий — открытые вакансии в этом бизнесе
     const vacancySection = biz.vacancyOpen ? `
@@ -446,11 +453,14 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
             <div class="biz-upgrade-info">
                 <span>Доход: <b>${stage.incomePerEnergy} → ${nextStage.incomePerEnergy} монет</b></span>
                 <span>Работников: <b>${stage.maxWorkers} → ${nextStage.maxWorkers}</b></span>
+                <span>Мин. уровень: <b>${nextStage.minLevel} ур.</b></span>
             </div>
             <button class="biz-upgrade-btn ${canUpgrade ? '' : 'disabled'}" onclick="upgradeBusiness('${biz.id}')" ${canUpgrade ? '' : 'disabled'}>
-                ${canUpgrade
-                    ? `🚀 Улучшить за ${nextStage.upgradeCost} монет`
-                    : `🔒 Нужно ${nextStage.upgradeCost} монет (у вас ${coins})`}
+                ${!levelOkForUpgrade
+                    ? `🔒 Нужен уровень ${nextStage.minLevel} (у вас ${userLvl})`
+                    : canUpgrade
+                        ? `🚀 Улучшить за ${nextStage.upgradeCost} монет`
+                        : `🔒 Нужно ${nextStage.upgradeCost} монет в бизнес-кошельке`}
             </button>
         </div>
         ` : '<div class="biz-max-level">🏆 Максимальный уровень достигнут!</div>'}
@@ -580,6 +590,12 @@ async function upgradeBusiness(bizId) {
         const currentStage = getStage(biz.stage);
         if (!currentStage.nextStage) { showBizMsg('❌ Уже максимальный уровень!'); return; }
         const nextStage = getStage(currentStage.nextStage);
+
+        const lvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
+        if (lvl < nextStage.minLevel) {
+            showBizMsg(`🔒 Нужен уровень ${nextStage.minLevel} для улучшения до «${nextStage.name}» (у тебя ур. ${lvl})`);
+            return;
+        }
 
         if (!confirm(`Улучшить до «${nextStage.name}» за ${nextStage.upgradeCost} монет из бизнес-кошелька?`)) return;
         const btn = document.querySelector('.biz-upgrade-btn');
