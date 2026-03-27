@@ -149,12 +149,6 @@ const BADGES = [
     { id: 'kd_05', icon: '🎯', name: 'Меткий',              desc: 'KD ≥ 0.5 (5+ игр)',    cat: 'KD',       tier: 'superrare', check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.5 },
     { id: 'kd_07', icon: '🔭', name: 'Снайпер',             desc: 'KD ≥ 0.7 (5+ игр)',    cat: 'KD',       tier: 'epic',      check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.7 },
     { id: 'kd_09', icon: '💎', name: 'Безупречный',         desc: 'KD ≥ 0.9 (5+ игр)',    cat: 'KD',       tier: 'mythic',    check: d => (d.games||0) >= 5 && (d.wins||0)/(d.games||1) >= 0.9 },
-    // 💎 CF
-    { id: 'cf_100',  icon: '🪙', name: 'CF Старт',          desc: 'Накопил 100 CF',        cat: 'CF',       tier: 'common',    check: d => (d.cf||0) >= 100  },
-    { id: 'cf_300',  icon: '💵', name: 'CF Накопитель',     desc: 'Накопил 300 CF',        cat: 'CF',       tier: 'rare',      check: d => (d.cf||0) >= 300  },
-    { id: 'cf_500',  icon: '💴', name: 'CF Инвестор',       desc: 'Накопил 500 CF',        cat: 'CF',       tier: 'superrare', check: d => (d.cf||0) >= 500  },
-    { id: 'cf_1000', icon: '💸', name: 'CF Богатей',        desc: 'Накопил 1000 CF',       cat: 'CF',       tier: 'epic',      check: d => (d.cf||0) >= 1000 },
-    { id: 'cf_1500', icon: '🤑', name: 'CF Магнат',         desc: 'Накопил 1500 CF',       cat: 'CF',       tier: 'mythic',    check: d => (d.cf||0) >= 1500 },
     // 💰 Монеты
     { id: 'coin_100',   icon: '🐷', name: 'Копилка',        desc: 'Накопил 100 монет',     cat: 'Монеты',   tier: 'common',    check: d => (d.coins||0) >= 100   },
     { id: 'coin_500',   icon: '🏦', name: 'Банкир',         desc: 'Накопил 500 монет',     cat: 'Монеты',   tier: 'rare',      check: d => (d.coins||0) >= 500   },
@@ -174,22 +168,8 @@ const BADGES = [
     { id: 'lvl_15', icon: '🌙', name: 'Уровень 15',          desc: 'Достиг 15-го уровня',  cat: 'Уровни',   tier: 'epic',      check: d => getLevelByPoints(d.points||0) >= 15 },
     { id: 'lvl_20', icon: '⚡', name: 'Уровень 20',          desc: 'Достиг 20-го уровня',  cat: 'Уровни',   tier: 'mythic',    check: d => getLevelByPoints(d.points||0) >= 20 },
     { id: 'lvl_25', icon: '🏆', name: 'Уровень 25',          desc: 'Достиг 25-го уровня',  cat: 'Уровни',   tier: 'legendary', check: d => getLevelByPoints(d.points||0) >= 25 },
-    // 🤝 Переводы
-    { id: 'tr_3',  icon: '🤲', name: 'Первый жест',          desc: '3 перевода',           cat: 'Переводы', tier: 'common',    check: d => (d.transferCount||0) >= 3  },
-    { id: 'tr_9',  icon: '💝', name: 'Щедрый',               desc: '9 переводов',          cat: 'Переводы', tier: 'rare',      check: d => (d.transferCount||0) >= 9  },
-    { id: 'tr_17', icon: '🫶', name: 'Меценат',              desc: '17 переводов',         cat: 'Переводы', tier: 'epic',      check: d => (d.transferCount||0) >= 17 },
-    { id: 'tr_25', icon: '🌍', name: 'Благотворитель',       desc: '25 переводов',         cat: 'Переводы', tier: 'mythic',    check: d => (d.transferCount||0) >= 25 },
-    { id: 'tr_50', icon: '🌟', name: 'Легенда щедрости',     desc: '50 переводов',         cat: 'Переводы', tier: 'legendary', check: d => (d.transferCount||0) >= 50 },
-    // 🔄 Обмен CF
-    { id: 'ex_1',  icon: '🔁', name: 'Трейдер',              desc: 'Первый обмен CF',      cat: 'Обмен',    tier: 'common',    check: d => (d.exchangeCount||0) >= 1  },
-    { id: 'ex_5',  icon: '📈', name: 'Брокер',               desc: 'Обменял CF 5 раз',     cat: 'Обмен',    tier: 'rare',      check: d => (d.exchangeCount||0) >= 5  },
-    { id: 'ex_15', icon: '🏦', name: 'Биржевик',             desc: 'Обменял CF 15 раз',    cat: 'Обмен',    tier: 'superrare', check: d => (d.exchangeCount||0) >= 15 },
-    { id: 'ex_25', icon: '💹', name: 'Профи',                desc: 'Обменял CF 25 раз',    cat: 'Обмен',    tier: 'epic',      check: d => (d.exchangeCount||0) >= 25 },
-    { id: 'ex_50', icon: '🎰', name: 'Мастер обмена',        desc: 'Обменял CF 50 раз',    cat: 'Обмен',    tier: 'legendary', check: d => (d.exchangeCount||0) >= 50 },
     // 🌟 Особые
     { id: 'first_req',   icon: '📋', name: 'Честный счёт',      desc: 'Подал первый счёт',                  cat: 'Особые', tier: 'common',    check: d => (d.totalRequests||0) >= 1 },
-    { id: 'recv_tr',     icon: '🎁', name: 'Добряк',             desc: 'Получил перевод от другого игрока',  cat: 'Особые', tier: 'common',    check: d => (d.receivedTransfers||0) >= 1 },
-    { id: 'balanced',    icon: '⚖️', name: 'Балансировщик',     desc: 'CF + монеты + опыт + победы > 0',    cat: 'Особые', tier: 'rare',      check: d => (d.cf||0)>0 && (d.coins||0)>0 && (d.points||0)>0 && (d.wins||0)>0 },
     { id: 'reliable',    icon: '✅', name: 'Надёжный',           desc: '5 счётов — все одобрены',            cat: 'Особые', tier: 'superrare', check: d => (d.approvedRequests||0) >= 5 && !(d.rejectedRequests > 0) },
     { id: 'top3_rank',   icon: '🥉', name: 'Топ-3',              desc: 'Попал в топ-3 рейтинга',            cat: 'Особые', tier: 'epic',      check: d => (d.bestRank||99) <= 3 },
     { id: 'silent_hunt', icon: '🕵️', name: 'Тихий охотник',     desc: 'KD ≥ 0.8 при 10+ играх',            cat: 'Особые', tier: 'mythic',    check: d => (d.games||0) >= 10 && (d.wins||0)/(d.games||1) >= 0.8 },
@@ -563,6 +543,8 @@ auth.onAuthStateChanged(async (user) => {
         adminSection.style.display    = 'none';
         document.getElementById('bottom-nav').style.display    = 'none';
         document.getElementById('pending-section').style.display = 'none';
+        // Закрываем все модалки
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
     }
 });
 
@@ -711,7 +693,8 @@ document.getElementById('delete-account-confirm').onclick = async () => {
         // Удаляем Firebase Auth аккаунт
         await user.delete();
 
-        // Выходим — onAuthStateChanged сам переключит на экран входа
+        // Закрываем модалку и сбрасываем UI — onAuthStateChanged покажет логин
+        document.getElementById('delete-account-modal').style.display = 'none';
     } catch (e) {
         if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
             msgEl.textContent = '❌ Неверный пароль';
