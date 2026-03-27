@@ -129,14 +129,17 @@ async function renderBusinessTab() {
         getOrResetEnergy(user.uid),
         firebase.firestore().collection('users').doc(user.uid).get(),
         firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get(),
-        firebase.firestore().collection('tax_log').where('userId', '==', user.uid).orderBy('timestamp', 'desc').limit(10).get().catch(() => ({ docs: [] }))
+        firebase.firestore().collection('tax_log').where('userId', '==', user.uid).limit(20).get().catch(() => ({ docs: [] }))
     ]);
 
     const userData = userSnap.data();
     const coins = userData.coins || 0;
     const businessCoins = userData.businessCoins || 0;
     const hasBusiness = !bizSnap.empty;
-    const taxLogs = taxSnap.docs.map(d => d.data());
+    const taxLogs = taxSnap.docs
+        .map(d => d.data())
+        .sort((a, b) => (b.timestamp?.toMillis?.() || 0) - (a.timestamp?.toMillis?.() || 0))
+        .slice(0, 10);
 
     if (!hasBusiness) {
         renderNoBusiness(content, coins, businessCoins, energy, taxLogs);
