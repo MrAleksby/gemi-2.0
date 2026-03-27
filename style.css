@@ -2927,6 +2927,10 @@ th {
 .biz-job-name { font-weight: 700; color: #5c1f4a; }
 .biz-job-owner { font-size: 0.8em; color: #999; }
 .biz-job-details { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85em; color: #666; margin-bottom: 8px; }
+.biz-job-capacity { margin-bottom: 8px; }
+.biz-job-capacity-label { display: flex; justify-content: space-between; font-size: 0.82em; color: #666; margin-bottom: 4px; }
+.biz-cap-bar-bg { background: #f0f0f0; border-radius: 6px; height: 6px; overflow: hidden; }
+.biz-cap-bar-fill { height: 100%; border-radius: 6px; transition: width 0.4s; }
 .biz-apply-btn { background: linear-gradient(135deg, #27ae60, #2ecc71) !important; color: #fff; border: none; padding: 11px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em; }
 .biz-apply-btn:disabled { background: #ccc !important; cursor: not-allowed; }
 

@@ -606,6 +606,9 @@ async function renderJobBoard() {
     const user = firebase.auth().currentUser;
     if (!user) return;
 
+    content.innerHTML = '<div class="crypto-loading">Загружаем вакансии... 📋</div>';
+    try {
+
     // Проверяем — есть ли у самого бизнес (нельзя работать у себя)
     const myBizSnap = await firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
     const myBizId = myBizSnap.empty ? null : myBizSnap.docs[0].id;
@@ -621,14 +624,37 @@ async function renderJobBoard() {
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(j => j.ownerId !== user.uid);
 
+    // Параллельно грузим ёмкость для каждого бизнеса (catch — если нет прав на запись)
+    const capacities = await Promise.all(
+        jobs.map(j => {
+            const bizRef = firebase.firestore().collection('businesses').doc(j.bizId);
+            return bizRef.get().then(snap => {
+                const data = snap.data() || {};
+                const key = bizDayKey();
+                if ((data.bizEnergyDate || '') !== key) {
+                    // Попробуем сбросить, но не блокируем рендер если нет прав
+                    bizRef.update({ energyUsedToday: 0, bizEnergyDate: key }).catch(() => {});
+                    return 0;
+                }
+                return data.energyUsedToday || 0;
+            }).catch(() => 0);
+        })
+    );
+
     const jobsHtml = jobs.length === 0
         ? '<div style="color:#aaa;text-align:center;padding:20px;">Пока нет открытых вакансий</div>'
-        : jobs.map(j => {
+        : jobs.map((j, idx) => {
             const stage = getStage(j.bizStage || 'cart');
             const hasReq = stage.workerRequiredExp && stage.workerRequiredField;
             const myExp = hasReq ? (myData[stage.workerRequiredField] || 0) : 0;
             const reqMet = !hasReq || myExp >= stage.workerRequiredExp;
             const expPct = hasReq ? Math.min(100, Math.round((myExp / stage.workerRequiredExp) * 100)) : 100;
+
+            const energyUsed = capacities[idx];
+            const capacityLeft = stage.dailyCapacity - energyUsed;
+            const capacityFull = capacityLeft <= 0;
+            const capacityPct = Math.min(100, Math.round((energyUsed / stage.dailyCapacity) * 100));
+            const capacityColor = capacityLeft <= 0 ? '#e74c3c' : capacityLeft <= stage.dailyCapacity * 0.2 ? '#e8956d' : '#27ae60';
 
             const reqHtml = hasReq ? `
                 <div class="biz-exp-req ${reqMet ? 'met' : 'unmet'}">
@@ -640,7 +666,9 @@ async function renderJobBoard() {
                     </div>
                 </div>` : '';
 
-            const canApply = energy > 0 && reqMet;
+            const canApply = energy > 0 && reqMet && !capacityFull;
+            const capacityText = capacityFull ? 'Заполнено' : (capacityLeft + ' из ' + stage.dailyCapacity);
+            const btnLabel = !energy ? '😴 Нет энергии' : capacityFull ? '🏁 Мест нет на сегодня' : !reqMet ? '🔒 Нет опыта' : '🔨 Выйти на работу (−1 ⚡)';
             return `
             <div class="biz-job-card">
                 <div class="biz-job-header">
@@ -653,11 +681,20 @@ async function renderJobBoard() {
                 <div class="biz-job-details">
                     <span>💰 Зарплата: <b>${j.salary} монет / работа</b></span>
                 </div>
+                <div class="biz-job-capacity">
+                    <div class="biz-job-capacity-label">
+                        <span>⚡ Мест на сегодня:</span>
+                        <span style="color:${capacityColor};font-weight:700;">${capacityText}</span>
+                    </div>
+                    <div class="biz-cap-bar-bg">
+                        <div class="biz-cap-bar-fill" style="width:${capacityPct}%;background:${capacityColor};"></div>
+                    </div>
+                </div>
                 ${reqHtml}
                 <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary})"
                     ${canApply ? '' : 'disabled'}
                     style="width:100% !important; margin-top:8px;">
-                    ${!energy ? '😴 Нет энергии' : !reqMet ? '🔒 Нет опыта' : '🔨 Выйти на работу (−1 ⚡)'}
+                    ${btnLabel}
                 </button>
             </div>`;
         }).join('');
@@ -670,6 +707,9 @@ async function renderJobBoard() {
         ${jobsHtml}
         <div id="biz-msg" class="biz-msg"></div>
     `;
+    } catch(e) {
+        content.innerHTML = `<div style="color:#e74c3c;text-align:center;padding:20px;">❌ Ошибка загрузки: ${e.message}</div>`;
+    }
 }
 
 async function workForOwner(bizId, salary) {
