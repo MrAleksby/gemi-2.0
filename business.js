@@ -849,11 +849,30 @@ async function bizWithdraw() {
             if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
             return;
         }
-        await ref.update({
+        const tax = Math.max(1, Math.floor(amount * 0.01));
+        const received = amount - tax;
+        const db = firebase.firestore();
+        const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
+        const batch = db.batch();
+        batch.update(ref, {
             businessCoins: firebase.firestore.FieldValue.increment(-amount),
-            coins: firebase.firestore.FieldValue.increment(amount)
+            coins: firebase.firestore.FieldValue.increment(received)
         });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${amount} монет`; }
+        if (!adminSnap.empty) {
+            batch.update(adminSnap.docs[0].ref, {
+                businessCoins: firebase.firestore.FieldValue.increment(tax)
+            });
+            batch.set(db.collection('tax_log').doc(), {
+                userId: user.uid,
+                userName: snap.data().name || '',
+                amount: tax,
+                source: 'business',
+                label: 'Налог на доходы пользователей',
+                timestamp: new Date()
+            });
+        }
+        await batch.commit();
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${received} монет (налог 1%: ${tax})`; }
         setTimeout(() => renderBusinessTab(), 900);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
