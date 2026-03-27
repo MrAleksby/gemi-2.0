@@ -125,19 +125,21 @@ async function renderBusinessTab() {
     const user = firebase.auth().currentUser;
     if (!user) return;
 
-    const [energy, userSnap, bizSnap] = await Promise.all([
+    const [energy, userSnap, bizSnap, taxSnap] = await Promise.all([
         getOrResetEnergy(user.uid),
         firebase.firestore().collection('users').doc(user.uid).get(),
-        firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get()
+        firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get(),
+        firebase.firestore().collection('tax_log').where('userId', '==', user.uid).orderBy('timestamp', 'desc').limit(10).get().catch(() => ({ docs: [] }))
     ]);
 
     const userData = userSnap.data();
     const coins = userData.coins || 0;
     const businessCoins = userData.businessCoins || 0;
     const hasBusiness = !bizSnap.empty;
+    const taxLogs = taxSnap.docs.map(d => d.data());
 
     if (!hasBusiness) {
-        renderNoBusiness(content, coins, businessCoins, energy);
+        renderNoBusiness(content, coins, businessCoins, energy, taxLogs);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
         // Загружаем дневную загрузку и историю работы
@@ -151,13 +153,25 @@ async function renderBusinessTab() {
                 .orderBy('timestamp', 'desc').limit(15).get();
             workLogs = logsSnap.docs.map(d => d.data());
         } catch(e) { workLogs = []; }
-        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs);
+        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs);
     }
 }
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
 
-function bizWalletSection(coins, businessCoins) {
+function bizWalletSection(coins, businessCoins, taxLogs = []) {
+    const taxHtml = taxLogs.length === 0 ? '' : `
+        <div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px;">
+            <div style="font-size:0.82em;color:#888;margin-bottom:6px;">🏛 История налогов:</div>
+            ${taxLogs.map(t => {
+                const date = t.timestamp ? t.timestamp.toDate().toLocaleString('ru-RU') : '—';
+                const src = t.source === 'exchange' ? '📈 Биржа' : '🏪 Бизнес';
+                return `<div style="display:flex;justify-content:space-between;font-size:0.8em;padding:4px 0;border-bottom:1px solid #f5f5f5;">
+                    <span style="color:#888;">${src} · ${date}</span>
+                    <span style="color:#e74c3c;font-weight:600;">−${t.amount} монет (налог)</span>
+                </div>`;
+            }).join('')}
+        </div>`;
     return `
         <div class="biz-wallet-section">
             <button class="crypto-wallet-toggle" onclick="toggleBizWallet()">💼 Бизнес-кошелёк ▼</button>
@@ -175,7 +189,7 @@ function bizWalletSection(coins, businessCoins) {
                     <button class="biz-deposit-btn" onclick="bizDeposit()"
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
                 </div>
-                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной):</div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной) <span style="color:#e8956d;">−1% налог</span>:</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
                     <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
                         style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
@@ -185,12 +199,13 @@ function bizWalletSection(coins, businessCoins) {
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
                 </div>
                 <div id="biz-wallet-msg" style="font-size:0.85em;margin-top:6px;"></div>
+                ${taxHtml}
             </div>
         </div>
     `;
 }
 
-function renderNoBusiness(content, coins, businessCoins, energy) {
+function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = []) {
     const stage = BUSINESS_STAGES[0];
     const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
     const canBuy = businessCoins >= stage.buyCost && userLvl >= 5;
@@ -236,14 +251,14 @@ function renderNoBusiness(content, coins, businessCoins, energy) {
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins)}
+        ${bizWalletSection(coins, businessCoins, taxLogs)}
         <div id="biz-msg" class="biz-msg"></div>
     `;
 }
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = []) {
+function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = [], taxLogs = []) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
@@ -326,7 +341,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsed
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins)}
+        ${bizWalletSection(coins, businessCoins, taxLogs)}
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>

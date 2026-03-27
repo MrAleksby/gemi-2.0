@@ -534,6 +534,7 @@ auth.onAuthStateChanged(async (user) => {
             loadUsersList();
             loadAdminFinanceStats();
             updateTransactionsLists();
+            loadTaxLog();
             setupAdminRequestsListener();
             setupPendingRegistrationsListener();
         } else {
@@ -1457,6 +1458,39 @@ async function loadPlayerHistory(userId) {
         await fetchPage();
     } catch (err) {
         console.error('Ошибка загрузки истории игрока:', err);
+    }
+}
+
+// ─── Налоговый журнал (админ) ─────────────────────────────────────────────────
+
+async function loadTaxLog() {
+    const list = document.getElementById('tax-log-list');
+    const total = document.getElementById('tax-log-total');
+    if (!list) return;
+    try {
+        const snap = await db.collection('tax_log').orderBy('timestamp', 'desc').limit(50).get();
+        if (snap.empty) {
+            list.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px;">Налогов пока нет</div>';
+            if (total) total.textContent = 'Итого: 0 монет';
+            return;
+        }
+        let totalTax = 0;
+        list.innerHTML = snap.docs.map(doc => {
+            const d = doc.data();
+            const date = d.timestamp ? d.timestamp.toDate().toLocaleString('ru-RU') : '—';
+            const src = d.source === 'exchange' ? '📈 Биржа' : '🏪 Бизнес';
+            totalTax += (d.amount || 0);
+            return `<div class="transaction-item" style="border-left:3px solid #e8956d;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:600;">🏛 ${d.userName || '—'}</span>
+                    <span style="color:#e8956d;font-weight:700;">+${d.amount} монет</span>
+                </div>
+                <div style="font-size:0.8em;color:#888;margin-top:2px;">${src} · ${date}</div>
+            </div>`;
+        }).join('');
+        if (total) total.textContent = `Последние 50 · Итого: ${totalTax} монет`;
+    } catch(e) {
+        if (list) list.innerHTML = `<div style="color:#e74c3c;">Ошибка: ${e.message}</div>`;
     }
 }
 
