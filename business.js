@@ -135,6 +135,7 @@ async function renderBusinessTab() {
     const isAdmin = userData.isAdmin === true;
     const coins = userData.coins || 0;
     const businessCoins = userData.businessCoins || 0;
+    const exchangeCoins = userData.exchangeCoins || 0;
     const hasBusiness = !bizSnap.empty;
 
     // Для админа — все налоги всех игроков; для обычного — только свои
@@ -148,7 +149,7 @@ async function renderBusinessTab() {
         .slice(0, isAdmin ? 50 : 10);
 
     if (!hasBusiness) {
-        renderNoBusiness(content, coins, businessCoins, energy, taxLogs, isAdmin);
+        renderNoBusiness(content, coins, businessCoins, exchangeCoins, energy, taxLogs, isAdmin);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
         // Загружаем дневную загрузку и историю работы
@@ -162,13 +163,13 @@ async function renderBusinessTab() {
                 .orderBy('timestamp', 'desc').limit(15).get();
             workLogs = logsSnap.docs.map(d => d.data());
         } catch(e) { workLogs = []; }
-        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs, isAdmin);
+        renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs, isAdmin);
     }
 }
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
 
-function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
+function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [], isAdmin = false) {
     const totalTax = taxLogs.reduce((s, t) => s + (t.amount || 0), 0);
     const taxHtml = taxLogs.length === 0 ? '' : `
         <div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px;">
@@ -191,8 +192,10 @@ function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
             <div id="biz-wallet-forms" style="display:none;">
                 <div class="biz-wallet-balance">
                     <div>💼 Бизнес-кошелёк: <b>${businessCoins.toLocaleString('ru-RU')} монет</b></div>
+                    <div>📈 Биржевой кошелёк: <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b></div>
                     <div>💰 Основной счёт: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
                 </div>
+
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Пополнить (из основного):</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
                     <input type="number" id="biz-deposit-amount" min="1" placeholder="Сумма монет"
@@ -202,8 +205,9 @@ function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
                     <button class="biz-deposit-btn" onclick="bizDeposit()"
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
                 </div>
+
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной) <span style="color:#e8956d;">−1% налог</span>:</div>
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
                     <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
                         style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
                     <button onclick="document.getElementById('biz-withdraw-amount').value=${businessCoins}"
@@ -211,6 +215,27 @@ function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
                     <button class="biz-withdraw-btn" onclick="bizWithdraw()"
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
                 </div>
+
+                <div style="border-top:1px dashed #e0e0e0;margin:8px 0 10px;"></div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">📈 Перевести на биржевой кошелёк <span style="color:#27ae60;font-size:0.88em;">без налога</span>:</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                    <input type="number" id="biz-to-exchange-amount" min="1" placeholder="Сумма монет"
+                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                    <button onclick="document.getElementById('biz-to-exchange-amount').value=${businessCoins}"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
+                    <button class="biz-to-exchange-btn" onclick="transferBizToExchange()"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">→ Биржа</button>
+                </div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">💼 Перевести с биржевого кошелька <span style="color:#27ae60;font-size:0.88em;">без налога</span>:</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+                    <input type="number" id="exchange-to-biz-amount" min="1" placeholder="Сумма монет"
+                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                    <button onclick="document.getElementById('exchange-to-biz-amount').value=${exchangeCoins}"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
+                    <button class="exchange-to-biz-btn" onclick="transferExchangeToBiz()"
+                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#8b5cf6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">→ Бизнес</button>
+                </div>
+
                 <div id="biz-wallet-msg" style="font-size:0.85em;margin-top:6px;"></div>
                 ${taxHtml}
             </div>
@@ -218,7 +243,7 @@ function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
     `;
 }
 
-function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = [], isAdmin = false) {
+function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, energy, taxLogs = [], isAdmin = false) {
     if (isAdmin) {
         content.innerHTML = `
             <div style="text-align:center; padding:16px 0 8px;">
@@ -226,7 +251,7 @@ function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = [], i
                 <div style="font-weight:700; color:#5c1f4a; font-size:1.1em; margin-top:4px;">Панель администратора</div>
                 <div style="font-size:0.85em; color:#888; margin-top:4px;">Налоги и бизнес-кошелёк</div>
             </div>
-            ${bizWalletSection(coins, businessCoins, taxLogs, true)}
+            ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, true)}
             <div id="biz-msg" class="biz-msg"></div>
         `;
         return;
@@ -277,14 +302,14 @@ function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = [], i
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins, taxLogs, isAdmin)}
+        ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, isAdmin)}
         <div id="biz-msg" class="biz-msg"></div>
     `;
 }
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = [], taxLogs = [], isAdmin = false) {
+function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0, energy, energyUsedToday, uid, userName, workLogs = [], taxLogs = [], isAdmin = false) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
@@ -367,7 +392,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsed
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins, taxLogs, isAdmin)}
+        ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, isAdmin)}
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>
@@ -948,6 +973,62 @@ async function bizWithdraw() {
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
+    }
+}
+
+async function transferBizToExchange() {
+    const amount = parseInt(document.getElementById('biz-to-exchange-amount')?.value) || 0;
+    const msgEl = document.getElementById('biz-wallet-msg');
+    const btn = document.querySelector('.biz-to-exchange-btn');
+    if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    try {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const freshBiz = snap.data().businessCoins || 0;
+            if (freshBiz < amount) throw new Error(`Недостаточно в бизнес-кошельке: ${freshBiz}`);
+            tx.update(ref, {
+                businessCoins:  firebase.firestore.FieldValue.increment(-amount),
+                exchangeCoins:  firebase.firestore.FieldValue.increment(amount)
+            });
+        });
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Переведено ${amount} монет на биржу`; }
+        setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
+    } catch(e) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = '→ Биржа'; }
+    }
+}
+
+async function transferExchangeToBiz() {
+    const amount = parseInt(document.getElementById('exchange-to-biz-amount')?.value) || 0;
+    const msgEl = document.getElementById('biz-wallet-msg');
+    const btn = document.querySelector('.exchange-to-biz-btn');
+    if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    try {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const freshEx = snap.data().exchangeCoins || 0;
+            if (freshEx < amount) throw new Error(`Недостаточно на бирже: ${freshEx}`);
+            tx.update(ref, {
+                exchangeCoins:  firebase.firestore.FieldValue.increment(-amount),
+                businessCoins:  firebase.firestore.FieldValue.increment(amount)
+            });
+        });
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Переведено ${amount} монет в бизнес`; }
+        setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
+    } catch(e) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ ' + e.message; }
+        if (btn) { btn.disabled = false; btn.textContent = '→ Бизнес'; }
     }
 }
 
