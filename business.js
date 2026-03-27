@@ -613,6 +613,20 @@ async function closeVacancy(bizId) {
     }
 }
 
+async function adminDeleteVacancy(bizId) {
+    if (!confirm('Удалить вакансию?')) return;
+    try {
+        const db = firebase.firestore();
+        const batch = db.batch();
+        batch.update(db.collection('businesses').doc(bizId), { vacancyOpen: false, vacancySalary: 0 });
+        batch.delete(db.collection('job_board').doc(bizId));
+        await batch.commit();
+        setTimeout(() => renderJobBoard(), 400);
+    } catch(e) {
+        showBizMsg('❌ Ошибка: ' + e.message);
+    }
+}
+
 async function fireWorker(bizId, workerId) {
     if (!confirm('Уволить этого работника?')) return;
     try {
@@ -648,11 +662,12 @@ async function renderJobBoard() {
         firebase.firestore().collection('users').doc(user.uid).get()
     ]);
     const myData = myUserSnap.data();
+    const isAdmin = myData.isAdmin === true;
 
     const jobsSnap = await firebase.firestore().collection('job_board').get();
     const jobs = jobsSnap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(j => j.ownerId !== user.uid);
+        .filter(j => isAdmin || j.ownerId !== user.uid);
 
     // Параллельно грузим ёмкость для каждого бизнеса (catch — если нет прав на запись)
     const capacities = await Promise.all(
@@ -726,6 +741,7 @@ async function renderJobBoard() {
                     style="width:100% !important; margin-top:8px;">
                     ${btnLabel}
                 </button>
+                ${isAdmin ? `<button class="biz-admin-delete-btn" onclick="adminDeleteVacancy('${j.bizId}')">🗑 Удалить вакансию</button>` : ''}
             </div>`;
         }).join('');
 
