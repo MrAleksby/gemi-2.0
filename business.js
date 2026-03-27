@@ -825,7 +825,7 @@ async function bizDeposit() {
             businessCoins: firebase.firestore.FieldValue.increment(amount)
         });
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
-        setTimeout(() => renderBusinessTab(), 900);
+        setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
         if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
@@ -873,7 +873,7 @@ async function bizWithdraw() {
         }
         await batch.commit();
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${received} монет (налог 1%: ${tax})`; }
-        setTimeout(() => renderBusinessTab(), 900);
+        setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
