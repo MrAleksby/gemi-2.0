@@ -900,8 +900,68 @@ async function workForOwner(bizId, salary) {
 function switchBizTab(tab) {
     document.getElementById('biz-tab-my').classList.toggle('active', tab === 'my');
     document.getElementById('biz-tab-jobs').classList.toggle('active', tab === 'jobs');
+    document.getElementById('biz-tab-exp').classList.toggle('active', tab === 'exp');
     if (tab === 'my') renderBusinessTab();
-    else renderJobBoard();
+    else if (tab === 'jobs') renderJobBoard();
+    else renderMyExp();
+}
+
+async function renderMyExp() {
+    const content = document.getElementById('business-content');
+    if (!content) return;
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    content.innerHTML = '<div class="crypto-loading">Загружаем опыт... 📊</div>';
+
+    const snap = await firebase.firestore().collection('users').doc(user.uid).get();
+    const data = snap.data();
+
+    // Конфиг опыта: какой опыт нужен для работы в каждом бизнесе
+    const expStages = [
+        { stageId: 'cart',    expField: 'bizExpCart',    icon: '🛒', name: 'Тележка мороженного',  required: null, nextName: 'Киоск',          nextRequired: 50 },
+        { stageId: 'kiosk',   expField: 'bizExpKiosk',   icon: '🏪', name: 'Киоск мороженого',     required: 50,   nextName: 'Кафе-мороженое', nextRequired: 50 },
+        { stageId: 'cafe',    expField: 'bizExpCafe',    icon: '🏬', name: 'Кафе-мороженое',       required: 50,   nextName: 'Фабрика',        nextRequired: 50 },
+        { stageId: 'factory', expField: 'bizExpFactory', icon: '🏭', name: 'Фабрика мороженого',   required: 50,   nextName: null,             nextRequired: null }
+    ];
+
+    const rows = expStages.map(s => {
+        const exp = data[s.expField] || 0;
+        const req = s.nextRequired;
+        const pct = req ? Math.min(100, Math.round((exp / req) * 100)) : 100;
+        const barColor = pct >= 100 ? '#27ae60' : pct >= 50 ? '#f7931a' : '#e8956d';
+        const statusLabel = !s.required
+            ? '<span style="font-size:0.78em;color:#27ae60;">✅ Доступно</span>'
+            : (data[expStages.find(x => x.nextName === s.name)?.expField] || 0) >= s.required
+                ? '<span style="font-size:0.78em;color:#27ae60;">✅ Доступно</span>'
+                : `<span style="font-size:0.78em;color:#e53935;">🔒 Нужно ${s.required} оп. в предыдущем</span>`;
+
+        const nextInfo = s.nextRequired
+            ? `<div style="font-size:0.78em;color:#888;margin-top:3px;">Для работы в «${s.nextName}»: <b>${exp}/${s.nextRequired}</b></div>`
+            : '<div style="font-size:0.78em;color:#27ae60;margin-top:3px;">🏆 Максимальный тип бизнеса</div>';
+
+        return `
+        <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1.5px solid #f0e8ff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="font-weight:700;color:#5c1f4a;">${s.icon} ${s.name}</div>
+                <div style="font-size:1.1em;font-weight:700;color:#7c3aed;">${exp} оп.</div>
+            </div>
+            ${statusLabel}
+            <div style="background:#f0f0f0;border-radius:6px;height:8px;margin:8px 0 4px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;border-radius:6px;background:${barColor};transition:width 0.4s;"></div>
+            </div>
+            ${nextInfo}
+        </div>`;
+    }).join('');
+
+    content.innerHTML = `
+        <div style="padding:4px 0 12px;">
+            <div style="font-size:1.1em;font-weight:700;color:#5c1f4a;margin-bottom:4px;">📊 Мой опыт работы</div>
+            <div style="font-size:0.85em;color:#888;">Опыт накапливается когда ты работаешь в бизнесе</div>
+        </div>
+        ${rows}
+        <div style="font-size:0.8em;color:#aaa;text-align:center;margin-top:8px;">1 энергия = 1 опыт</div>
+    `;
 }
 
 function toggleBizWallet() {
