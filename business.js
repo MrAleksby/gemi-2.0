@@ -125,24 +125,30 @@ async function renderBusinessTab() {
     const user = firebase.auth().currentUser;
     if (!user) return;
 
-    const [energy, userSnap, bizSnap, taxSnap] = await Promise.all([
+    const [energy, userSnap, bizSnap] = await Promise.all([
         getOrResetEnergy(user.uid),
         firebase.firestore().collection('users').doc(user.uid).get(),
-        firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get(),
-        firebase.firestore().collection('tax_log').where('userId', '==', user.uid).limit(20).get().catch(() => ({ docs: [] }))
+        firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get()
     ]);
 
     const userData = userSnap.data();
+    const isAdmin = userData.isAdmin === true;
     const coins = userData.coins || 0;
     const businessCoins = userData.businessCoins || 0;
     const hasBusiness = !bizSnap.empty;
+
+    // Для админа — все налоги всех игроков; для обычного — только свои
+    const taxQuery = isAdmin
+        ? firebase.firestore().collection('tax_log').limit(50).get().catch(() => ({ docs: [] }))
+        : firebase.firestore().collection('tax_log').where('userId', '==', user.uid).limit(20).get().catch(() => ({ docs: [] }));
+    const taxSnap = await taxQuery;
     const taxLogs = taxSnap.docs
         .map(d => d.data())
         .sort((a, b) => (b.timestamp?.toMillis?.() || 0) - (a.timestamp?.toMillis?.() || 0))
-        .slice(0, 10);
+        .slice(0, isAdmin ? 50 : 10);
 
     if (!hasBusiness) {
-        renderNoBusiness(content, coins, businessCoins, energy, taxLogs);
+        renderNoBusiness(content, coins, businessCoins, energy, taxLogs, isAdmin);
     } else {
         const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
         // Загружаем дневную загрузку и историю работы
@@ -156,22 +162,26 @@ async function renderBusinessTab() {
                 .orderBy('timestamp', 'desc').limit(15).get();
             workLogs = logsSnap.docs.map(d => d.data());
         } catch(e) { workLogs = []; }
-        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs);
+        renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs, isAdmin);
     }
 }
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
 
-function bizWalletSection(coins, businessCoins, taxLogs = []) {
+function bizWalletSection(coins, businessCoins, taxLogs = [], isAdmin = false) {
+    const totalTax = taxLogs.reduce((s, t) => s + (t.amount || 0), 0);
     const taxHtml = taxLogs.length === 0 ? '' : `
         <div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px;">
-            <div style="font-size:0.82em;color:#888;margin-bottom:6px;">🏛 История налогов:</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="font-size:0.82em;color:#888;">🏛 ${isAdmin ? 'Все налоги игроков' : 'История налогов'}:</div>
+                ${isAdmin ? `<div style="font-size:0.82em;font-weight:700;color:#e8956d;">Итого: +${totalTax} монет</div>` : ''}
+            </div>
             ${taxLogs.map(t => {
                 const date = t.timestamp ? t.timestamp.toDate().toLocaleString('ru-RU') : '—';
                 const src = t.source === 'exchange' ? '📈 Биржа' : '🏪 Бизнес';
                 return `<div style="display:flex;justify-content:space-between;font-size:0.8em;padding:4px 0;border-bottom:1px solid #f5f5f5;">
-                    <span style="color:#888;">${src} · ${date}</span>
-                    <span style="color:#e74c3c;font-weight:600;">−${t.amount} монет (налог)</span>
+                    <span style="color:#888;">${isAdmin ? `<b>${t.userName || '—'}</b> · ` : ''}${src} · ${date}</span>
+                    <span style="color:#e8956d;font-weight:600;">+${t.amount} монет</span>
                 </div>`;
             }).join('')}
         </div>`;
@@ -208,7 +218,7 @@ function bizWalletSection(coins, businessCoins, taxLogs = []) {
     `;
 }
 
-function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = []) {
+function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = [], isAdmin = false) {
     const stage = BUSINESS_STAGES[0];
     const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
     const canBuy = businessCoins >= stage.buyCost && userLvl >= 5;
@@ -254,14 +264,14 @@ function renderNoBusiness(content, coins, businessCoins, energy, taxLogs = []) {
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins, taxLogs)}
+        ${bizWalletSection(coins, businessCoins, taxLogs, isAdmin)}
         <div id="biz-msg" class="biz-msg"></div>
     `;
 }
 
 // ─── Экран «мой бизнес» ──────────────────────────────────────────────────────
 
-function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = [], taxLogs = []) {
+function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsedToday, uid, userName, workLogs = [], taxLogs = [], isAdmin = false) {
     const stage = getStage(biz.stage);
     const nextStage = stage.nextStage ? getStage(stage.nextStage) : null;
     const energyBars = renderEnergyBars(energy);
@@ -344,7 +354,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, energy, energyUsed
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins, taxLogs)}
+        ${bizWalletSection(coins, businessCoins, taxLogs, isAdmin)}
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>
