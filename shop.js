@@ -215,8 +215,10 @@ async function renderShop() {
     // Один обработчик для всех кнопок
     shopItems.querySelectorAll('.shop-btn:not([disabled])').forEach(btn => {
         btn.onclick = async () => {
+            if (btn.disabled) return;
+            btn.disabled = true;
             const item = SHOP_ITEMS.find(i => i.id === btn.dataset.itemId);
-            if (!item) return;
+            if (!item) { btn.disabled = false; return; }
 
             // Берём свежие данные перед покупкой
             const freshDoc      = await userRef.get();
@@ -231,6 +233,7 @@ async function renderShop() {
             if (!freshNext || freshLevel !== snapshotLevel
                 || freshCoins < freshNext.cost) {
                 animatePurchase(btn, false);
+                btn.disabled = false;
                 setTimeout(() => renderShop(), 1000);
                 return;
             }
@@ -272,8 +275,10 @@ async function renderShop() {
                     // Навешиваем обработчики на кнопки в новой карточке
                     newCard.querySelectorAll('.shop-btn:not([disabled])').forEach(b => {
                         b.onclick = async () => {
+                            if (b.disabled) return;
+                            b.disabled = true;
                             const clickedItem = SHOP_ITEMS.find(i => i.id === b.dataset.itemId);
-                            if (!clickedItem) return;
+                            if (!clickedItem) { b.disabled = false; return; }
                             const fd = await userRef.get();
                             const fdData = fd.data();
                             const fdLevel = fdData[clickedItem.id + 'Level'] || 0;
@@ -282,6 +287,7 @@ async function renderShop() {
                             const snapLevel = updatedData[clickedItem.id + 'Level'] || 0;
                             if (!fdNext || fdLevel !== snapLevel || fdCoins < fdNext.cost) {
                                 animatePurchase(b, false);
+                                b.disabled = false;
                                 setTimeout(() => renderShop(), 1000);
                                 return;
                             }

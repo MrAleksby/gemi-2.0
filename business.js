@@ -426,11 +426,12 @@ function renderEnergyBars(energy) {
 async function buyBusiness() {
     const user = firebase.auth().currentUser;
     if (!user) return;
+    const stage = BUSINESS_STAGES[0];
+    if (!confirm(`Открыть «${stage.name}» за ${stage.buyCost} монет из бизнес-кошелька?`)) return;
     const btn = document.querySelector('.biz-buy-btn');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Открываем...'; }
 
     try {
-        const stage = BUSINESS_STAGES[0];
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const snap = await userRef.get();
         const data = snap.data();
@@ -520,8 +521,6 @@ async function workInBusiness(bizId) {
 async function upgradeBusiness(bizId) {
     const user = firebase.auth().currentUser;
     if (!user) return;
-    const btn = document.querySelector('.biz-upgrade-btn');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
         const bizRef = firebase.firestore().collection('businesses').doc(bizId);
@@ -530,6 +529,10 @@ async function upgradeBusiness(bizId) {
         const currentStage = getStage(biz.stage);
         if (!currentStage.nextStage) { showBizMsg('❌ Уже максимальный уровень!'); return; }
         const nextStage = getStage(currentStage.nextStage);
+
+        if (!confirm(`Улучшить до «${nextStage.name}» за ${nextStage.upgradeCost} монет из бизнес-кошелька?`)) return;
+        const btn = document.querySelector('.biz-upgrade-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
         const userRef = firebase.firestore().collection('users').doc(user.uid);
         const userSnap = await userRef.get();
@@ -560,15 +563,23 @@ async function postVacancy(bizId) {
     if (btn) { btn.disabled = true; }
 
     try {
-        await firebase.firestore().collection('businesses').doc(bizId).update({
-            vacancyOpen: true,
-            vacancySalary: salary
-        });
-        // Добавляем в доску вакансий
-        const bizSnap = await firebase.firestore().collection('businesses').doc(bizId).get();
+        const db = firebase.firestore();
+        const bizRef = db.collection('businesses').doc(bizId);
+        const bizSnap = await bizRef.get();
         const biz = bizSnap.data();
         const stage = getStage(biz.stage);
-        await firebase.firestore().collection('job_board').doc(bizId).set({
+
+        // #8 — ограничение зарплаты: не больше дохода бизнеса
+        if (salary >= stage.incomePerEnergy) {
+            showBizMsg(`❌ Зарплата не может быть ≥ дохода бизнеса (${stage.incomePerEnergy} монет). Владелец должен зарабатывать!`);
+            if (btn) { btn.disabled = false; }
+            return;
+        }
+
+        // #6 — атомарный batch: оба шага или ни одного
+        const batch = db.batch();
+        batch.update(bizRef, { vacancyOpen: true, vacancySalary: salary });
+        batch.set(db.collection('job_board').doc(bizId), {
             bizId,
             ownerId: biz.ownerId,
             ownerName: biz.ownerName,
@@ -579,6 +590,7 @@ async function postVacancy(bizId) {
             incomePerEnergy: stage.incomePerEnergy,
             updatedAt: new Date()
         });
+        await batch.commit();
         showBizMsg('📢 Вакансия открыта! Игроки смогут откликнуться.');
         setTimeout(() => renderBusinessTab(), 900);
     } catch(e) {
@@ -856,38 +868,40 @@ async function bizWithdraw() {
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
-        const ref = firebase.firestore().collection('users').doc(user.uid);
-        const snap = await ref.get();
-        const freshBiz = snap.data().businessCoins || 0;
-        if (freshBiz < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`;
-            if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
-            return;
-        }
-        const tax = Math.max(1, Math.floor(amount * 0.01));
-        const received = amount - tax;
-        const db = firebase.firestore();
+        const db  = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
         const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-        const batch = db.batch();
-        batch.update(ref, {
-            businessCoins: firebase.firestore.FieldValue.increment(-amount),
-            coins: firebase.firestore.FieldValue.increment(received)
-        });
-        if (!adminSnap.empty) {
-            batch.update(adminSnap.docs[0].ref, {
-                businessCoins: firebase.firestore.FieldValue.increment(tax)
+        const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+        let userName = '';
+
+        await db.runTransaction(async (tx) => {
+            const snap     = await tx.get(ref);
+            const freshBiz = snap.data().businessCoins || 0;
+            userName = snap.data().name || '';
+            if (freshBiz < amount) throw new Error(`Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`);
+            const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+            const received = amount - tax;
+            tx.update(ref, {
+                businessCoins: firebase.firestore.FieldValue.increment(-amount),
+                coins:         firebase.firestore.FieldValue.increment(received)
             });
-            batch.set(db.collection('tax_log').doc(), {
-                userId: user.uid,
-                userName: snap.data().name || '',
-                amount: tax,
-                source: 'business',
+            if (adminRef && tax > 0) {
+                tx.update(adminRef, { businessCoins: firebase.firestore.FieldValue.increment(tax) });
+            }
+        });
+
+        const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+        const received = amount - tax;
+        if (adminRef && tax > 0) {
+            db.collection('tax_log').add({
+                userId: user.uid, userName,
+                amount: tax, source: 'business',
                 label: 'Налог на доходы пользователей',
                 timestamp: new Date()
-            });
+            }).catch(() => {});
         }
-        await batch.commit();
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${received} монет (налог 1%: ${tax})`; }
+        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }

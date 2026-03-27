@@ -309,7 +309,7 @@ async function renderCryptoExchange() {
                 <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
                     <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Введите сумму"
                         style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
-                    <button class="crypto-all-btn" onclick="document.getElementById('crypto-deposit-amount').value=${coins}"
+                    <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-deposit-amount');el.value=${coins};el.dispatchEvent(new Event('input'));})()"
                         style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
                 </div>
                 <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
@@ -318,7 +318,7 @@ async function renderCryptoExchange() {
                 <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
                     <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму"
                         style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
-                    <button class="crypto-all-btn" onclick="document.getElementById('crypto-withdraw-amount').value=${exchangeCoins}"
+                    <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()"
                         style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
                 </div>
                 <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
@@ -475,38 +475,40 @@ async function cryptoWithdraw() {
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
-        const ref  = firebase.firestore().collection('users').doc(user.uid);
-        const snap = await ref.get();
-        const freshEx = snap.data().exchangeCoins || 0;
-        if (freshEx < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`;
-            if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
-            return;
-        }
-        const tax = Math.max(1, Math.floor(amount * 0.01));
-        const received = amount - tax;
-        const db = firebase.firestore();
+        const db   = firebase.firestore();
+        const ref  = db.collection('users').doc(user.uid);
         const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-        const batch = db.batch();
-        batch.update(ref, {
-            exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
-            coins:         firebase.firestore.FieldValue.increment(received)
-        });
-        if (!adminSnap.empty) {
-            batch.update(adminSnap.docs[0].ref, {
-                businessCoins: firebase.firestore.FieldValue.increment(tax)
+        const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+        let userName = '';
+
+        await db.runTransaction(async (tx) => {
+            const snap    = await tx.get(ref);
+            const freshEx = snap.data().exchangeCoins || 0;
+            userName = snap.data().name || '';
+            if (freshEx < amount) throw new Error(`Недостаточно монет на бирже. У вас: ${freshEx}`);
+            const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+            const received = amount - tax;
+            tx.update(ref, {
+                exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
+                coins:         firebase.firestore.FieldValue.increment(received)
             });
-            batch.set(db.collection('tax_log').doc(), {
-                userId: user.uid,
-                userName: snap.data().name || '',
-                amount: tax,
-                source: 'exchange',
+            if (adminRef && tax > 0) {
+                tx.update(adminRef, { businessCoins: firebase.firestore.FieldValue.increment(tax) });
+            }
+        });
+
+        const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+        const received = amount - tax;
+        if (adminRef && tax > 0) {
+            db.collection('tax_log').add({
+                userId: user.uid, userName,
+                amount: tax, source: 'exchange',
                 label: 'Налог на доходы пользователей',
                 timestamp: new Date()
-            });
+            }).catch(() => {});
         }
-        await batch.commit();
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Выведено ${received} монет (налог 1%: ${tax})`; }
+        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         setTimeout(() => renderCryptoExchange(), 1000);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }

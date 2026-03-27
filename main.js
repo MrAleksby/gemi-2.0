@@ -810,7 +810,7 @@ async function showRating() {
     if (ratingCache && (now - ratingCacheTime) < 30000) {
         usersSnap = ratingCache;
     } else {
-        usersSnap = await db.collection('users').orderBy('points', 'desc').get();
+        usersSnap = await db.collection('users').orderBy('points', 'desc').limit(100).get();
         ratingCache = usersSnap;
         ratingCacheTime = now;
     }
