@@ -1157,6 +1157,8 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
     e.preventDefault();
     const msg = document.getElementById('score-request-msg');
     const submitBtn = document.getElementById('submit-score-btn');
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
     const games  = parseInt(document.getElementById('req-games').value)  || 0;
     const wins   = parseInt(document.getElementById('req-wins').value)   || 0;
     const cf     = parseInt(document.getElementById('req-cf').value)     || 0;
@@ -1167,12 +1169,14 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
     if (!games && !wins && !cf && !points && !coins) {
         msg.textContent = 'Заполните хотя бы одно поле!';
         msg.className = 'transfer-message error';
+        submitBtn.disabled = false;
         return;
     }
 
     if (games < 0 || wins < 0 || cf < 0 || points < 0 || coins < 0) {
         msg.textContent = 'Значения не могут быть отрицательными!';
         msg.className = 'transfer-message error';
+        submitBtn.disabled = false;
         return;
     }
 
@@ -1191,6 +1195,7 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
             msg.textContent = 'У вас уже есть счёт на рассмотрении!';
             msg.className = 'transfer-message error';
             setLoading(submitBtn, false);
+            submitBtn.disabled = false;
             return;
         }
 
