@@ -81,6 +81,30 @@ function stopCryptoPriceUpdates() {
     if (cryptoPriceInterval) { clearInterval(cryptoPriceInterval); cryptoPriceInterval = null; }
 }
 
+async function fetchAllPrices() {
+    await Promise.all(CRYPTO_ITEMS.map(async a => {
+        if (cryptoPrices[a.id] && Date.now() - cryptoPrices[a.id].fetchedAt < 5000) return;
+        const pd = await fetchAssetPrice(a);
+        if (pd) cryptoPrices[a.id] = { ...pd, fetchedAt: Date.now() };
+    }));
+}
+
+function _updateDropdownPrices() {
+    CRYPTO_ITEMS.forEach(a => {
+        const p = cryptoPrices[a.id];
+        if (!p) return;
+        const item = document.querySelector(`.asset-dropdown-item[onclick*="'${a.id}'"]`);
+        if (!item) return;
+        const priceEl = item.querySelector('.asset-dd-price');
+        const chgEl   = item.querySelector('.asset-dd-chg');
+        if (priceEl) priceEl.textContent = `$${p.price.toLocaleString('en-US', {maximumFractionDigits: 2})}`;
+        if (chgEl) {
+            chgEl.textContent = `${p.change24h >= 0 ? '+' : ''}${p.change24h.toFixed(2)}%`;
+            chgEl.style.color = p.change24h >= 0 ? '#27ae60' : '#e53935';
+        }
+    });
+}
+
 function startCryptoPriceUpdates() {
     stopCryptoPriceUpdates();
     const asset = getAsset(currentCryptoAsset);
@@ -116,6 +140,7 @@ function toggleAssetDropdown() {
     if (!list) return;
     const isOpen = list.classList.toggle('open');
     if (isOpen) {
+        fetchAllPrices().then(_updateDropdownPrices);
         setTimeout(() => {
             document.addEventListener('click', _closeAssetDropdown, { once: true });
         }, 0);
