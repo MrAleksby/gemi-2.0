@@ -111,6 +111,28 @@ function switchAsset(id) {
     renderCryptoExchange();
 }
 
+function toggleAssetDropdown() {
+    const list = document.getElementById('asset-dropdown-list');
+    if (!list) return;
+    const isOpen = list.classList.toggle('open');
+    if (isOpen) {
+        setTimeout(() => {
+            document.addEventListener('click', _closeAssetDropdown, { once: true });
+        }, 0);
+    }
+}
+
+function _closeAssetDropdown(e) {
+    const wrap = document.getElementById('asset-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        const list = document.getElementById('asset-dropdown-list');
+        if (list) list.classList.remove('open');
+    } else if (wrap && wrap.contains(e.target)) {
+        // клик внутри — оставляем слушатель
+        document.addEventListener('click', _closeAssetDropdown, { once: true });
+    }
+}
+
 // ─── Главная функция рендера ───────────────────────────────────────────────────
 
 async function renderCryptoExchange() {
@@ -153,14 +175,38 @@ async function renderCryptoExchange() {
 
     cryptoPrices[asset.id] = { ...priceData, fetchedAt: Date.now() };
 
-    // ─── Вкладки активов ─────────────────────────────────────────────────────
-    const assetTabsHtml = CRYPTO_ITEMS.map(a => `
-        <button class="asset-tab-btn ${a.id === currentCryptoAsset ? 'active' : ''}"
-                style="${a.id === currentCryptoAsset ? `border-color:${a.color};color:${a.color};` : ''}"
-                onclick="switchAsset('${a.id}')">
-            ${a.icon} ${a.symbol}
-        </button>
-    `).join('');
+    // ─── Дропдаун выбора актива ──────────────────────────────────────────────
+    const assetDropdownItems = CRYPTO_ITEMS.map(a => {
+        const p = cryptoPrices[a.id];
+        const priceStr = p ? `$${p.price.toLocaleString('en-US', {maximumFractionDigits: 2})}` : '—';
+        const chg = p ? p.change24h : null;
+        const chgStr = chg !== null ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '';
+        const chgColor = chg !== null ? (chg >= 0 ? '#27ae60' : '#e53935') : '#888';
+        const isActive = a.id === currentCryptoAsset;
+        return `
+        <div class="asset-dropdown-item ${isActive ? 'active' : ''}"
+             onclick="switchAsset('${a.id}'); toggleAssetDropdown()"
+             style="${isActive ? `border-left: 3px solid ${a.color};` : ''}">
+            <span class="asset-dd-icon" style="color:${a.color}">${a.icon}</span>
+            <span class="asset-dd-name">${a.symbol} <span style="font-weight:400;color:#888;font-size:0.82em">${a.name}</span></span>
+            <span class="asset-dd-price">${priceStr}</span>
+            <span class="asset-dd-chg" style="color:${chgColor}">${chgStr}</span>
+        </div>`;
+    }).join('');
+
+    const assetTabsHtml = `
+        <div class="asset-dropdown-wrap" id="asset-dropdown-wrap">
+            <button class="asset-dropdown-btn" onclick="toggleAssetDropdown()" style="border-color:${asset.color}">
+                <span style="color:${asset.color};font-size:1.15em">${asset.icon}</span>
+                <span style="font-weight:700">${asset.symbol}</span>
+                <span style="color:#888;font-size:0.85em">${asset.name}</span>
+                <span class="asset-dd-chevron">▾</span>
+            </button>
+            <div class="asset-dropdown-list" id="asset-dropdown-list">
+                ${assetDropdownItems}
+            </div>
+        </div>
+    `;
 
     // ─── ADMIN VIEW ───────────────────────────────────────────────────────────
     if (isAdmin) {
@@ -189,7 +235,7 @@ async function renderCryptoExchange() {
         }
 
         content.innerHTML = `
-            <div class="asset-tabs">${assetTabsHtml}</div>
+            ${assetTabsHtml}
 
             <div class="crypto-card">
                 <div class="crypto-header">
