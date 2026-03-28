@@ -879,8 +879,8 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
     const exchangeBtn = e.target.querySelector('button[type="submit"]');
     const amt = parseInt(document.getElementById('exchange-cf-amount').value) || 0;
 
-    if (amt < 50) {
-        msg.textContent = 'Минимальный обмен: 50 CF!';
+    if (amt < 1) {
+        msg.textContent = 'Минимальный обмен: 1 CF!';
         msg.className = 'transfer-message error';
         return;
     }
