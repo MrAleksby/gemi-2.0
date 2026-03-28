@@ -7,7 +7,9 @@ const CRYPTO_ITEMS = [
     { id: 'ton',  name: 'Toncoin',  symbol: 'TON',  icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT'  },
     { id: 'eth',  name: 'Ethereum', symbol: 'ETH',  icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT'  },
     { id: 'paxg', name: 'Золото',   symbol: 'PAXG', icon: '🥇', color: '#d4a017', type: 'crypto', binance: 'PAXGUSDT' },
-    { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT', futures: true },
+    { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT',  futures: true },
+    { id: 'tsla', name: 'Tesla',    symbol: 'TSLA', icon: '🚗', color: '#cc0000', type: 'crypto', binance: 'TSLAUSDT', futures: true },
+    { id: 'meta', name: 'Meta',     symbol: 'META', icon: '🌐', color: '#0082fb', type: 'crypto', binance: 'METAUSDT', futures: true },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }

@@ -329,6 +329,28 @@ function showRandomQuote() {
 
 // ─── KD детали ────────────────────────────────────────────────────────────────
 
+function showLevelDetails(lvl) {
+    const title = getLevelTitle(lvl);
+    const desc = getLevelDescription(lvl);
+    const color = getLevelColor(lvl);
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup';
+    popup.innerHTML = `
+        <div class="popup-title" style="color:${color};">${title}</div>
+        <div class="popup-row"><span>Уровень:</span><strong>${lvl}</strong></div>
+        <div class="popup-row"><span>Ранг:</span><strong>${desc}</strong></div>
+        <div class="popup-hint">Кликните для закрытия</div>
+    `;
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    popup.onclick = close;
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+    setTimeout(close, 5000);
+}
+
 function showKDDetails(wins, games) {
     const kd = games > 0 ? (wins / games).toFixed(2) : '0.00';
     const overlay = document.createElement('div');
@@ -830,7 +852,7 @@ async function showRating() {
         tr.innerHTML = `
             <td>${place++}</td>
             <td>${data.name}</td>
-            <td style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;">${lvlIcon} ${lvl}</td>
+            <td onclick="showLevelDetails(${lvl})" style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;cursor:pointer;">${lvlIcon} ${lvl}</td>
             <td>${data.points}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
         `;
