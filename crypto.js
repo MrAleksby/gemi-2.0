@@ -187,7 +187,7 @@ async function renderCryptoExchange() {
     const isAdmin      = userData.isAdmin === true;
     const userLevel    = typeof getLevelByPoints === 'function'
         ? Math.max(1, getLevelByPoints(userData.points || 0)) : (currentUserLevel || 1);
-    const canTrade     = isAdmin || userLevel >= 5;
+    const canTrade     = true;
 
     const { amount: holding, avgPrice: avgBuyPrice } = assetHoldings(userData, asset.id);
 

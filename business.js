@@ -263,7 +263,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
 
     const stage = BUSINESS_STAGES[0];
     const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
-    const canBuy = businessCoins >= stage.buyCost && userLvl >= 5;
+    const canBuy = businessCoins >= stage.buyCost;
 
     content.innerHTML = `
         <div class="biz-welcome">
@@ -289,7 +289,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
                         : ''}
             </div>
             <button class="biz-buy-btn" onclick="buyBusiness()" ${canBuy ? '' : 'disabled'}>
-                ${userLvl < 5 ? '🔒 Нужен уровень 5 (Пикачу)' : canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
+                ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
             </button>
         </div>
 
@@ -497,7 +497,6 @@ async function buyBusiness() {
         const snap = await userRef.get();
         const data = snap.data();
         const lvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
-        if (lvl < 5) { showBizMsg('🔒 Нужен уровень 5 (Пикачу)!'); if (btn) { btn.disabled = false; btn.textContent = '🔒 Нужен уровень 5'; } return; }
         if ((data.businessCoins || 0) < stage.buyCost) {
             showBizMsg(`❌ Нужно ${stage.buyCost} монет в бизнес-кошельке. Сначала пополни его!`);
             if (btn) { btn.disabled = false; btn.textContent = '🔒 Пополни бизнес-кошелёк'; } return;
