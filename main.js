@@ -1412,15 +1412,17 @@ async function showCFHolders() {
     document.body.appendChild(popup);
 
     try {
-        const snap = await db.collection('users').orderBy('points', 'desc').get();
+        const snap = await db.collection('users').get();
+        // сортируем по points клиентски, чтобы получить место в рейтинге
+        const allUsers = snap.docs
+            .map(doc => doc.data())
+            .filter(d => !d.isAdmin && d.name && d.name.trim() !== '')
+            .sort((a, b) => (b.points || 0) - (a.points || 0));
+
         const holders = [];
-        let rank = 1;
-        snap.docs.forEach(doc => {
-            const d = doc.data();
-            if (d.isAdmin || !d.name || d.name.trim() === '') return;
+        allUsers.forEach((d, i) => {
             const cf = d.cf || 0;
-            if (cf > 0) holders.push({ name: d.name, cf, rank });
-            rank++;
+            if (cf > 0) holders.push({ name: d.name, cf, rank: i + 1 });
         });
 
         if (holders.length === 0) {
