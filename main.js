@@ -1399,6 +1399,60 @@ async function loadAdminFinanceStats() {
     }
 }
 
+async function showCFHolders() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup';
+    popup.style.cssText = 'max-width:340px;width:92%;max-height:70vh;overflow-y:auto;';
+    popup.innerHTML = `<div class="popup-title">💸 CF у игроков</div><div style="text-align:center;color:#aaa;font-size:0.9em;">Загрузка...</div>`;
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+
+    try {
+        const snap = await db.collection('users').orderBy('points', 'desc').get();
+        const holders = [];
+        let rank = 1;
+        snap.docs.forEach(doc => {
+            const d = doc.data();
+            if (d.isAdmin || !d.name || d.name.trim() === '') return;
+            const cf = d.cf || 0;
+            if (cf > 0) holders.push({ name: d.name, cf, rank });
+            rank++;
+        });
+
+        if (holders.length === 0) {
+            popup.innerHTML = `<div class="popup-title">💸 CF у игроков</div><div style="text-align:center;color:#aaa;padding:12px;">Никто не держит CF</div><div class="popup-hint">Кликните для закрытия</div>`;
+            popup.onclick = close;
+            return;
+        }
+
+        holders.sort((a, b) => b.cf - a.cf);
+
+        const rows = holders.map(h => `
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0e8d8;">
+                <span style="min-width:28px;font-weight:700;color:#aaa;font-size:0.85em;">#${h.rank}</span>
+                <span style="flex:1;font-weight:600;font-size:0.93em;">${h.name}</span>
+                <span style="font-weight:700;color:#e8956d;white-space:nowrap;">
+                    <img src="logo2.jpg" style="width:14px;height:14px;vertical-align:middle;border-radius:50%;margin-right:2px;">${h.cf.toFixed(2)} CF
+                </span>
+            </div>`).join('');
+
+        popup.innerHTML = `
+            <div class="popup-title">💸 CF у игроков</div>
+            <div style="font-size:0.8em;color:#aaa;text-align:center;margin-bottom:10px;">Сортировка по количеству CF</div>
+            ${rows}
+            <div class="popup-hint" style="margin-top:10px;">Кликните для закрытия</div>
+        `;
+        popup.onclick = close;
+    } catch(e) {
+        popup.innerHTML = `<div class="popup-title">💸 CF у игроков</div><div style="color:#e53935;text-align:center;">Ошибка загрузки</div><div class="popup-hint">Кликните для закрытия</div>`;
+        popup.onclick = close;
+    }
+}
+
 async function loadUsersList() {
     const usersSnap = await db.collection('users').get();
     const usersList = document.getElementById('users-list');
