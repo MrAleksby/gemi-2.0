@@ -191,8 +191,8 @@ async function renderShop() {
     const charLevel = data.level || 1;
     const coins     = data.coins || 0;
 
-    // Магазин заблокирован до 5 уровня
-    if (charLevel < 5) {
+    // Магазин заблокирован до 5 уровня (кроме администратора)
+    if (charLevel < 5 && !data.isAdmin) {
         shopItems.innerHTML = `
             <div class="shop-locked-message">
                 <div class="lock-icon">🔒</div>
