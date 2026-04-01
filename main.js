@@ -1094,10 +1094,6 @@ function setupPendingRegistrationsListener() {
                         <button class="btn-approve-reg" data-uid="${doc.id}">✅ Подтвердить</button>
                         <button class="btn-reject-reg"  data-uid="${doc.id}">❌ Отклонить</button>
                     </div>
-                    <div class="pending-reject-row" style="display:none;">
-                        <input class="pending-reject-input" type="text" placeholder="Причина отклонения">
-                        <button class="btn-reject-confirm" data-uid="${doc.id}">Отправить отказ</button>
-                    </div>
                 </div>`;
             }).join('');
 
@@ -1112,19 +1108,13 @@ function setupPendingRegistrationsListener() {
             });
 
             container.querySelectorAll('.btn-reject-reg').forEach(btn => {
-                btn.onclick = () => {
-                    const card = container.querySelector(`.pending-reg-card[data-uid="${btn.dataset.uid}"]`);
-                    card.querySelector('.pending-reject-row').style.display = '';
-                    btn.style.display = 'none';
-                };
-            });
-
-            container.querySelectorAll('.btn-reject-confirm').forEach(btn => {
                 btn.onclick = async () => {
-                    const uid    = btn.dataset.uid;
-                    const card   = container.querySelector(`.pending-reg-card[data-uid="${uid}"]`);
-                    const reason = card.querySelector('.pending-reject-input').value.trim() || 'Заявка отклонена тренером';
-                    await db.collection('users').doc(uid).update({ status: 'rejected', rejectReason: reason });
+                    const reason = prompt('Причина отклонения:', 'Заявка отклонена тренером');
+                    if (reason === null) return;
+                    await db.collection('users').doc(btn.dataset.uid).update({
+                        status: 'rejected',
+                        rejectReason: reason.trim() || 'Заявка отклонена тренером'
+                    });
                 };
             });
         });
