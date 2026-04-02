@@ -262,15 +262,21 @@ async function renderCryptoExchange() {
         content.innerHTML = `
             ${assetTabsHtml}
 
-            <div class="crypto-card">
-                <div class="crypto-header">
-                    <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
-                    <div>
-                        <div class="crypto-name">${asset.name} (${asset.symbol})</div>
-                        <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
-                        <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+            <div style="display:flex;gap:8px;align-items:stretch;">
+                <div class="crypto-card" style="flex:1;margin:0;">
+                    <div class="crypto-header">
+                        <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
+                        <div>
+                            <div class="crypto-name">${asset.name} (${asset.symbol})</div>
+                            <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
+                            <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+                        </div>
                     </div>
                 </div>
+                <button onclick="showInvestorStats()" style="flex-shrink:0;width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                    <span style="font-size:1.4em;">🏆</span>
+                    <span>Рейтинг инвесторов</span>
+                </button>
             </div>
 
             <div class="crypto-admin-commission">
@@ -278,10 +284,6 @@ async function renderCryptoExchange() {
                 <div style="font-size:1.3em; font-weight:700; color:#f7931a; margin-bottom:12px;">${exchangeCoins.toLocaleString('ru-RU')} монет</div>
                 <div style="font-size:0.85em; color:#888; margin-bottom:10px;">💰 Основной счёт: ${coins.toLocaleString('ru-RU')} монет</div>
                 <button class="crypto-confirm-btn buy" style="margin-bottom:0;" onclick="adminWithdrawCommission()">💸 Вывести на основной счёт</button>
-            </div>
-
-            <div style="margin-top:12px;">
-                <button class="crypto-confirm-btn" style="background:#1565c0;margin-bottom:0;" onclick="showInvestorStats()">📊 Доходность инвесторов</button>
             </div>
 
             <div style="margin-top:16px;">
