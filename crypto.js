@@ -378,6 +378,8 @@ async function renderCryptoExchange() {
             <span class="crypto-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
         </div>
 
+        <button onclick="showInvestorStats()" style="width:100%;padding:10px;margin:8px 0 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:600;cursor:pointer;">🏆 Рейтинг инвесторов</button>
+
         <div class="crypto-wallet-section">
             <button class="crypto-wallet-toggle" onclick="toggleCryptoWallet()">💼 Управление кошельком ▼</button>
             <div class="crypto-wallet-forms" id="crypto-wallet-forms" style="display:none;">
