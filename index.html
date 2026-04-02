@@ -244,6 +244,17 @@
 
         <hr class="section-divider">
 
+        <!-- Список игроков -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 class="section-title" style="color:#2e7d32;margin:0;">👥 Список игроков</h3>
+            <button onclick="loadPlayersList()" style="font-size:0.8em;padding:4px 10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;cursor:pointer;">🔄 Обновить</button>
+        </div>
+        <div id="players-list-container" class="requests-list">
+            <p class="empty-hint">Загрузка...</p>
+        </div>
+
+        <hr class="section-divider">
+
         <!-- Входящие счета -->
         <h3 class="section-title requests-title">📥 Входящие счета</h3>
         <div id="score-requests-list" class="requests-list">

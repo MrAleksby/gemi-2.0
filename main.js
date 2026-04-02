@@ -559,6 +559,7 @@ auth.onAuthStateChanged(async (user) => {
             loadTaxLog();
             setupAdminRequestsListener();
             setupPendingRegistrationsListener();
+            loadPlayersList();
         } else {
             adminSection.style.display = 'none';
             loadPlayerHistory(currentUser);
@@ -1466,6 +1467,35 @@ async function loadUsersList() {
 
 function updateUsersList() {
     if (adminSection && adminSection.style.display !== 'none') loadUsersList();
+}
+
+async function loadPlayersList() {
+    const container = document.getElementById('players-list-container');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-hint">Загрузка...</p>';
+    const snap = await db.collection('users').orderBy('name').get();
+    const players = snap.docs.filter(doc => {
+        const d = doc.data();
+        return !d.isAdmin && d.name && d.name.trim();
+    });
+    if (!players.length) { container.innerHTML = '<p class="empty-hint">Нет игроков</p>'; return; }
+    container.innerHTML = players.map(doc => {
+        const d = doc.data();
+        return `<div class="players-list-row" data-uid="${doc.id}">
+            <span class="players-list-name">${d.name}</span>
+            <button class="btn-edit-name" data-uid="${doc.id}" data-name="${d.name}">✏️</button>
+        </div>`;
+    }).join('');
+    container.querySelectorAll('.btn-edit-name').forEach(btn => {
+        btn.onclick = async () => {
+            const newName = prompt('Новое имя:', btn.dataset.name);
+            if (!newName || newName.trim() === btn.dataset.name) return;
+            await db.collection('users').doc(btn.dataset.uid).update({ name: newName.trim() });
+            btn.dataset.name = newName.trim();
+            btn.closest('.players-list-row').querySelector('.players-list-name').textContent = newName.trim();
+            loadUsersList();
+        };
+    });
 }
 
 // ─── Рендер транзакции ────────────────────────────────────────────────────────

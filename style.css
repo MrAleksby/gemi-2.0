@@ -2526,6 +2526,28 @@ th {
 #profile-card { padding-bottom: 80px; }
 #admin-section { padding-bottom: 80px; }
 
+/* ─── Список игроков (редактирование имён) ─────────────────────────────────── */
+.players-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.players-list-row:last-child { border-bottom: none; }
+.players-list-name { font-size: 0.95em; color: #222; }
+.btn-edit-name {
+    background: none;
+    border: none;
+    font-size: 1.1em;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.btn-edit-name:hover { opacity: 1; background: #f5f5f5; }
+
 /* ─── Карточки заявок на регистрацию ──────────────────────────────────────── */
 .pending-reg-card {
     background: #fff;
