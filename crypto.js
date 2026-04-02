@@ -772,47 +772,63 @@ async function showInvestorStats() {
     overlay.className = 'modal-overlay';
     const popup = document.createElement('div');
     popup.className = 'info-popup';
-    popup.style.cssText = 'max-width:340px;width:92%;max-height:70vh;overflow-y:auto;';
-    popup.innerHTML = `<div class="popup-title">📊 Доходность инвесторов</div><div style="text-align:center;color:#aaa;">Загрузка...</div>`;
+    popup.style.cssText = 'max-width:360px;width:94%;max-height:75vh;overflow-y:auto;padding:0;border-radius:18px;';
+    popup.innerHTML = `<div style="padding:18px 16px 8px;text-align:center;font-size:1.1em;font-weight:700;">🏆 Рейтинг инвесторов</div><div style="text-align:center;color:#aaa;padding:12px;">Загрузка...</div>`;
     const close = () => { overlay.remove(); popup.remove(); };
     overlay.onclick = close;
+    popup.onclick = close;
     document.body.appendChild(overlay);
     document.body.appendChild(popup);
 
     try {
+        const currentUser = firebase.auth().currentUser;
         const snap = await firebase.firestore().collection('users').get();
-        const players = snap.docs
-            .map(doc => doc.data())
+        const allPlayers = snap.docs
+            .map(doc => ({ uid: doc.id, ...doc.data() }))
             .filter(d => !d.isAdmin && d.name && d.name.trim() && (d.totalPnl || 0) !== 0)
             .sort((a, b) => (b.totalPnl || 0) - (a.totalPnl || 0));
 
-        if (!players.length) {
-            popup.innerHTML = `<div class="popup-title">📊 Доходность инвесторов</div><div style="text-align:center;color:#aaa;padding:12px;">Никто ещё не торговал</div><div class="popup-hint">Кликните для закрытия</div>`;
-            popup.onclick = close;
+        if (!allPlayers.length) {
+            popup.innerHTML = `<div style="padding:18px 16px 8px;text-align:center;font-size:1.1em;font-weight:700;">🏆 Рейтинг инвесторов</div><div style="text-align:center;color:#aaa;padding:16px;">Никто ещё не торговал</div><div class="popup-hint">Кликните для закрытия</div>`;
             return;
         }
 
-        const pos = players.filter(d => (d.totalPnl || 0) > 0).length;
-        const neg = players.length - pos;
+        const pos = allPlayers.filter(d => (d.totalPnl || 0) > 0).length;
+        const neg = allPlayers.length - pos;
+        const medals = ['🥇', '🥈', '🥉'];
 
-        const rows = players.map(d => {
-            const pnl   = d.totalPnl || 0;
-            const color = pnl >= 0 ? '#2e7d32' : '#c62828';
-            const sign  = pnl >= 0 ? '+' : '';
-            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f0f0;">
-                <span style="flex:1;font-weight:600;font-size:0.93em;">${d.name}</span>
-                <span style="font-weight:700;color:${color};white-space:nowrap;">${sign}${pnl.toFixed(2)} 💰</span>
-            </div>`;
+        const rows = allPlayers.map((d, i) => {
+            const pnl      = d.totalPnl || 0;
+            const isMe     = currentUser && d.uid === currentUser.uid;
+            const pnlColor = pnl >= 0 ? '#2e7d32' : '#c62828';
+            const pnlSign  = pnl >= 0 ? '+' : '';
+            const place    = i < 3 ? medals[i] : `<span style="color:#aaa;font-size:0.85em;">${i + 1}</span>`;
+            const rowBg    = isMe ? 'background:#fffde7;' : (i % 2 === 0 ? '' : 'background:#fafafa;');
+            const nameBold = isMe ? 'font-weight:700;color:#1565c0;' : 'font-weight:500;';
+            return `<tr style="${rowBg}">
+                <td style="text-align:center;padding:9px 6px;width:32px;">${place}</td>
+                <td style="padding:9px 6px;${nameBold}">${d.name}${isMe ? ' 👤' : ''}</td>
+                <td style="text-align:right;padding:9px 10px 9px 6px;font-weight:700;color:${pnlColor};white-space:nowrap;">${pnlSign}${pnl.toFixed(2)} 💰</td>
+            </tr>`;
         }).join('');
 
         popup.innerHTML = `
-            <div class="popup-title">📊 Доходность инвесторов</div>
-            <div style="font-size:0.82em;color:#aaa;text-align:center;margin-bottom:10px;">✅ ${pos} в плюсе · ❌ ${neg} в минусе</div>
-            ${rows}
-            <div class="popup-hint" style="margin-top:10px;">Кликните для закрытия</div>`;
-        popup.onclick = close;
+            <div style="padding:18px 16px 10px;text-align:center;">
+                <div style="font-size:1.1em;font-weight:700;margin-bottom:4px;">🏆 Рейтинг инвесторов</div>
+                <div style="font-size:0.8em;color:#aaa;">✅ ${pos} в плюсе &nbsp;·&nbsp; ❌ ${neg} в минусе</div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:0.92em;">
+                <thead>
+                    <tr style="background:#f5f5f5;color:#888;font-size:0.8em;">
+                        <th style="padding:6px;text-align:center;">#</th>
+                        <th style="padding:6px;text-align:left;">Игрок</th>
+                        <th style="padding:6px;text-align:right;padding-right:10px;">PnL</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="popup-hint" style="padding:10px;text-align:center;">Кликните для закрытия</div>`;
     } catch(e) {
-        popup.innerHTML = `<div class="popup-title">📊 Доходность</div><div style="color:#e53935;text-align:center;">Ошибка загрузки</div><div class="popup-hint">Кликните для закрытия</div>`;
-        popup.onclick = close;
+        popup.innerHTML = `<div style="padding:18px;text-align:center;color:#e53935;">Ошибка загрузки</div><div class="popup-hint">Кликните для закрытия</div>`;
     }
 }
