@@ -1110,12 +1110,14 @@ function setupPendingRegistrationsListener() {
 
             container.querySelectorAll('.btn-reject-reg').forEach(btn => {
                 btn.onclick = async () => {
-                    const reason = prompt('Причина отклонения:', 'Заявка отклонена тренером');
-                    if (reason === null) return;
-                    await db.collection('users').doc(btn.dataset.uid).update({
-                        status: 'rejected',
-                        rejectReason: reason.trim() || 'Заявка отклонена тренером'
-                    });
+                    if (!confirm('Отклонить заявку и удалить данные игрока?')) return;
+                    const uid = btn.dataset.uid;
+                    const userDoc = await db.collection('users').doc(uid).get();
+                    const phone = userDoc.data()?.phone;
+                    const batch = db.batch();
+                    batch.delete(db.collection('users').doc(uid));
+                    if (phone) batch.delete(db.collection('usernames').doc(phone));
+                    await batch.commit();
                 };
             });
         });
