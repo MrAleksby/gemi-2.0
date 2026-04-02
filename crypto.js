@@ -353,10 +353,36 @@ async function renderCryptoExchange() {
                     </div>
                 </div>
             </div>
-            <button onclick="showInvestorStats()" style="flex-shrink:0;width:80px;padding:8px 6px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.78em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+            <button onclick="showInvestorStats()" style="flex-shrink:0;width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
                 <span style="font-size:1.4em;">🏆</span>
                 <span>Рейтинг инвесторов</span>
             </button>
+            <button onclick="toggleCryptoWallet()" style="flex-shrink:0;width:72px;padding:8px 4px;background:linear-gradient(135deg,#e65100,#f57c00);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                <span style="font-size:1.4em;">💼</span>
+                <span>Управление кошельком</span>
+            </button>
+        </div>
+
+        <div class="crypto-wallet-forms" id="crypto-wallet-forms" style="display:none;background:#fff8f0;border:1px solid #ffe0b2;border-radius:14px;padding:14px;margin-top:4px;">
+            <div style="font-size:0.85em; color:#888; margin-bottom:4px;">Пополнить биржу (из основного кошелька):</div>
+            <div style="font-size:0.8em; color:#27ae60; margin-bottom:6px;">Доступно: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Введите сумму"
+                    style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
+                <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-deposit-amount');el.value=${coins};el.dispatchEvent(new Event('input'));})()"
+                    style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
+            </div>
+            <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
+            <div style="font-size:0.85em; color:#888; margin-bottom:4px; margin-top:12px;">Вывести с биржи (на основной кошелёк):</div>
+            <div style="font-size:0.8em; color:#f7931a; margin-bottom:6px;">Доступно: <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b></div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+                <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму"
+                    style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
+                <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()"
+                    style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
+            </div>
+            <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
+            <div id="crypto-wallet-msg" style="font-size:0.85em; margin-top:6px;"></div>
         </div>
 
         <div class="crypto-portfolio">
@@ -384,30 +410,6 @@ async function renderCryptoExchange() {
             <span class="crypto-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
         </div>
 
-        <div class="crypto-wallet-section">
-            <button class="crypto-wallet-toggle" onclick="toggleCryptoWallet()">💼 Управление кошельком ▼</button>
-            <div class="crypto-wallet-forms" id="crypto-wallet-forms" style="display:none;">
-                <div style="font-size:0.85em; color:#888; margin-bottom:4px;">Пополнить биржу (из основного кошелька):</div>
-                <div style="font-size:0.8em; color:#27ae60; margin-bottom:6px;">Доступно: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
-                <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                    <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Введите сумму"
-                        style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
-                    <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-deposit-amount');el.value=${coins};el.dispatchEvent(new Event('input'));})()"
-                        style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
-                </div>
-                <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
-                <div style="font-size:0.85em; color:#888; margin-bottom:4px; margin-top:12px;">Вывести с биржи (на основной кошелёк):</div>
-                <div style="font-size:0.8em; color:#f7931a; margin-bottom:6px;">Доступно: <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b></div>
-                <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                    <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму"
-                        style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
-                    <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()"
-                        style="width:auto !important; flex-shrink:0; white-space:nowrap; padding:10px 14px; margin-top:0;">Макс</button>
-                </div>
-                <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
-                <div id="crypto-wallet-msg" style="font-size:0.85em; margin-top:6px;"></div>
-            </div>
-        </div>
 
         ${!canTrade ? `
         <div class="crypto-level-lock">
