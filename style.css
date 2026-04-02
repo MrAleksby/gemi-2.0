@@ -2528,25 +2528,45 @@ th {
 
 /* ─── Список игроков (редактирование имён) ─────────────────────────────────── */
 .players-list-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     padding: 8px 12px;
     border-bottom: 1px solid #f0f0f0;
 }
 .players-list-row:last-child { border-bottom: none; }
+.players-list-view {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+.players-list-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 4px;
+}
 .players-list-name { font-size: 0.95em; color: #222; }
-.btn-edit-name {
+.edit-firstname, .edit-lastname {
+    flex: 1;
+    min-width: 80px;
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+.btn-edit-name, .btn-save-name, .btn-cancel-name {
     background: none;
     border: none;
-    font-size: 1.1em;
+    font-size: 1.05em;
     cursor: pointer;
     padding: 2px 6px;
     border-radius: 6px;
-    opacity: 0.6;
+    opacity: 0.7;
     transition: opacity 0.15s;
 }
-.btn-edit-name:hover { opacity: 1; background: #f5f5f5; }
+.btn-edit-name:hover, .btn-save-name:hover, .btn-cancel-name:hover { opacity: 1; background: #f5f5f5; }
 
 /* ─── Карточки заявок на регистрацию ──────────────────────────────────────── */
 .pending-reg-card {

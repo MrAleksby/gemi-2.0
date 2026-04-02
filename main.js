@@ -1494,20 +1494,67 @@ async function loadPlayersList() {
         return !d.isAdmin && d.name && d.name.trim();
     });
     if (!players.length) { container.innerHTML = '<p class="empty-hint">Нет игроков</p>'; return; }
+
+    const ruOnly = /^[а-яёА-ЯЁ\s\-]+$/;
+
     container.innerHTML = players.map(doc => {
         const d = doc.data();
+        const parts = d.name.trim().split(' ');
+        const first = parts[0] || '';
+        const last  = parts.slice(1).join(' ') || '';
         return `<div class="players-list-row" data-uid="${doc.id}">
-            <span class="players-list-name">${d.name}</span>
-            <button class="btn-edit-name" data-uid="${doc.id}" data-name="${d.name}">✏️</button>
+            <div class="players-list-view">
+                <span class="players-list-name">${d.name}</span>
+                <button class="btn-edit-name" data-uid="${doc.id}">✏️</button>
+            </div>
+            <div class="players-list-edit" style="display:none;">
+                <input class="edit-firstname" type="text" value="${first}" placeholder="Имя">
+                <input class="edit-lastname"  type="text" value="${last}"  placeholder="Фамилия">
+                <button class="btn-save-name">✅</button>
+                <button class="btn-cancel-name">✖</button>
+                <span class="edit-name-error" style="color:#e53935;font-size:0.8em;display:none;"></span>
+            </div>
         </div>`;
     }).join('');
+
     container.querySelectorAll('.btn-edit-name').forEach(btn => {
+        btn.onclick = () => {
+            const row = btn.closest('.players-list-row');
+            row.querySelector('.players-list-view').style.display = 'none';
+            row.querySelector('.players-list-edit').style.display = 'flex';
+            row.querySelector('.edit-firstname').focus();
+        };
+    });
+
+    container.querySelectorAll('.btn-cancel-name').forEach(btn => {
+        btn.onclick = () => {
+            const row = btn.closest('.players-list-row');
+            row.querySelector('.players-list-view').style.display = '';
+            row.querySelector('.players-list-edit').style.display = 'none';
+        };
+    });
+
+    container.querySelectorAll('.btn-save-name').forEach(btn => {
         btn.onclick = async () => {
-            const newName = prompt('Новое имя:', btn.dataset.name);
-            if (!newName || newName.trim() === btn.dataset.name) return;
-            await db.collection('users').doc(btn.dataset.uid).update({ name: newName.trim() });
-            btn.dataset.name = newName.trim();
-            btn.closest('.players-list-row').querySelector('.players-list-name').textContent = newName.trim();
+            const row       = btn.closest('.players-list-row');
+            const uid       = row.dataset.uid;
+            const first     = row.querySelector('.edit-firstname').value.trim();
+            const last      = row.querySelector('.edit-lastname').value.trim();
+            const errEl     = row.querySelector('.edit-name-error');
+            const showErr   = msg => { errEl.textContent = msg; errEl.style.display = ''; };
+
+            if (!first) return showErr('Введите имя');
+            if (!ruOnly.test(first)) return showErr('Имя — только русские буквы');
+            if (!last) return showErr('Введите фамилию');
+            if (!ruOnly.test(last)) return showErr('Фамилия — только русские буквы');
+
+            const fullname = `${first} ${last}`;
+            btn.disabled = true;
+            await db.collection('users').doc(uid).update({ name: fullname });
+            row.querySelector('.players-list-name').textContent = fullname;
+            row.querySelector('.players-list-view').style.display = '';
+            row.querySelector('.players-list-edit').style.display = 'none';
+            btn.disabled = false;
             loadUsersList();
         };
     });
