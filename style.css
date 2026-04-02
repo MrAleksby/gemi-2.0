@@ -2527,6 +2527,10 @@ th {
 #admin-section { padding-bottom: 80px; }
 
 /* ─── Список игроков (редактирование имён) ─────────────────────────────────── */
+#players-list-container {
+    max-height: 320px;
+    overflow-y: auto;
+}
 .players-list-row {
     flex-direction: column;
     padding: 8px 12px;

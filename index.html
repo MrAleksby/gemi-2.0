@@ -250,6 +250,7 @@
             <h3 class="section-title" style="color:#2e7d32;margin:0;">👥 Список игроков</h3>
             <button onclick="loadPlayersList()" style="font-size:0.8em;padding:4px 10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;cursor:pointer;">🔄 Обновить</button>
         </div>
+        <input type="text" id="players-search" placeholder="🔍 Поиск по имени..." oninput="filterPlayersList(this.value)" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #c8e6c9;border-radius:10px;font-size:0.95em;margin:6px 0 4px;outline:none;">
         <div id="players-list-container" class="requests-list">
             <p class="empty-hint">Загрузка...</p>
         </div>

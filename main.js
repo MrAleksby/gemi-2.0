@@ -1560,6 +1560,14 @@ async function loadPlayersList() {
     });
 }
 
+function filterPlayersList(query) {
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll('#players-list-container .players-list-row').forEach(row => {
+        const name = row.querySelector('.players-list-name')?.textContent.toLowerCase() || '';
+        row.style.display = (!q || name.includes(q)) ? '' : 'none';
+    });
+}
+
 // ─── Рендер транзакции ────────────────────────────────────────────────────────
 
 function renderTransactionItem(t) {
