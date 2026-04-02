@@ -604,16 +604,31 @@ document.getElementById('register-form').onsubmit = async (e) => {
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
-    const fullname = document.getElementById('register-fullname').value.trim();
-    const phone    = document.getElementById('register-phone').value.trim();
-    const password = document.getElementById('register-password').value;
+    const firstname = document.getElementById('register-firstname').value.trim();
+    const lastname  = document.getElementById('register-lastname').value.trim();
+    const phone     = document.getElementById('register-phone').value.trim();
+    const password  = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
 
     const registerMsg = document.getElementById('register-msg');
-    if (!fullname) {
-        if (registerMsg) { registerMsg.textContent = 'Введите имя и фамилию!'; registerMsg.className = 'transfer-message error'; }
+    const ruOnly = /^[а-яёА-ЯЁ\s\-]+$/;
+    if (!firstname) {
+        if (registerMsg) { registerMsg.textContent = 'Введите имя!'; registerMsg.className = 'transfer-message error'; }
         submitBtn.disabled = false; return;
     }
+    if (!ruOnly.test(firstname)) {
+        if (registerMsg) { registerMsg.textContent = 'Имя должно быть на русском языке!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
+    if (!lastname) {
+        if (registerMsg) { registerMsg.textContent = 'Введите фамилию!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
+    if (!ruOnly.test(lastname)) {
+        if (registerMsg) { registerMsg.textContent = 'Фамилия должна быть на русском языке!'; registerMsg.className = 'transfer-message error'; }
+        submitBtn.disabled = false; return;
+    }
+    const fullname = `${firstname} ${lastname}`;
     if (!phone) {
         if (registerMsg) { registerMsg.textContent = 'Введите номер телефона!'; registerMsg.className = 'transfer-message error'; }
         submitBtn.disabled = false; return;
