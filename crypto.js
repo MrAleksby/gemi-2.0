@@ -808,13 +808,13 @@ async function showInvestorStats() {
             const isMe     = currentUser && d.uid === currentUser.uid;
             const pnlColor = pnl >= 0 ? '#2e7d32' : '#c62828';
             const pnlSign  = pnl >= 0 ? '+' : '';
-            const place    = i < 3 ? medals[i] : `<span style="color:#aaa;font-size:0.85em;">${i + 1}</span>`;
-            const rowBg    = isMe ? 'background:#fffde7;' : (i % 2 === 0 ? '' : 'background:#fafafa;');
-            const nameBold = isMe ? 'font-weight:700;color:#1565c0;' : 'font-weight:500;';
+            const place    = i < 3 ? medals[i] : `<span style="color:#999;font-size:0.85em;">${i + 1}</span>`;
+            const rowBg    = isMe ? 'background:#fffde7;' : (i % 2 === 0 ? 'background:#fff;' : 'background:#fafafa;');
+            const nameStyle = isMe ? 'font-weight:700;color:#1565c0;' : 'font-weight:500;color:#222;';
             return `<tr style="${rowBg}">
-                <td style="text-align:center;padding:9px 6px;width:32px;">${place}</td>
-                <td style="padding:9px 6px;${nameBold}">${d.name}${isMe ? ' 👤' : ''}</td>
-                <td style="text-align:right;padding:9px 10px 9px 6px;font-weight:700;color:${pnlColor};white-space:nowrap;">${pnlSign}${pnl.toFixed(2)} 💰</td>
+                <td style="text-align:center;padding:9px 8px;width:36px;">${place}</td>
+                <td style="padding:9px 6px;${nameStyle}">${d.name}${isMe ? ' 👤' : ''}</td>
+                <td style="text-align:right;padding:9px 12px;font-weight:700;color:${pnlColor};white-space:nowrap;width:100px;">${pnlSign}${pnl.toFixed(2)} 💰</td>
             </tr>`;
         }).join('');
 
@@ -823,12 +823,12 @@ async function showInvestorStats() {
                 <div style="font-size:1.1em;font-weight:700;margin-bottom:4px;">🏆 Рейтинг инвесторов</div>
                 <div style="font-size:0.8em;color:#aaa;">✅ ${pos} в плюсе &nbsp;·&nbsp; ❌ ${neg} в минусе</div>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:0.92em;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.92em;table-layout:fixed;">
                 <thead>
-                    <tr style="background:#f5f5f5;color:#888;font-size:0.8em;">
-                        <th style="padding:6px;text-align:center;">#</th>
-                        <th style="padding:6px;text-align:left;">Игрок</th>
-                        <th style="padding:6px;text-align:right;padding-right:10px;">PnL</th>
+                    <tr style="background:#f0f0f0;color:#666;font-size:0.8em;font-weight:600;">
+                        <th style="padding:7px 8px;text-align:center;width:36px;">#</th>
+                        <th style="padding:7px 6px;text-align:left;">Игрок</th>
+                        <th style="padding:7px 12px;text-align:right;width:100px;">PnL</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
