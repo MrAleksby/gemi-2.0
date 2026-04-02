@@ -842,6 +842,7 @@ async function showRating() {
     usersSnap.forEach(doc => {
         const data = doc.data();
         if (!data.name || data.name.trim() === '' || data.isAdmin) return;
+        if (data.status && data.status !== 'approved') return;
         if (doc.id === currentUser && place < (data.bestRank || 99)) {
             db.collection('users').doc(currentUser).update({ bestRank: place }).catch(() => {});
         }
