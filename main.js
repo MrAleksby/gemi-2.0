@@ -1505,7 +1505,7 @@ async function loadPlayersList() {
         return `<div class="players-list-row" data-uid="${doc.id}">
             <div class="players-list-view">
                 <span class="players-list-name">${d.name}</span>
-                <button class="btn-edit-name" data-uid="${doc.id}">✏️</button>
+                <button class="btn-edit-name" data-uid="${doc.id}">изменить</button>
             </div>
             <div class="players-list-edit" style="display:none;">
                 <input class="edit-firstname" type="text" value="${first}" placeholder="Имя">
