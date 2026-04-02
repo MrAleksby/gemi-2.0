@@ -280,6 +280,10 @@ async function renderCryptoExchange() {
                 <button class="crypto-confirm-btn buy" style="margin-bottom:0;" onclick="adminWithdrawCommission()">💸 Вывести на основной счёт</button>
             </div>
 
+            <div style="margin-top:12px;">
+                <button class="crypto-confirm-btn" style="background:#1565c0;margin-bottom:0;" onclick="showInvestorStats()">📊 Доходность инвесторов</button>
+            </div>
+
             <div style="margin-top:16px;">
                 <h4 style="font-size:0.9em; color:#888; margin-bottom:8px;">📋 История комиссий (последние 20)</h4>
                 ${commissionsHtml}
@@ -758,5 +762,55 @@ async function executeSell() {
     } catch(e) {
         msgEl.textContent = '❌ Ошибка: ' + e.message;
         btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
+    }
+}
+
+async function showInvestorStats() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'info-popup';
+    popup.style.cssText = 'max-width:340px;width:92%;max-height:70vh;overflow-y:auto;';
+    popup.innerHTML = `<div class="popup-title">📊 Доходность инвесторов</div><div style="text-align:center;color:#aaa;">Загрузка...</div>`;
+    const close = () => { overlay.remove(); popup.remove(); };
+    overlay.onclick = close;
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+
+    try {
+        const snap = await firebase.firestore().collection('users').get();
+        const players = snap.docs
+            .map(doc => doc.data())
+            .filter(d => !d.isAdmin && d.name && d.name.trim() && (d.totalPnl || 0) !== 0)
+            .sort((a, b) => (b.totalPnl || 0) - (a.totalPnl || 0));
+
+        if (!players.length) {
+            popup.innerHTML = `<div class="popup-title">📊 Доходность инвесторов</div><div style="text-align:center;color:#aaa;padding:12px;">Никто ещё не торговал</div><div class="popup-hint">Кликните для закрытия</div>`;
+            popup.onclick = close;
+            return;
+        }
+
+        const pos = players.filter(d => (d.totalPnl || 0) > 0).length;
+        const neg = players.length - pos;
+
+        const rows = players.map(d => {
+            const pnl   = d.totalPnl || 0;
+            const color = pnl >= 0 ? '#2e7d32' : '#c62828';
+            const sign  = pnl >= 0 ? '+' : '';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f0f0;">
+                <span style="flex:1;font-weight:600;font-size:0.93em;">${d.name}</span>
+                <span style="font-weight:700;color:${color};white-space:nowrap;">${sign}${pnl.toFixed(2)} 💰</span>
+            </div>`;
+        }).join('');
+
+        popup.innerHTML = `
+            <div class="popup-title">📊 Доходность инвесторов</div>
+            <div style="font-size:0.82em;color:#aaa;text-align:center;margin-bottom:10px;">✅ ${pos} в плюсе · ❌ ${neg} в минусе</div>
+            ${rows}
+            <div class="popup-hint" style="margin-top:10px;">Кликните для закрытия</div>`;
+        popup.onclick = close;
+    } catch(e) {
+        popup.innerHTML = `<div class="popup-title">📊 Доходность</div><div style="color:#e53935;text-align:center;">Ошибка загрузки</div><div class="popup-hint">Кликните для закрытия</div>`;
+        popup.onclick = close;
     }
 }
