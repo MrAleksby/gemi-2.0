@@ -342,15 +342,21 @@ async function renderCryptoExchange() {
     content.innerHTML = `
         <div class="asset-tabs">${assetTabsHtml}</div>
 
-        <div class="crypto-card">
-            <div class="crypto-header">
-                <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
-                <div>
-                    <div class="crypto-name">${asset.name} (${asset.symbol})${asset.type === 'stock' ? ' <span class="asset-type-badge">Акция</span>' : ''}</div>
-                    <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
-                    <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+            <div class="crypto-card" style="flex:1;margin:0;">
+                <div class="crypto-header">
+                    <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
+                    <div>
+                        <div class="crypto-name">${asset.name} (${asset.symbol})${asset.type === 'stock' ? ' <span class="asset-type-badge">Акция</span>' : ''}</div>
+                        <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
+                        <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+                    </div>
                 </div>
             </div>
+            <button onclick="showInvestorStats()" style="flex-shrink:0;width:80px;padding:8px 6px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.78em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+                <span style="font-size:1.4em;">🏆</span>
+                <span>Рейтинг инвесторов</span>
+            </button>
         </div>
 
         <div class="crypto-portfolio">
@@ -377,8 +383,6 @@ async function renderCryptoExchange() {
             <span class="crypto-pnl-label">📈 Заработано за всё время</span>
             <span class="crypto-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
         </div>
-
-        <button onclick="showInvestorStats()" style="width:100%;padding:10px;margin:8px 0 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:600;cursor:pointer;">🏆 Рейтинг инвесторов</button>
 
         <div class="crypto-wallet-section">
             <button class="crypto-wallet-toggle" onclick="toggleCryptoWallet()">💼 Управление кошельком ▼</button>
