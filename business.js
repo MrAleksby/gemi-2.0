@@ -811,7 +811,7 @@ async function renderJobBoard() {
     content.innerHTML = `
         <div class="biz-jobboard-header">
             <div style="font-size:1.1em;font-weight:700;color:#5c1f4a;">📋 Доска вакансий</div>
-            <div style="font-size:0.85em;color:#888;">⚡ Твоя энергия: ${energy}/${ENERGY_MAX}</div>
+            <div id="jobboard-energy-display" style="font-size:0.85em;color:#888;">⚡ Твоя энергия: ${energy}/${ENERGY_MAX}</div>
         </div>
         ${jobsHtml}
         <div id="biz-msg" class="biz-msg"></div>
@@ -901,6 +901,8 @@ async function workForOwner(bizId, salary, dailyCap) {
             card.querySelector('.biz-cap-text').style.color = newColor;
             card.querySelector('.biz-cap-bar-fill').style.width = newPct + '%';
             card.querySelector('.biz-cap-bar-fill').style.background = newColor;
+            const energyDisplay = document.getElementById('jobboard-energy-display');
+            if (energyDisplay) energyDisplay.textContent = `⚡ Твоя энергия: ${energy - 1}/${ENERGY_MAX}`;
             if (btn) {
                 if (newFull) {
                     btn.disabled = true; btn.textContent = '🏁 Мест нет на сегодня';
