@@ -1502,9 +1502,17 @@ async function loadPlayersList() {
         const parts = d.name.trim().split(' ');
         const first = parts[0] || '';
         const last  = parts.slice(1).join(' ') || '';
+        const notApproved = d.status && d.status !== 'approved';
+        const statusBadge = notApproved
+            ? `<span style="font-size:0.75em;color:#c62828;background:#fff3f3;border:1px solid #ffcdd2;border-radius:6px;padding:1px 6px;margin-right:4px;">⚠️ ${d.status}</span>`
+            : '';
+        const approveBtn = notApproved
+            ? `<button class="btn-approve-player" data-uid="${doc.id}" style="font-size:0.75em;padding:2px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;margin-right:4px;">✅ одобрить</button>`
+            : '';
         return `<div class="players-list-row" data-uid="${doc.id}">
             <div class="players-list-view">
                 <span class="players-list-name">${d.name}</span>
+                ${statusBadge}${approveBtn}
                 <button class="btn-edit-name" data-uid="${doc.id}">изменить</button>
             </div>
             <div class="players-list-edit" style="display:none;">
@@ -1523,6 +1531,13 @@ async function loadPlayersList() {
             row.querySelector('.players-list-view').style.display = 'none';
             row.querySelector('.players-list-edit').style.display = 'flex';
             row.querySelector('.edit-firstname').focus();
+        };
+    });
+
+    container.querySelectorAll('.btn-approve-player').forEach(btn => {
+        btn.onclick = async () => {
+            await db.collection('users').doc(btn.dataset.uid).update({ status: 'approved' });
+            loadPlayersList();
         };
     });
 
