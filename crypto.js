@@ -83,7 +83,7 @@ function stopCryptoPriceUpdates() {
 
 async function fetchAllPrices() {
     await Promise.all(CRYPTO_ITEMS.map(async a => {
-        if (cryptoPrices[a.id] && Date.now() - cryptoPrices[a.id].fetchedAt < 5000) return;
+        if (cryptoPrices[a.id] && Date.now() - cryptoPrices[a.id].fetchedAt < 30000) return;
         const pd = await fetchAssetPrice(a);
         if (pd) cryptoPrices[a.id] = { ...pd, fetchedAt: Date.now() };
     }));
@@ -125,7 +125,7 @@ function startCryptoPriceUpdates() {
         }
         if (document.getElementById('crypto-buy-amount')?.value) updateBuyPreview();
         if (document.getElementById('crypto-sell-amount')?.value) updateSellPreview();
-    }, 3000);
+    }, 5000);
 }
 
 // ─── Переключение актива ───────────────────────────────────────────────────────

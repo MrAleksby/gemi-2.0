@@ -901,7 +901,15 @@ async function workForOwner(bizId, salary, dailyCap) {
             card.querySelector('.biz-cap-text').style.color = newColor;
             card.querySelector('.biz-cap-bar-fill').style.width = newPct + '%';
             card.querySelector('.biz-cap-bar-fill').style.background = newColor;
-            if (btn) { btn.disabled = true; btn.textContent = newFull ? '🏁 Мест нет на сегодня' : '✅ Выполнено'; }
+            if (btn) {
+                if (newFull) {
+                    btn.disabled = true; btn.textContent = '🏁 Мест нет на сегодня';
+                } else if (energy - 1 <= 0) {
+                    btn.disabled = true; btn.textContent = '😴 Нет энергии';
+                } else {
+                    btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)';
+                }
+            }
         }
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
