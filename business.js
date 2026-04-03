@@ -282,11 +282,9 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
             </div>
             <div class="biz-cost ${canBuy ? '' : 'biz-cost-poor'}">
                 Стоимость: <b>${stage.buyCost} монет</b> (из бизнес-кошелька)
-                ${userLvl < 5
-                    ? `<div style="font-size:0.8em;margin-top:4px;">🔒 Открывается на уровне 5 ⚡ Пикачу (у тебя ур. ${userLvl})</div>`
-                    : businessCoins < stage.buyCost
-                        ? `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - businessCoins} монет в бизнес-кошельке</div>`
-                        : ''}
+                ${businessCoins < stage.buyCost
+                    ? `<div style="font-size:0.8em;margin-top:4px;">Нужно ещё ${stage.buyCost - businessCoins} монет в бизнес-кошельке</div>`
+                    : ''}
             </div>
             <button class="biz-buy-btn" onclick="buyBusiness()" ${canBuy ? '' : 'disabled'}>
                 ${canBuy ? '🚀 Открыть бизнес!' : '🔒 Пополни бизнес-кошелёк'}
@@ -323,8 +321,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
     const canWork = energy > 0 && !capacityFull;
     const capacityPct = Math.min(100, Math.round((energyUsedToday / stage.dailyCapacity) * 100));
     const userLvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
-    const levelOkForUpgrade = nextStage && userLvl >= nextStage.minLevel;
-    const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost && levelOkForUpgrade;
+    const canUpgrade = nextStage && businessCoins >= nextStage.upgradeCost;
 
     // Доска вакансий — открытые вакансии в этом бизнесе
     const vacancySection = biz.vacancyOpen ? `
@@ -453,12 +450,9 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
             <div class="biz-upgrade-info">
                 <span>Доход: <b>${stage.incomePerEnergy} → ${nextStage.incomePerEnergy} монет</b></span>
                 <span>Работников: <b>${stage.maxWorkers} → ${nextStage.maxWorkers}</b></span>
-                <span>Мин. уровень: <b>${nextStage.minLevel} ур.</b></span>
             </div>
             <button class="biz-upgrade-btn ${canUpgrade ? '' : 'disabled'}" onclick="upgradeBusiness('${biz.id}')" ${canUpgrade ? '' : 'disabled'}>
-                ${!levelOkForUpgrade
-                    ? `🔒 Нужен уровень ${nextStage.minLevel} (у вас ${userLvl})`
-                    : canUpgrade
+                ${canUpgrade
                         ? `🚀 Улучшить за ${nextStage.upgradeCost} монет`
                         : `🔒 Нужно ${nextStage.upgradeCost} монет в бизнес-кошельке`}
             </button>
@@ -589,12 +583,6 @@ async function upgradeBusiness(bizId) {
         const currentStage = getStage(biz.stage);
         if (!currentStage.nextStage) { showBizMsg('❌ Уже максимальный уровень!'); return; }
         const nextStage = getStage(currentStage.nextStage);
-
-        const lvl = typeof currentUserLevel !== 'undefined' ? currentUserLevel : 1;
-        if (lvl < nextStage.minLevel) {
-            showBizMsg(`🔒 Нужен уровень ${nextStage.minLevel} для улучшения до «${nextStage.name}» (у тебя ур. ${lvl})`);
-            return;
-        }
 
         if (!confirm(`Улучшить до «${nextStage.name}» за ${nextStage.upgradeCost} монет из бизнес-кошелька?`)) return;
         const btn = document.querySelector('.biz-upgrade-btn');

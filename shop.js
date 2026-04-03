@@ -191,20 +191,6 @@ async function renderShop() {
     const charLevel = data.level || 1;
     const coins     = data.coins || 0;
 
-    // Магазин заблокирован до 5 уровня (кроме администратора)
-    if (charLevel < 5 && !data.isAdmin) {
-        shopItems.innerHTML = `
-            <div class="shop-locked-message">
-                <div class="lock-icon">🔒</div>
-                <h3>Магазин заблокирован</h3>
-                <p>Доступен с <strong>5 уровня</strong> (Ученик).</p>
-                <div class="level-requirement">
-                    <span>Ваш уровень: ${charLevel}</span>
-                    <span>До разблокировки: ${5 - charLevel} ур.</span>
-                </div>
-            </div>`;
-        return;
-    }
 
     // Строим все карточки
     const cards = SHOP_ITEMS.map(item => buildCard(item, data, coins)).join('');
