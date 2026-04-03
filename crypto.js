@@ -10,6 +10,7 @@ const CRYPTO_ITEMS = [
     { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT',  futures: true },
     { id: 'tsla', name: 'Tesla',    symbol: 'TSLA', icon: '🚗', color: '#cc0000', type: 'crypto', binance: 'TSLAUSDT', futures: true },
     { id: 'meta', name: 'Meta',     symbol: 'META', icon: '🌐', color: '#0082fb', type: 'crypto', binance: 'METAUSDT', futures: true },
+    { id: 'bz',   name: 'Нефть Brent', symbol: 'BZ', icon: '🛢️', color: '#5d4037', type: 'crypto', binance: 'BZUSDT', futures: true },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
