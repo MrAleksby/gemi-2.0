@@ -778,7 +778,7 @@ async function renderJobBoard() {
             const capacityText = capacityFull ? 'Заполнено' : (capacityLeft + ' из ' + stage.dailyCapacity);
             const btnLabel = !energy ? '😴 Нет энергии' : capacityFull ? '🏁 Мест нет на сегодня' : !reqMet ? '🔒 Нет опыта' : '🔨 Выйти на работу (−1 ⚡)';
             return `
-            <div class="biz-job-card">
+            <div class="biz-job-card" data-biz-id="${j.bizId}">
                 <div class="biz-job-header">
                     <span class="biz-job-icon">${j.bizIcon}</span>
                     <div>
@@ -792,14 +792,14 @@ async function renderJobBoard() {
                 <div class="biz-job-capacity">
                     <div class="biz-job-capacity-label">
                         <span>⚡ Мест на сегодня:</span>
-                        <span style="color:${capacityColor};font-weight:700;">${capacityText}</span>
+                        <span class="biz-cap-text" style="color:${capacityColor};font-weight:700;">${capacityText}</span>
                     </div>
                     <div class="biz-cap-bar-bg">
                         <div class="biz-cap-bar-fill" style="width:${capacityPct}%;background:${capacityColor};"></div>
                     </div>
                 </div>
                 ${reqHtml}
-                <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary})"
+                <button class="biz-apply-btn" onclick="workForOwner('${j.bizId}', ${j.salary}, ${j.dailyCapacity || stage.dailyCapacity})"
                     ${canApply ? '' : 'disabled'}
                     style="width:100% !important; margin-top:8px;">
                     ${btnLabel}
@@ -821,7 +821,7 @@ async function renderJobBoard() {
     }
 }
 
-async function workForOwner(bizId, salary) {
+async function workForOwner(bizId, salary, dailyCap) {
     const user = firebase.auth().currentUser;
     if (!user) return;
     const btn = event.target;
@@ -887,7 +887,22 @@ async function workForOwner(bizId, salary) {
         ]);
 
         showBizMsg(`✅ +${salary} монет тебе! Владелец +${ownerIncome}. 📦 Осталось мест: ${remaining}`);
-        setTimeout(() => renderJobBoard(), 900);
+
+        // Обновляем только карточку — без перерисовки всей доски
+        const card = document.querySelector(`.biz-job-card[data-biz-id="${bizId}"]`);
+        if (card) {
+            const newUsed = energyUsed + 1;
+            const newLeft = stage.dailyCapacity - newUsed;
+            const newFull = newLeft <= 0;
+            const newPct  = Math.min(100, Math.round((newUsed / stage.dailyCapacity) * 100));
+            const newColor = newFull ? '#e74c3c' : newLeft <= stage.dailyCapacity * 0.2 ? '#e8956d' : '#27ae60';
+            const newText  = newFull ? 'Заполнено' : (newLeft + ' из ' + stage.dailyCapacity);
+            card.querySelector('.biz-cap-text').textContent = newText;
+            card.querySelector('.biz-cap-text').style.color = newColor;
+            card.querySelector('.biz-cap-bar-fill').style.width = newPct + '%';
+            card.querySelector('.biz-cap-bar-fill').style.background = newColor;
+            if (btn) { btn.disabled = true; btn.textContent = newFull ? '🏁 Мест нет на сегодня' : '✅ Выполнено'; }
+        }
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
         if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; }
