@@ -790,7 +790,7 @@ async function showInvestorStats() {
 
     try {
         const currentUser = firebase.auth().currentUser;
-        const snap = await firebase.firestore().collection('users').get();
+        const snap = await firebase.firestore().collection('users').get({ source: 'server' });
         const allPlayers = snap.docs
             .map(doc => ({ uid: doc.id, ...doc.data() }))
             .filter(d => !d.isAdmin && d.name && d.name.trim() && (d.totalPnl || 0) !== 0)
