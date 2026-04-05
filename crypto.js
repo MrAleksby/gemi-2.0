@@ -277,10 +277,16 @@ async function renderCryptoExchange() {
                         </div>
                     </div>
                 </div>
-                <button onclick="showInvestorStats()" style="flex-shrink:0;width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                    <span style="font-size:1.4em;">🏆</span>
-                    <span>Рейтинг инвесторов</span>
-                </button>
+                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                    <button onclick="showInvestorStats()" style="width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                        <span style="font-size:1.4em;">🏆</span>
+                        <span>Рейтинг инвесторов</span>
+                    </button>
+                    <button onclick="resetWeeklyRating()" style="width:72px;padding:8px 4px;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                        <span style="font-size:1.4em;">🔄</span>
+                        <span>Сброс недели</span>
+                    </button>
+                </div>
             </div>
 
             <div class="crypto-admin-commission">
@@ -755,6 +761,7 @@ async function executeSell() {
         const update = {
             exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
             totalPnl:      firebase.firestore.FieldValue.increment(pnl),
+            weeklyPnl:     firebase.firestore.FieldValue.increment(pnl),
         };
         update[`${asset.id}Amount`] = firebase.firestore.FieldValue.increment(-assetInput);
         await ref.update(update);
@@ -788,59 +795,93 @@ async function showInvestorStats() {
     popup.innerHTML = `<div style="padding:18px 16px 8px;text-align:center;font-size:1.1em;font-weight:700;">🏆 Рейтинг инвесторов</div><div style="text-align:center;color:#aaa;padding:12px;">Загрузка...</div>`;
     const close = () => { overlay.remove(); popup.remove(); };
     overlay.onclick = close;
-    popup.onclick = close;
     document.body.appendChild(overlay);
     document.body.appendChild(popup);
 
     try {
         const currentUser = firebase.auth().currentUser;
         const snap = await firebase.firestore().collection('users').get({ source: 'server' });
-        const allPlayers = snap.docs
+        const allDocs = snap.docs
             .map(doc => ({ uid: doc.id, ...doc.data() }))
-            .filter(d => !d.isAdmin && d.name && d.name.trim() && (d.totalPnl || 0) !== 0)
-            .sort((a, b) => (b.totalPnl || 0) - (a.totalPnl || 0));
+            .filter(d => !d.isAdmin && d.name && d.name.trim());
 
-        if (!allPlayers.length) {
-            popup.innerHTML = `<div style="padding:18px 16px 8px;text-align:center;font-size:1.1em;font-weight:700;">🏆 Рейтинг инвесторов</div><div style="text-align:center;color:#aaa;padding:16px;">Никто ещё не торговал</div><div class="popup-hint">Кликните для закрытия</div>`;
-            return;
-        }
-
-        const pos = allPlayers.filter(d => (d.totalPnl || 0) > 0).length;
-        const neg = allPlayers.length - pos;
         const medals = ['🥇', '🥈', '🥉'];
 
-        const rows = allPlayers.map((d, i) => {
-            const pnl      = d.totalPnl || 0;
-            const isMe     = currentUser && d.uid === currentUser.uid;
-            const pnlColor = pnl >= 0 ? '#2e7d32' : '#c62828';
-            const pnlSign  = pnl >= 0 ? '+' : '';
-            const place    = i < 3 ? medals[i] : `<span style="color:#999;font-size:0.85em;">${i + 1}</span>`;
-            const rowBg    = isMe ? 'background:#fffde7;' : (i % 2 === 0 ? 'background:#fff;' : 'background:#fafafa;');
-            const nameStyle = isMe ? 'font-weight:700;color:#1565c0;' : 'font-weight:500;color:#222;';
-            return `<tr style="${rowBg}">
-                <td style="text-align:center;padding:9px 8px;width:36px;">${place}</td>
-                <td style="padding:9px 6px;${nameStyle}">${d.name}${isMe ? ' 👤' : ''}</td>
-                <td style="text-align:right;padding:9px 12px;font-weight:700;color:${pnlColor};white-space:nowrap;width:100px;">${pnlSign}${pnl.toFixed(2)} 💰</td>
-            </tr>`;
-        }).join('');
-
-        popup.innerHTML = `
-            <div style="padding:18px 16px 10px;text-align:center;">
-                <div style="font-size:1.1em;font-weight:700;margin-bottom:4px;">🏆 Рейтинг инвесторов</div>
-                <div style="font-size:0.8em;color:#aaa;">✅ ${pos} в плюсе &nbsp;·&nbsp; ❌ ${neg} в минусе</div>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:0.92em;table-layout:fixed;">
-                <thead>
-                    <tr style="background:#f0f0f0;color:#666;font-size:0.8em;font-weight:600;">
+        const buildTable = (field) => {
+            const players = allDocs
+                .filter(d => (d[field] || 0) !== 0)
+                .sort((a, b) => (b[field] || 0) - (a[field] || 0));
+            if (!players.length) return `<div style="text-align:center;color:#aaa;padding:16px;">Никто ещё не торговал</div>`;
+            const pos = players.filter(d => (d[field] || 0) > 0).length;
+            const neg = players.length - pos;
+            const rows = players.map((d, i) => {
+                const pnl = d[field] || 0;
+                const isMe = currentUser && d.uid === currentUser.uid;
+                const pnlColor = pnl >= 0 ? '#2e7d32' : '#c62828';
+                const pnlSign = pnl >= 0 ? '+' : '';
+                const place = i < 3 ? medals[i] : `<span style="color:#999;font-size:0.85em;">${i + 1}</span>`;
+                const rowBg = isMe ? 'background:#fffde7;' : (i % 2 === 0 ? 'background:#fff;' : 'background:#fafafa;');
+                const nameStyle = isMe ? 'font-weight:700;color:#1565c0;' : 'font-weight:500;color:#222;';
+                return `<tr style="${rowBg}">
+                    <td style="text-align:center;padding:9px 8px;width:36px;">${place}</td>
+                    <td style="padding:9px 6px;${nameStyle}">${d.name}${isMe ? ' 👤' : ''}</td>
+                    <td style="text-align:right;padding:9px 12px;font-weight:700;color:${pnlColor};white-space:nowrap;width:100px;">${pnlSign}${pnl.toFixed(2)} 💰</td>
+                </tr>`;
+            }).join('');
+            return `
+                <div style="font-size:0.8em;color:#aaa;text-align:center;padding:4px 0 8px;">✅ ${pos} в плюсе &nbsp;·&nbsp; ❌ ${neg} в минусе</div>
+                <table style="width:100%;border-collapse:collapse;font-size:0.92em;table-layout:fixed;">
+                    <thead><tr style="background:#f0f0f0;color:#666;font-size:0.8em;font-weight:600;">
                         <th style="padding:7px 8px;text-align:center;width:36px;">#</th>
                         <th style="padding:7px 6px;text-align:left;">Игрок</th>
                         <th style="padding:7px 12px;text-align:right;width:100px;">PnL</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-            <div class="popup-hint" style="padding:10px;text-align:center;">Кликните для закрытия</div>`;
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        };
+
+        const switchTab = (tab) => {
+            const field = tab === 'week' ? 'weeklyPnl' : 'totalPnl';
+            document.getElementById('investor-tab-body').innerHTML = buildTable(field);
+            document.getElementById('inv-tab-week').style.cssText    = tab === 'week'    ? 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;' : 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;';
+            document.getElementById('inv-tab-all').style.cssText     = tab === 'alltime' ? 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;' : 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;';
+        };
+
+        window._investorSwitchTab = switchTab;
+
+        popup.innerHTML = `
+            <div style="padding:16px 16px 10px;text-align:center;">
+                <div style="font-size:1.1em;font-weight:700;margin-bottom:10px;">🏆 Рейтинг инвесторов</div>
+                <div style="display:flex;gap:8px;">
+                    <button id="inv-tab-week" onclick="event.stopPropagation();window._investorSwitchTab('week')" style="flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;">📅 За неделю</button>
+                    <button id="inv-tab-all"  onclick="event.stopPropagation();window._investorSwitchTab('alltime')" style="flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;">🏆 За всё время</button>
+                </div>
+            </div>
+            <div id="investor-tab-body" style="padding:0 0 4px;"></div>
+            <div style="padding:8px 16px 14px;text-align:center;">
+                <button onclick="event.stopPropagation();document.querySelectorAll('.modal-overlay').forEach(e=>e.remove());document.querySelectorAll('.info-popup').forEach(e=>e.remove());" style="padding:6px 20px;border:none;border-radius:8px;background:#eee;color:#555;cursor:pointer;font-size:0.85em;">Закрыть</button>
+            </div>`;
+
+        switchTab('week');
+
     } catch(e) {
-        popup.innerHTML = `<div style="padding:18px;text-align:center;color:#e53935;">Ошибка загрузки</div><div class="popup-hint">Кликните для закрытия</div>`;
+        popup.innerHTML = `<div style="padding:18px;text-align:center;color:#e53935;">Ошибка загрузки</div><div style="text-align:center;padding:8px;"><button onclick="document.querySelectorAll('.modal-overlay,.info-popup').forEach(e=>e.remove())" style="padding:6px 16px;border:none;border-radius:8px;background:#eee;cursor:pointer;">Закрыть</button></div>`;
+    }
+}
+
+async function resetWeeklyRating() {
+    if (!confirm('Сбросить недельный рейтинг инвесторов? Это обнулит weeklyPnl у всех игроков.')) return;
+    try {
+        const snap = await firebase.firestore().collection('users').get();
+        const batch = firebase.firestore().batch();
+        snap.docs.forEach(doc => {
+            if (!doc.data().isAdmin) {
+                batch.update(doc.ref, { weeklyPnl: 0 });
+            }
+        });
+        await batch.commit();
+        alert('✅ Недельный рейтинг сброшен!');
+    } catch(e) {
+        alert('❌ Ошибка: ' + e.message);
     }
 }
