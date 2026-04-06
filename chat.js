@@ -163,7 +163,7 @@ async function openChat(otherUid, otherName) {
                     : '';
                 return `
                 <div style="display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};">
-                    <div style="max-width:78%;padding:9px 13px;border-radius:${isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
+                    <div style="display:inline-block;max-width:78%;padding:9px 13px;border-radius:${isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
                         background:${isMe ? 'linear-gradient(135deg,#5c1f4a,#e8956d)' : '#f0f0f0'};
                         color:${isMe ? '#fff' : '#222'};font-size:0.92em;word-break:break-word;line-height:1.4;">
                         ${msg.text}
