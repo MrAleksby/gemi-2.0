@@ -901,14 +901,15 @@ async function showRating() {
         const lvlIcon = getLevelTitle(lvl).split(' ')[0];
         const safeName = data.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const msgBtn = doc.id !== currentUser
-            ? `<button onclick="event.stopPropagation();openChat('${doc.id}','${safeName}')" style="background:linear-gradient(135deg,#5c1f4a,#e8956d);border:none;border-radius:8px;color:#fff;font-size:0.75em;cursor:pointer;padding:3px 7px;margin-left:4px;vertical-align:middle;">✉️</button>`
+            ? `<button onclick="event.stopPropagation();openChat('${doc.id}','${safeName}')" style="background:linear-gradient(135deg,#5c1f4a,#e8956d);border:none;border-radius:8px;color:#fff;font-size:0.8em;cursor:pointer;padding:4px 8px;">✉️</button>`
             : '';
         tr.innerHTML = `
             <td>${place++}</td>
-            <td style="white-space:nowrap;">${data.name} ${msgBtn}</td>
+            <td>${data.name}</td>
             <td onclick="showLevelDetails(${lvl})" style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;cursor:pointer;">${lvlIcon} ${lvl}</td>
             <td>${data.points}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
+            <td>${msgBtn}</td>
         `;
         fragment.appendChild(tr);
     });
