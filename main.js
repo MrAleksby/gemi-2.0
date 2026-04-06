@@ -581,6 +581,7 @@ auth.onAuthStateChanged(async (user) => {
         await showRating();
         showRandomQuote();
         checkDailyBonus(currentUser);
+        if (typeof setupChatBadge === 'function') setupChatBadge(currentUser);
 
         const isAdmin = data.isAdmin === true;
         if (isAdmin) {
@@ -898,9 +899,13 @@ async function showRating() {
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         const tr = document.createElement('tr');
         const lvlIcon = getLevelTitle(lvl).split(' ')[0];
+        const safeName = data.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const msgBtn = doc.id !== currentUser
+            ? `<button onclick="openChat('${doc.id}','${safeName}')" style="background:none;border:none;font-size:1em;cursor:pointer;padding:2px 4px;opacity:0.7;">✉️</button>`
+            : '';
         tr.innerHTML = `
             <td>${place++}</td>
-            <td>${data.name}</td>
+            <td>${data.name} ${msgBtn}</td>
             <td onclick="showLevelDetails(${lvl})" style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;cursor:pointer;">${lvlIcon} ${lvl}</td>
             <td>${data.points}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
@@ -1023,9 +1028,10 @@ function setNavTab(name) {
 }
 
 document.getElementById('nav-home').onclick = () => {
-    document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('shop-modal').style.display = 'none';
-    document.getElementById('crypto-modal').style.display = 'none';
+    document.getElementById('rating-modal').style.display   = 'none';
+    document.getElementById('shop-modal').style.display     = 'none';
+    document.getElementById('crypto-modal').style.display   = 'none';
+    document.getElementById('chat-modal').style.display     = 'none';
     setNavTab('home');
     // Переподключаем слушатель заявок если это админ
     if (unsubPendingRegs !== undefined) setupPendingRegistrationsListener();
@@ -1062,12 +1068,18 @@ document.getElementById('nav-crypto').onclick = () => {
 
 document.getElementById('nav-business').onclick = () => {
     document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('shop-modal').style.display = 'none';
+    document.getElementById('shop-modal').style.display   = 'none';
     document.getElementById('crypto-modal').style.display = 'none';
+    document.getElementById('chat-modal').style.display   = 'none';
     if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
     document.getElementById('business-modal').style.display = 'flex';
     renderBusinessTab();
     setNavTab('business');
+};
+
+document.getElementById('nav-chat').onclick = () => {
+    if (typeof openChatModal === 'function') openChatModal();
+    setNavTab('chat');
 };
 
 // ─── Экран ожидания подтверждения ─────────────────────────────────────────────
@@ -1187,6 +1199,10 @@ document.getElementById('crypto-close').onclick = () => {
 };
 document.getElementById('business-close').onclick = () => {
     document.getElementById('business-modal').style.display = 'none';
+    setNavTab('home');
+};
+document.getElementById('chat-close').onclick = () => {
+    document.getElementById('chat-modal').style.display = 'none';
     setNavTab('home');
 };
 document.getElementById('business-modal').onclick = (e) => {

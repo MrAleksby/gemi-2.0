@@ -342,6 +342,12 @@
         <span class="nav-icon">🏪</span>
         <span class="nav-label">Бизнес</span>
     </button>
+    <button class="nav-tab" id="nav-chat">
+        <span class="nav-icon" style="position:relative;display:inline-block;">💬
+            <span id="chat-unread-badge" style="display:none;position:absolute;top:-6px;right:-8px;background:#e53935;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;"></span>
+        </span>
+        <span class="nav-label">Чат</span>
+    </button>
 </nav>
 
 <div id="business-modal" class="modal" style="display:none">
@@ -365,6 +371,13 @@
     </div>
 </div>
 
+<div id="chat-modal" class="modal" style="display:none">
+    <div class="modal-content crypto-modal-content" style="padding:0;display:flex;flex-direction:column;">
+        <span class="close" id="chat-close">&times;</span>
+        <div id="chat-content" style="display:flex;flex-direction:column;flex:1;"></div>
+    </div>
+</div>
+
 </body>
 </html>
 <script src="shop.js"></script>
@@ -372,3 +385,4 @@
 <script src="admin-actions.js"></script>
 <script src="crypto.js"></script>
 <script src="business.js"></script>
+<script src="chat.js"></script>
