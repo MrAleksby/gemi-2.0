@@ -128,7 +128,7 @@ async function openChat(otherUid, otherName) {
             </div>
             <div style="font-weight:700;color:#222;font-size:0.97em;">${otherName}</div>
         </div>
-        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-height:0;"></div>
         <div style="padding:10px 12px;border-top:1px solid #f0f0f0;background:#fff;display:flex;gap:8px;align-items:center;">
             <input id="chat-input" type="text" placeholder="Сообщение..."
                 style="flex:1;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:22px;font-size:0.92em;outline:none;background:#fafafa;"
