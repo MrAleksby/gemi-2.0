@@ -27,9 +27,9 @@ const BUSINESS_STAGES = [
         minLevel: 9,
         buyCost: null,
         upgradeCost: 1500,
-        incomePerEnergy: 15,
+        incomePerEnergy: 10,
         maxWorkers: 2,
-        dailyCapacity: 24,
+        dailyCapacity: 15,
         nextStage: 'cafe',
         expField: 'bizExpKiosk',
         workerRequiredExp: 50,
@@ -44,9 +44,9 @@ const BUSINESS_STAGES = [
         minLevel: 13,
         buyCost: null,
         upgradeCost: 8000,
-        incomePerEnergy: 25,
+        incomePerEnergy: 20,
         maxWorkers: 5,
-        dailyCapacity: 60,
+        dailyCapacity: 20,
         nextStage: 'factory',
         expField: 'bizExpCafe',
         workerRequiredExp: 50,
@@ -61,9 +61,9 @@ const BUSINESS_STAGES = [
         minLevel: 17,
         buyCost: null,
         upgradeCost: null,
-        incomePerEnergy: 40,
+        incomePerEnergy: 25,
         maxWorkers: 10,
-        dailyCapacity: 120,
+        dailyCapacity: 25,
         nextStage: null,
         expField: 'bizExpFactory',
         workerRequiredExp: 50,
@@ -299,6 +299,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
                         <div class="biz-path-icon">${s.icon}</div>
                         <div class="biz-path-label">${s.name.split(' ')[0]}</div>
                         <div style="font-size:0.72em;color:#e8956d;margin-top:2px;">ур. ${s.minLevel}+</div>
+                        <div style="font-size:0.7em;color:#27ae60;margin-top:2px;font-weight:600;">${s.incomePerEnergy}/${s.incomePerEnergy * s.dailyCapacity} 💰</div>
                     </div>
                     ${s.nextStage ? '<div class="biz-path-arrow">→</div>' : ''}
                 `).join('')}
