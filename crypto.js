@@ -791,7 +791,7 @@ async function showInvestorStats() {
     overlay.className = 'modal-overlay';
     const popup = document.createElement('div');
     popup.className = 'info-popup';
-    popup.style.cssText = 'max-width:360px;width:94%;max-height:75vh;overflow-y:auto;padding:0;border-radius:18px;';
+    popup.style.cssText = 'max-width:360px;width:94%;max-height:80vh;overflow:hidden;padding:0;border-radius:18px;display:flex;flex-direction:column;';
     popup.innerHTML = `<div style="padding:18px 16px 8px;text-align:center;font-size:1.1em;font-weight:700;">🏆 Рейтинг инвесторов</div><div style="text-align:center;color:#aaa;padding:12px;">Загрузка...</div>`;
     const close = () => { overlay.remove(); popup.remove(); };
     overlay.onclick = close;
@@ -857,7 +857,7 @@ async function showInvestorStats() {
                     <button id="inv-tab-all"  onclick="event.stopPropagation();window._investorSwitchTab('alltime')" style="flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;">🏆 За всё время</button>
                 </div>
             </div>
-            <div id="investor-tab-body" style="padding:0 0 4px;"></div>
+            <div id="investor-tab-body" style="overflow-y:auto;flex:1;min-height:0;padding:0 0 4px;"></div>
             <div style="padding:8px 16px 14px;text-align:center;">
                 <button onclick="event.stopPropagation();document.querySelectorAll('.modal-overlay').forEach(e=>e.remove());document.querySelectorAll('.info-popup').forEach(e=>e.remove());" style="padding:6px 20px;border:none;border-radius:8px;background:#eee;color:#555;cursor:pointer;font-size:0.85em;">Закрыть</button>
             </div>`;
