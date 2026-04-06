@@ -46,12 +46,18 @@ function showChatList() {
     unsubChatList = firebase.firestore()
         .collection('chats')
         .where('participants', 'array-contains', user.uid)
-        .orderBy('lastMessageTime', 'desc')
         .onSnapshot(snap => {
             const listEl = document.getElementById('chat-list-container');
             if (!listEl) return;
 
-            if (snap.empty) {
+            // Сортируем на клиенте — не нужен индекс Firestore
+            const sorted = snap.docs.sort((a, b) => {
+                const at = a.data().lastMessageTime?.toMillis() || 0;
+                const bt = b.data().lastMessageTime?.toMillis() || 0;
+                return bt - at;
+            });
+
+            if (sorted.length === 0) {
                 listEl.innerHTML = `
                     <div style="text-align:center;color:#aaa;padding:40px 16px;">
                         <div style="font-size:2.5em;margin-bottom:10px;">💬</div>
@@ -61,7 +67,7 @@ function showChatList() {
                 return;
             }
 
-            listEl.innerHTML = snap.docs.map(doc => {
+            listEl.innerHTML = sorted.map(doc => {
                 const data     = doc.data();
                 const otherUid = data.participants.find(p => p !== user.uid);
                 const otherName = data[`name_${otherUid}`] || 'Игрок';

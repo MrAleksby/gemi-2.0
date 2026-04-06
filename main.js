@@ -901,11 +901,11 @@ async function showRating() {
         const lvlIcon = getLevelTitle(lvl).split(' ')[0];
         const safeName = data.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const msgBtn = doc.id !== currentUser
-            ? `<button onclick="openChat('${doc.id}','${safeName}')" style="background:none;border:none;font-size:1em;cursor:pointer;padding:2px 4px;opacity:0.7;">✉️</button>`
+            ? `<button onclick="event.stopPropagation();openChat('${doc.id}','${safeName}')" style="background:linear-gradient(135deg,#5c1f4a,#e8956d);border:none;border-radius:8px;color:#fff;font-size:0.75em;cursor:pointer;padding:3px 7px;margin-left:4px;vertical-align:middle;">✉️</button>`
             : '';
         tr.innerHTML = `
             <td>${place++}</td>
-            <td>${data.name} ${msgBtn}</td>
+            <td style="white-space:nowrap;">${data.name} ${msgBtn}</td>
             <td onclick="showLevelDetails(${lvl})" style="background:${getLevelColor(lvl)};color:#fff;font-weight:700;text-align:center;cursor:pointer;">${lvlIcon} ${lvl}</td>
             <td>${data.points}</td>
             <td onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})" style="cursor:pointer">${kd}</td>
