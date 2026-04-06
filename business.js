@@ -77,6 +77,8 @@ function getStage(stageId) {
     return BUSINESS_STAGES.find(s => s.id === stageId) || BUSINESS_STAGES[0];
 }
 
+const BIZ_WITHDRAW_TAX = { cart: 0.01, kiosk: 0.05, cafe: 0.10, factory: 0.20 };
+
 // Получить сегодняшнюю дату как строку YYYY-MM-DD
 function todayStr() {
     return new Date().toISOString().slice(0, 10);
@@ -173,7 +175,9 @@ async function renderBusinessTab() {
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
 
-function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [], isAdmin = false) {
+function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [], isAdmin = false, bizStage = 'cart') {
+    const withdrawTaxRate = BIZ_WITHDRAW_TAX[bizStage] || 0.01;
+    const withdrawTaxPct  = Math.round(withdrawTaxRate * 100);
     const totalTax = taxLogs.reduce((s, t) => s + (t.amount || 0), 0);
     const taxHtml = taxLogs.length === 0 ? '' : `
         <div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px;">
@@ -210,7 +214,7 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
                 </div>
 
-                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной) <span style="color:#e8956d;">−1% налог</span>:</div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной) <span style="color:#e8956d;">−${withdrawTaxPct}% налог</span>:</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
                     <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
                         style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
@@ -397,7 +401,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
             </div>
         </div>
 
-        ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, isAdmin)}
+        ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, isAdmin, biz.stage)}
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>
@@ -1030,12 +1034,17 @@ async function bizWithdraw() {
         const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
         let userName = '';
 
+        const bizSnap  = await db.collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
+        const bizStage = bizSnap.empty ? 'cart' : bizSnap.docs[0].data().stage;
+        const taxRate  = BIZ_WITHDRAW_TAX[bizStage] || 0.01;
+        const taxPct   = Math.round(taxRate * 100);
+
         await db.runTransaction(async (tx) => {
             const snap     = await tx.get(ref);
             const freshBiz = snap.data().businessCoins || 0;
             userName = snap.data().name || '';
             if (freshBiz < amount) throw new Error(`Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`);
-            const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+            const tax      = adminRef ? Math.max(1, Math.floor(amount * taxRate)) : 0;
             const received = amount - tax;
             tx.update(ref, {
                 businessCoins: firebase.firestore.FieldValue.increment(-amount),
@@ -1046,17 +1055,17 @@ async function bizWithdraw() {
             }
         });
 
-        const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+        const tax      = adminRef ? Math.max(1, Math.floor(amount * taxRate)) : 0;
         const received = amount - tax;
         if (adminRef && tax > 0) {
             db.collection('tax_log').add({
                 userId: user.uid, userName,
                 amount: tax, source: 'business',
-                label: 'Налог на доходы пользователей',
+                label: `Налог на вывод (${taxPct}%)`,
                 timestamp: new Date()
             }).catch(() => {});
         }
-        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
+        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог ${taxPct}%: ${tax})` : `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         setTimeout(() => { renderBusinessTab(); if (typeof showProfile === 'function') showProfile(); }, 900);
     } catch(e) {
