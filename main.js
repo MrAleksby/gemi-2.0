@@ -315,6 +315,37 @@ function toggleBadgesGrid() {
     if (icon) icon.textContent = show ? '▲' : '▼';
 }
 
+async function checkDailyBonus(uid) {
+    try {
+        const today = new Date().toISOString().slice(0, 10); // "2026-04-06"
+        const ref   = db.collection('users').doc(uid);
+        const snap  = await ref.get();
+        const data  = snap.data();
+        if (!data || data.isAdmin) return;
+        if (data.lastDailyBonus === today) return; // уже получил сегодня
+
+        const lvl    = Math.max(1, Math.min(getLevelByPoints(data.points || 0), 25));
+        const bonus  = lvl;
+
+        await ref.update({
+            coins:          firebase.firestore.FieldValue.increment(bonus),
+            lastDailyBonus: today
+        });
+
+        // Показываем уведомление
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:12px 20px;border-radius:14px;font-weight:600;font-size:0.95em;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);text-align:center;';
+        toast.textContent = `🎁 Ежедневный бонус: +${bonus} монет! (уровень ${lvl})`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+
+        // Обновляем профиль чтобы отобразить новый баланс
+        showProfile();
+    } catch(e) {
+        console.warn('checkDailyBonus error:', e);
+    }
+}
+
 function showRandomQuote() {
     const el = document.getElementById('daily-quote');
     if (!el) return;
@@ -549,6 +580,7 @@ auth.onAuthStateChanged(async (user) => {
         await showProfile();
         await showRating();
         showRandomQuote();
+        checkDailyBonus(currentUser);
 
         const isAdmin = data.isAdmin === true;
         if (isAdmin) {
