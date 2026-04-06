@@ -9,7 +9,7 @@ const BUSINESS_STAGES = [
         icon: '🛒',
         minLevel: 5,
         buyCost: 300,
-        upgradeCost: 1000,
+        upgradeCost: 1500,
         incomePerEnergy: 5,
         maxWorkers: 1,
         dailyCapacity: 10,
