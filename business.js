@@ -224,26 +224,6 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
                 </div>
 
-                <div style="border-top:1px dashed #e0e0e0;margin:8px 0 10px;"></div>
-                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">📈 Перевести на биржевой кошелёк <span style="color:#27ae60;font-size:0.88em;">без налога</span>:</div>
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
-                    <input type="number" id="biz-to-exchange-amount" min="1" placeholder="Сумма монет"
-                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('biz-to-exchange-amount').value=${businessCoins}"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
-                    <button class="biz-to-exchange-btn" onclick="transferBizToExchange()"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">→ Биржа</button>
-                </div>
-                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">💼 Перевести с биржевого кошелька <span style="color:#27ae60;font-size:0.88em;">без налога</span>:</div>
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-                    <input type="number" id="exchange-to-biz-amount" min="1" placeholder="Сумма монет"
-                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('exchange-to-biz-amount').value=${exchangeCoins}"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
-                    <button class="exchange-to-biz-btn" onclick="transferExchangeToBiz()"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#8b5cf6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">→ Бизнес</button>
-                </div>
-
                 <div id="biz-wallet-msg" style="font-size:0.85em;margin-top:6px;"></div>
                 ${taxHtml}
             </div>
