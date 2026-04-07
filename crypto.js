@@ -758,7 +758,7 @@ async function executeSell() {
         const pnl        = (price - oldAvg) * assetInput - commission;
         const dec        = assetDecimals(asset.id);
 
-        const xpGain = Math.floor(coinsNet);
+        const xpGain = pnl > 0 ? Math.floor(pnl) : 0;
 
         const update = {
             exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
