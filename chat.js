@@ -14,12 +14,7 @@ function getChatId(uid1, uid2) {
 // ─── Открыть вкладку чата (список переписок) ──────────────────────────────────
 
 function openChatModal() {
-    document.getElementById('rating-modal').style.display   = 'none';
-    document.getElementById('shop-modal').style.display     = 'none';
-    document.getElementById('crypto-modal').style.display   = 'none';
-    document.getElementById('business-modal').style.display = 'none';
-    if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
-    document.getElementById('chat-modal').style.display = 'flex';
+    showModal('chat-modal');
     showChatList();
 }
 
@@ -77,7 +72,7 @@ function showChatList() {
                     ? data.lastMessageTime.toDate().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
                     : '';
                 const avatar   = otherName.charAt(0).toUpperCase();
-                const safeName = otherName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const safeName = escapeAttr(otherName);
 
                 return `
                 <div onclick="openChat('${otherUid}','${safeName}')"
@@ -86,8 +81,8 @@ function showChatList() {
                         ${avatar}
                     </div>
                     <div style="flex:1;min-width:0;">
-                        <div style="font-weight:700;color:#222;font-size:0.95em;margin-bottom:2px;">${otherName}</div>
-                        <div style="color:#888;font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lastMsg}</div>
+                        <div style="font-weight:700;color:#222;font-size:0.95em;margin-bottom:2px;">${escapeHtml(otherName)}</div>
+                        <div style="color:#888;font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(lastMsg)}</div>
                     </div>
                     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
                         <div style="font-size:0.72em;color:#bbb;">${time}</div>
@@ -109,8 +104,7 @@ async function openChat(otherUid, otherName) {
     if (!user) return;
 
     // Если открываем из рейтинга — переключаемся на вкладку чата
-    document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('chat-modal').style.display   = 'flex';
+    showModal('chat-modal');
     if (typeof setNavTab === 'function') setNavTab('chat');
 
     currentChatOtherUid  = otherUid;
@@ -126,7 +120,7 @@ async function openChat(otherUid, otherName) {
             <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#5c1f4a,#e8956d);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1em;flex-shrink:0;">
                 ${avatar}
             </div>
-            <div style="font-weight:700;color:#222;font-size:0.97em;">${otherName}</div>
+            <div style="font-weight:700;color:#222;font-size:0.97em;">${escapeHtml(otherName)}</div>
         </div>
         <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-height:0;"></div>
         <div style="padding:10px 12px;border-top:1px solid #f0f0f0;background:#fff;display:flex;gap:8px;align-items:center;">
@@ -166,7 +160,7 @@ async function openChat(otherUid, otherName) {
                     <div style="display:inline-block;max-width:78%;padding:9px 13px;border-radius:${isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
                         background:${isMe ? 'linear-gradient(135deg,#5c1f4a,#e8956d)' : '#f0f0f0'};
                         color:${isMe ? '#fff' : '#222'};font-size:0.92em;word-break:break-word;line-height:1.4;">
-                        ${msg.text}
+                        ${escapeHtml(msg.text)}
                     </div>
                     <div style="font-size:0.7em;color:#bbb;margin-top:2px;padding:0 4px;">${time}</div>
                 </div>`;

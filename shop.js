@@ -200,100 +200,47 @@ async function renderShop() {
 
     // Один обработчик для всех кнопок
     shopItems.querySelectorAll('.shop-btn:not([disabled])').forEach(btn => {
-        btn.onclick = async () => {
-            if (btn.disabled) return;
-            btn.disabled = true;
-            const item = SHOP_ITEMS.find(i => i.id === btn.dataset.itemId);
-            if (!item) { btn.disabled = false; return; }
-
-            // Берём свежие данные перед покупкой
-            const freshDoc      = await userRef.get();
-            const freshData     = freshDoc.data();
-            const freshLevel    = freshData[item.id + 'Level'] || 0;
-            const freshCoins    = freshData.coins || 0;
-            const freshCharLvl  = freshData.level || 1;
-            const freshNext     = item.upgrades[freshLevel];
-            const snapshotLevel = data[item.id + 'Level'] || 0;
-
-            // Проверяем что ничего не изменилось с момента рендера
-            if (!freshNext || freshLevel !== snapshotLevel
-                || freshCoins < freshNext.cost) {
-                animatePurchase(btn, false);
-                btn.disabled = false;
-                setTimeout(() => renderShop(), 1000);
-                return;
-            }
-
-            await userRef.update({
-                coins:                    freshCoins - freshNext.cost,
-                [item.id + 'Level']:      freshLevel + 1,
-                [item.id]:                freshNext.reward
-            });
-
-            animatePurchase(btn, true);
-            if (typeof showProfile === 'function') showProfile();
-
-            // Обновляем только затронутую карточку и баланс монет
-            setTimeout(async () => {
-                const updatedDoc  = await userRef.get();
-                const updatedData = updatedDoc.data();
-                const updatedCoins = updatedData.coins || 0;
-
-                // Обновить отображение монет
-                const balanceEl = shopItems.querySelector('.shop-balance b');
-                if (balanceEl) balanceEl.textContent = updatedCoins;
-
-                // Перестроить только карточку этого товара
-                const newCardHtml = buildCard(item, updatedData, updatedCoins);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = newCardHtml;
-                const newCard = tempDiv.firstElementChild;
-
-                const oldCard = btn.closest('.shop-card');
-                if (oldCard && newCard) {
-                    // Навешиваем обработчик на кнопку новой карточки
-                    const newBtn = newCard.querySelector('.shop-btn:not([disabled])');
-                    if (newBtn) {
-                        newBtn.onclick = shopItems.querySelector(`.shop-btn[data-item-id="${item.id}"]`)?.onclick || null;
-                    }
-                    oldCard.replaceWith(newCard);
-
-                    // Навешиваем обработчики на кнопки в новой карточке
-                    newCard.querySelectorAll('.shop-btn:not([disabled])').forEach(b => {
-                        b.onclick = async () => {
-                            if (b.disabled) return;
-                            b.disabled = true;
-                            const clickedItem = SHOP_ITEMS.find(i => i.id === b.dataset.itemId);
-                            if (!clickedItem) { b.disabled = false; return; }
-                            const fd = await userRef.get();
-                            const fdData = fd.data();
-                            const fdLevel = fdData[clickedItem.id + 'Level'] || 0;
-                            const fdCoins = fdData.coins || 0;
-                            const fdNext  = clickedItem.upgrades[fdLevel];
-                            const snapLevel = updatedData[clickedItem.id + 'Level'] || 0;
-                            if (!fdNext || fdLevel !== snapLevel || fdCoins < fdNext.cost) {
-                                animatePurchase(b, false);
-                                b.disabled = false;
-                                setTimeout(() => renderShop(), 1000);
-                                return;
-                            }
-                            await userRef.update({
-                                coins: fdCoins - fdNext.cost,
-                                [clickedItem.id + 'Level']: fdLevel + 1,
-                                [clickedItem.id]: fdNext.reward
-                            });
-                            animatePurchase(b, true);
-                            if (typeof showProfile === 'function') showProfile();
-                            setTimeout(() => renderShop(), 1500);
-                        };
-                    });
-                } else {
-                    // Если не удалось найти карточку — полный рендер
-                    renderShop();
-                }
-            }, 1500);
-        };
+        btn.onclick = () => handleShopPurchase(btn, userRef, data);
     });
+}
+
+// ─── Логика покупки (вынесена, чтобы не дублировать) ──────────────────────────
+async function handleShopPurchase(btn, userRef, snapshotData) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    const item = SHOP_ITEMS.find(i => i.id === btn.dataset.itemId);
+    if (!item) { btn.disabled = false; return; }
+
+    try {
+        const freshDoc   = await userRef.get();
+        const freshData  = freshDoc.data();
+        const freshLevel = freshData[item.id + 'Level'] || 0;
+        const freshCoins = freshData.coins || 0;
+        const freshNext  = item.upgrades[freshLevel];
+        const snapshotLevel = snapshotData[item.id + 'Level'] || 0;
+
+        if (!freshNext || freshLevel !== snapshotLevel || freshCoins < freshNext.cost) {
+            animatePurchase(btn, false);
+            btn.disabled = false;
+            setTimeout(() => renderShop(), 1000);
+            return;
+        }
+
+        await userRef.update({
+            coins:               freshCoins - freshNext.cost,
+            [item.id + 'Level']: freshLevel + 1,
+            [item.id]:           freshNext.reward
+        });
+
+        animatePurchase(btn, true);
+        if (typeof showProfile === 'function') showProfile();
+        setTimeout(() => renderShop(), 1500);
+    } catch(e) {
+        animatePurchase(btn, false);
+        btn.disabled = false;
+        console.error('Shop purchase error:', e);
+    }
 }
 
 // ─── Анимация покупки ──────────────────────────────────────────────────────────

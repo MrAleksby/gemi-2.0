@@ -283,27 +283,21 @@ function renderBadges(earnedIds) {
 
 function showBadgeInfo(icon, name, desc, tier, earned) {
     const t = BADGE_TIERS[tier] || BADGE_TIERS.common;
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const popup = document.createElement('div');
-    popup.className = 'info-popup badge-info-popup';
-    popup.innerHTML = `
-        <div style="font-size:2.8rem;line-height:1;margin-bottom:8px;${!earned ? 'filter:grayscale(1);opacity:0.55' : ''}">${icon}</div>
-        <div class="popup-title">${name}</div>
-        <div style="display:inline-block;margin:6px 0 8px;padding:2px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;background:${t.color};color:#fff;">
-            ${t.label}
-        </div>
-        <div style="font-size:0.88rem;color:#555;text-align:center;line-height:1.4;">${desc}</div>
-        <div style="margin-top:12px;font-size:0.88rem;font-weight:700;color:${earned ? '#27ae60' : '#e67e22'};">
-            ${earned ? '✅ Уже получена!' : '🔒 Ещё не получена'}
-        </div>
-        <div class="popup-hint">Нажмите для закрытия</div>
-    `;
-    const close = () => { overlay.remove(); popup.remove(); };
-    overlay.onclick = close;
-    popup.onclick = close;
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
+    showPopup({
+        title: name,
+        className: 'badge-info-popup',
+        timeout: null,
+        content: `
+            <div style="font-size:2.8rem;line-height:1;margin-bottom:8px;${!earned ? 'filter:grayscale(1);opacity:0.55' : ''}">${icon}</div>
+            <div style="display:inline-block;margin:6px 0 8px;padding:2px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;background:${t.color};color:#fff;">
+                ${t.label}
+            </div>
+            <div style="font-size:0.88rem;color:#555;text-align:center;line-height:1.4;">${desc}</div>
+            <div style="margin-top:12px;font-size:0.88rem;font-weight:700;color:${earned ? '#27ae60' : '#e67e22'};">
+                ${earned ? '✅ Уже получена!' : '🔒 Ещё не получена'}
+            </div>
+        `
+    });
 }
 
 function toggleBadgesGrid() {
@@ -332,12 +326,7 @@ async function checkDailyBonus(uid) {
             lastDailyBonus: today
         });
 
-        // Показываем уведомление
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:12px 20px;border-radius:14px;font-weight:600;font-size:0.95em;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);text-align:center;';
-        toast.textContent = `🎁 Ежедневный бонус: +${bonus} монет! (уровень ${lvl})`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+        showToast(`🎁 Ежедневный бонус: +${bonus} монет! (уровень ${lvl})`);
 
         // Обновляем профиль чтобы отобразить новый баланс
         showProfile();
@@ -364,66 +353,41 @@ function showLevelDetails(lvl) {
     const title = getLevelTitle(lvl);
     const desc = getLevelDescription(lvl);
     const color = getLevelColor(lvl);
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const popup = document.createElement('div');
-    popup.className = 'info-popup';
-    popup.innerHTML = `
-        <div class="popup-title" style="color:${color};">${title}</div>
-        <div class="popup-row"><span>Уровень:</span><strong>${lvl}</strong></div>
-        <div class="popup-row"><span>Ранг:</span><strong>${desc}</strong></div>
-        <div class="popup-hint">Кликните для закрытия</div>
-    `;
-    const close = () => { overlay.remove(); popup.remove(); };
-    overlay.onclick = close;
-    popup.onclick = close;
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
-    setTimeout(close, 5000);
+    showPopup({
+        title: title,
+        titleStyle: `color:${color};`,
+        content: `
+            <div class="popup-row"><span>Уровень:</span><strong>${lvl}</strong></div>
+            <div class="popup-row"><span>Ранг:</span><strong>${desc}</strong></div>
+        `
+    });
 }
 
 function showKDDetails(wins, games) {
     const kd = games > 0 ? (wins / games).toFixed(2) : '0.00';
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const popup = document.createElement('div');
-    popup.className = 'info-popup';
-    popup.innerHTML = `
-        <div class="popup-title">🎯 Статистика KD</div>
-        <div class="popup-row"><span>🏆 Побед:</span><strong>${wins}</strong></div>
-        <div class="popup-row"><span>🎮 Игр:</span><strong>${games}</strong></div>
-        <div class="popup-row"><span>🎯 KD:</span><strong class="highlight">${kd}</strong></div>
-        <div class="popup-hint">Кликните для закрытия</div>
-    `;
-    const close = () => { overlay.remove(); popup.remove(); };
-    overlay.onclick = close;
-    popup.onclick = close;
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
-    setTimeout(close, 5000);
+    showPopup({
+        title: '🎯 Статистика KD',
+        content: `
+            <div class="popup-row"><span>🏆 Побед:</span><strong>${wins}</strong></div>
+            <div class="popup-row"><span>🎮 Игр:</span><strong>${games}</strong></div>
+            <div class="popup-row"><span>🎯 KD:</span><strong class="highlight">${kd}</strong></div>
+        `
+    });
 }
 
 // ─── CF конвертация ───────────────────────────────────────────────────────────
 
 function showCFConversion(cfAmount) {
     const sumAmount = (cfAmount * 1000).toLocaleString('ru-RU');
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const popup = document.createElement('div');
-    popup.className = 'info-popup cf-popup';
-    popup.innerHTML = `
-        <div class="popup-title">💰 Конвертация CF</div>
-        <div class="popup-row"><span>CF:</span><strong>${cfAmount}</strong></div>
-        <div class="popup-row"><span>Сум:</span><strong class="highlight">${sumAmount}</strong></div>
-        <div class="popup-rate">Курс: 1 CF = 1000 сум</div>
-        <div class="popup-hint">Кликните для закрытия</div>
-    `;
-    const close = () => { overlay.remove(); popup.remove(); };
-    overlay.onclick = close;
-    popup.onclick = close;
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
-    setTimeout(close, 5000);
+    showPopup({
+        title: '💰 Конвертация CF',
+        className: 'cf-popup',
+        content: `
+            <div class="popup-row"><span>CF:</span><strong>${cfAmount}</strong></div>
+            <div class="popup-row"><span>Сум:</span><strong class="highlight">${sumAmount}</strong></div>
+            <div class="popup-rate">Курс: 1 CF = 1000 сум</div>
+        `
+    });
 }
 
 // ─── Уровни ───────────────────────────────────────────────────────────────────
@@ -792,7 +756,6 @@ async function showProfile() {
     const data = doc.data();
     const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
     currentUserLevel = lvl;
-    updateNavLocks(lvl);
     const lvlTitle = getLevelTitle(lvl);
     const lvlColor = getLevelColor(lvl);
     const totalCF = data.cf ?? 0;
@@ -899,10 +862,11 @@ async function showRating() {
         const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
         const tr = document.createElement('tr');
         const lvlIcon = getLevelTitle(lvl).split(' ')[0];
-        const safeName = data.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const safeName = escapeAttr(data.name);
+        const htmlName = escapeHtml(data.name);
         const nameCell = doc.id !== currentUser
-            ? `<td onclick="openChat('${doc.id}','${safeName}')" style="cursor:pointer;color:#5c1f4a;font-weight:600;">${data.name}</td>`
-            : `<td>${data.name}</td>`;
+            ? `<td onclick="openChat('${doc.id}','${safeName}')" style="cursor:pointer;color:#5c1f4a;font-weight:600;">${htmlName}</td>`
+            : `<td>${htmlName}</td>`;
         tr.innerHTML = `
             <td>${place++}</td>
             ${nameCell}
@@ -1029,51 +993,31 @@ function setNavTab(name) {
 }
 
 document.getElementById('nav-home').onclick = () => {
-    document.getElementById('rating-modal').style.display   = 'none';
-    document.getElementById('shop-modal').style.display     = 'none';
-    document.getElementById('crypto-modal').style.display   = 'none';
-    document.getElementById('chat-modal').style.display     = 'none';
+    hideAllModals();
     setNavTab('home');
-    // Переподключаем слушатель заявок если это админ
     if (unsubPendingRegs !== undefined) setupPendingRegistrationsListener();
 };
 
 document.getElementById('nav-rating').onclick = () => {
-    document.getElementById('shop-modal').style.display = 'none';
-    document.getElementById('rating-modal').style.display = 'flex';
+    showModal('rating-modal');
     showRating();
     setNavTab('rating');
 };
 
 document.getElementById('nav-shop').onclick = () => {
-    document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('shop-modal').style.display = 'block';
+    showModal('shop-modal', 'block');
     renderShop();
     setNavTab('shop');
 };
 
-const MIN_LEVEL_FOR_ADVANCED = 5;
-
-function updateNavLocks(lvl) {
-    // Табы всегда доступны — ограничения внутри модалов
-}
-
 document.getElementById('nav-crypto').onclick = () => {
-    document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('shop-modal').style.display = 'none';
-    document.getElementById('business-modal').style.display = 'none';
-    document.getElementById('crypto-modal').style.display = 'flex';
+    showModal('crypto-modal');
     renderCryptoExchange();
     setNavTab('crypto');
 };
 
 document.getElementById('nav-business').onclick = () => {
-    document.getElementById('rating-modal').style.display = 'none';
-    document.getElementById('shop-modal').style.display   = 'none';
-    document.getElementById('crypto-modal').style.display = 'none';
-    document.getElementById('chat-modal').style.display   = 'none';
-    if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
-    document.getElementById('business-modal').style.display = 'flex';
+    showModal('business-modal');
     renderBusinessTab();
     setNavTab('business');
 };
@@ -1186,39 +1130,24 @@ function setupPendingRegistrationsListener() {
 
 // ─── Модалы ───────────────────────────────────────────────────────────────────
 
+// ─── Закрытие модалок (крестик + клик по overlay) ────────────────────────────
+
 const ratingModal = document.getElementById('rating-modal');
+
 document.getElementById('toggle-rating-btn').onclick = () => {
     ratingModal.style.display = 'flex';
     showRating();
 };
-document.getElementById('rating-close').onclick = () => { ratingModal.style.display = 'none'; setNavTab('home'); };
-ratingModal.onclick = (e) => { if (e.target === ratingModal) { ratingModal.style.display = 'none'; setNavTab('home'); } };
-document.getElementById('crypto-close').onclick = () => {
-    document.getElementById('crypto-modal').style.display = 'none';
-    if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
-    setNavTab('home');
-};
-document.getElementById('business-close').onclick = () => {
-    document.getElementById('business-modal').style.display = 'none';
-    setNavTab('home');
-};
-document.getElementById('chat-close').onclick = () => {
-    document.getElementById('chat-modal').style.display = 'none';
-    setNavTab('home');
-};
-document.getElementById('business-modal').onclick = (e) => {
-    if (e.target === document.getElementById('business-modal')) {
-        document.getElementById('business-modal').style.display = 'none';
-        setNavTab('home');
-    }
-};
-document.getElementById('crypto-modal').onclick = (e) => {
-    if (e.target === document.getElementById('crypto-modal')) {
-        document.getElementById('crypto-modal').style.display = 'none';
-        if (typeof stopCryptoPriceUpdates === 'function') stopCryptoPriceUpdates();
-        setNavTab('home');
-    }
-};
+
+// Универсальный обработчик закрытия для всех модалок
+['rating', 'crypto', 'business', 'chat'].forEach(name => {
+    const modal = document.getElementById(name + '-modal');
+    const closeBtn = document.getElementById(name + '-close');
+    if (closeBtn) closeBtn.onclick = () => { hideAllModals(); setNavTab('home'); };
+    if (modal) modal.onclick = (e) => {
+        if (e.target === modal) { hideAllModals(); setNavTab('home'); }
+    };
+});
 
 const scoreRequestModal = document.getElementById('score-request-modal');
 document.getElementById('submit-score-btn').onclick = () => {
