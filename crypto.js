@@ -758,11 +758,14 @@ async function executeSell() {
         const pnl        = (price - oldAvg) * assetInput - commission;
         const dec        = assetDecimals(asset.id);
 
+        const xpGain = pnl > 0 ? Math.floor(pnl) : 0;
+
         const update = {
             exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
             totalPnl:      firebase.firestore.FieldValue.increment(pnl),
             weeklyPnl:     firebase.firestore.FieldValue.increment(pnl),
         };
+        if (xpGain > 0) update.points = firebase.firestore.FieldValue.increment(xpGain);
         update[`${asset.id}Amount`] = firebase.firestore.FieldValue.increment(-assetInput);
         await ref.update(update);
 
@@ -776,7 +779,8 @@ async function executeSell() {
             timestamp: new Date()
         });
 
-        msgEl.innerHTML = `✅ Продано <b>${assetInput} ${asset.symbol}</b> за ${coinsNet} монет`;
+        const xpMsg = xpGain > 0 ? ` &nbsp;⭐ +${xpGain} опыта` : '';
+        msgEl.innerHTML = `✅ Продано <b>${assetInput} ${asset.symbol}</b> за ${coinsNet} монет${xpMsg}`;
         msgEl.style.color = '#27ae60';
         cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
         setTimeout(() => renderCryptoExchange(), 1500);
