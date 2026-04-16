@@ -11,7 +11,8 @@ const CRYPTO_ITEMS = [
     { id: 'tsla', name: 'Tesla',    symbol: 'TSLA', icon: '🚗', color: '#cc0000', type: 'crypto', binance: 'TSLAUSDT', futures: true },
     { id: 'meta', name: 'Meta',     symbol: 'META', icon: '🌐', color: '#0082fb', type: 'crypto', binance: 'METAUSDT', futures: true },
     { id: 'bz',   name: 'Нефть Brent', symbol: 'BZ',   icon: '🛢️', color: '#5d4037', type: 'crypto', binance: 'BZUSDT',   futures: true },
-    { id: 'aapl', name: 'Apple',       symbol: 'AAPL', icon: '🍎', color: '#555555', type: 'crypto', binance: 'AAPLUSDT', futures: true },
+    { id: 'aapl', name: 'Apple',  symbol: 'AAPL', icon: '🍎', color: '#555555', type: 'crypto', binance: 'AAPLUSDT', futures: true },
+    { id: 'nvda', name: 'NVIDIA', symbol: 'NVDA', icon: '🟢', color: '#76b900', type: 'crypto', binance: 'NVDAUSDT', futures: true },
 ];
 
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
