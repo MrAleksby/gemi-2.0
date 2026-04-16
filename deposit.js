@@ -1,13 +1,13 @@
 // ─── Инвестиции: Депозит ──────────────────────────────────────────────────────
 
-// Ставки по уровням (% в день)
+// Ставки по уровням (% в месяц)
 const DEPOSIT_RATES = [
-    { minLevel: 25, rate: 10 },
-    { minLevel: 20, rate: 7  },
-    { minLevel: 15, rate: 5  },
-    { minLevel: 10, rate: 3  },
-    { minLevel: 5,  rate: 2  },
-    { minLevel: 1,  rate: 1  },
+    { minLevel: 25, rate: 30 },
+    { minLevel: 20, rate: 25 },
+    { minLevel: 15, rate: 20 },
+    { minLevel: 10, rate: 15 },
+    { minLevel: 5,  rate: 10 },
+    { minLevel: 1,  rate: 5  },
 ];
 
 function getDepositRate(level) {
@@ -33,7 +33,7 @@ function calcAccruedInterest(dep) {
             ? dep.createdAt.toMillis()
             : Date.now();
     const diffDays = (now - last) / (1000 * 60 * 60 * 24);
-    return diffDays * (dep.ratePercent / 100) * dep.amount;
+    return diffDays * (dep.ratePercent / 100 / 30) * dep.amount;
 }
 
 // ─── Хаб «Инвестиции» ────────────────────────────────────────────────────────
@@ -141,8 +141,8 @@ async function renderDepositTab() {
         return `<tr style="${isCurrent ? 'background:#e8f5e9;' : ''}">
             <td style="padding:7px 12px;color:#666;">Ур. ${r.minLevel}${r.minLevel < 25 ? '–' + (DEPOSIT_RATES[DEPOSIT_RATES.findIndex(x=>x.rate===r.rate)-1]?.minLevel - 1 || 24) : '+'}</td>
             <td style="padding:7px 12px;font-weight:${isCurrent ? '700' : '400'};color:${isCurrent ? '#27ae60' : '#333'};">
-                ${r.rate}% / день
-                ${isCurrent ? '<span style="font-size:0.8em;color:#27ae60;"> ← вы здесь</span>' : ''}
+                ${r.rate}% / мес <span style="color:#aaa;font-size:0.82em;">(${(r.rate/30).toFixed(2)}% / день)</span>
+                ${isCurrent ? ' <span style="font-size:0.8em;color:#27ae60;">← вы здесь</span>' : ''}
             </td>
         </tr>`;
     }).join('');
@@ -168,7 +168,7 @@ async function renderDepositTab() {
                     </div>
                     <div class="deposit-row">
                         <span>📈 Ставка</span>
-                        <b style="color:#27ae60;">${dep.ratePercent}% в день</b>
+                        <b style="color:#27ae60;">${dep.ratePercent}% в месяц</b>
                     </div>
                     <div class="deposit-row">
                         <span>📅 Открыт</span>
@@ -210,10 +210,10 @@ async function renderDepositTab() {
                     <div style="font-size:2.2em;">🏦</div>
                     <div style="font-weight:700;color:#2e7d32;font-size:1.05em;margin-top:4px;">Открыть депозит</div>
                     <div style="font-size:0.88em;color:#888;margin-top:4px;">
-                        Ваша ставка: <b style="color:#27ae60;">${rate}% в день</b> (уровень ${level})
+                        Ваша ставка: <b style="color:#27ae60;">${rate}% в месяц</b> (уровень ${level})
                     </div>
                     ${nextRate
-                        ? `<div style="font-size:0.8em;color:#aaa;margin-top:2px;">С уровня ${nextRate.minLevel} будет ${nextRate.rate}% в день</div>`
+                        ? `<div style="font-size:0.8em;color:#aaa;margin-top:2px;">С уровня ${nextRate.minLevel} будет ${nextRate.rate}% в месяц</div>`
                         : `<div style="font-size:0.8em;color:#f7931a;margin-top:2px;">🏆 Максимальная ставка!</div>`}
                 </div>
 
@@ -258,7 +258,7 @@ function updateDepositPreview(rate) {
     const preview = document.getElementById('deposit-preview');
     if (!preview) return;
     if (amount < 1) { preview.style.display = 'none'; return; }
-    const daily = amount * rate / 100;
+    const daily = amount * rate / 100 / 30;
     document.getElementById('dep-daily').textContent = daily.toFixed(2);
     document.getElementById('dep-7d').textContent    = (daily * 7).toFixed(2);
     document.getElementById('dep-30d').textContent   = (daily * 30).toFixed(2);
