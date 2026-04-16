@@ -173,6 +173,7 @@ async function renderDepositTab() {
     ]);
 
     const userData  = userSnap.data();
+    const isAdmin   = userData.isAdmin === true;
     const coins     = userData.coins || 0;
     const level     = typeof getLevelByPoints === 'function'
         ? Math.max(1, Math.min(getLevelByPoints(userData.points || 0), 25))
@@ -282,6 +283,8 @@ async function renderDepositTab() {
                 <table style="width:100%;border-collapse:collapse;font-size:0.9em;">${rateRows}</table>
             </div>
 
+            ${isAdmin ? `<button onclick="renderAdminDepositStats()" class="deposit-admin-btn">📊 Депозиты всех игроков</button>` : ''}
+            <div id="admin-deposit-stats"></div>
             <div id="deposit-msg" class="crypto-msg"></div>
         `;
 
@@ -332,6 +335,8 @@ async function renderDepositTab() {
                 <div style="font-size:0.78em;color:#aaa;margin-top:8px;text-align:center;">Повышай уровень — ставка вырастет автоматически!</div>
             </div>
 
+            ${isAdmin ? `<button onclick="renderAdminDepositStats()" class="deposit-admin-btn">📊 Депозиты всех игроков</button>` : ''}
+            <div id="admin-deposit-stats"></div>
             <div id="deposit-msg" class="crypto-msg"></div>
         `;
     }
@@ -544,5 +549,93 @@ async function closeDeposit(depId) {
     } catch(e) {
         const msgEl = document.getElementById('deposit-msg');
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+    }
+}
+
+// ─── Админ: статистика депозитов всех игроков ─────────────────────────────────
+
+async function renderAdminDepositStats() {
+    const container = document.getElementById('admin-deposit-stats');
+    if (!container) return;
+    container.innerHTML = '<div class="crypto-loading" style="margin-top:12px;">Загружаем депозиты... 🏦</div>';
+
+    try {
+        const db = firebase.firestore();
+
+        // Все активные депозиты
+        const [depsSnap, usersSnap] = await Promise.all([
+            db.collection('deposits').where('status', '==', 'active').get(),
+            db.collection('users').get()
+        ]);
+
+        // Карта userId → уровень
+        const userLevelMap = {};
+        usersSnap.docs.forEach(doc => {
+            const d = doc.data();
+            if (d.isAdmin) return;
+            const level = typeof getLevelByPoints === 'function'
+                ? Math.max(1, Math.min(getLevelByPoints(d.points || 0), 25))
+                : 1;
+            userLevelMap[doc.id] = level;
+        });
+
+        if (depsSnap.empty) {
+            container.innerHTML = '<div style="text-align:center;color:#aaa;padding:16px;font-size:0.9em;">Нет активных депозитов</div>';
+            return;
+        }
+
+        // Считаем текущий баланс каждого депозита
+        const rows = depsSnap.docs.map(doc => {
+            const dep    = doc.data();
+            const level  = userLevelMap[dep.userId] || 1;
+            const rate   = getDepositRate(level);
+            const current = calcCompoundedAmount(dep, rate);
+            return { name: dep.userName || '—', level, rate, current };
+        });
+
+        // Сортируем по убыванию суммы
+        rows.sort((a, b) => b.current - a.current);
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const totalSum = rows.reduce((s, r) => s + r.current, 0);
+
+        const rowsHtml = rows.map((r, i) => {
+            const place = i < 3 ? medals[i] : `<span style="color:#999;font-size:0.85em;">${i + 1}</span>`;
+            return `<tr style="${i % 2 === 0 ? 'background:#fff;' : 'background:#fafafa;'}">
+                <td style="padding:8px 10px;text-align:center;width:32px;">${place}</td>
+                <td style="padding:8px 8px;font-weight:600;color:#222;">${r.name}</td>
+                <td style="padding:8px 8px;text-align:center;color:#7c3aed;font-size:0.88em;">Ур. ${r.level}</td>
+                <td style="padding:8px 8px;text-align:center;color:#27ae60;font-size:0.88em;">${r.rate}% / мес</td>
+                <td style="padding:8px 10px;text-align:right;font-weight:700;color:#2e7d32;white-space:nowrap;">${r.current.toFixed(2)}</td>
+            </tr>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div style="background:#fff;border:1.5px solid #a5d6a7;border-radius:16px;overflow:hidden;margin-top:12px;">
+                <div style="background:linear-gradient(135deg,#27ae60,#2ecc71);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-weight:700;color:#fff;font-size:1em;">📊 Депозиты игроков</div>
+                    <div style="font-size:0.85em;color:rgba(255,255,255,0.9);">Всего: <b>${totalSum.toFixed(2)} монет</b></div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
+                        <thead>
+                            <tr style="background:#f1f8e9;color:#555;font-size:0.8em;font-weight:600;">
+                                <th style="padding:7px 10px;">#</th>
+                                <th style="padding:7px 8px;text-align:left;">Игрок</th>
+                                <th style="padding:7px 8px;">Уровень</th>
+                                <th style="padding:7px 8px;">Ставка</th>
+                                <th style="padding:7px 10px;text-align:right;">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+                <div style="padding:8px 14px;text-align:right;font-size:0.78em;color:#aaa;">
+                    ${rows.length} активных депозита
+                </div>
+            </div>
+        `;
+    } catch(e) {
+        container.innerHTML = `<div style="color:#e53935;padding:12px;font-size:0.9em;">❌ Ошибка: ${e.message}</div>`;
     }
 }

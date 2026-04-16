@@ -3202,3 +3202,15 @@ th {
     margin-top: 4px;
     line-height: 1.5;
 }
+.deposit-admin-btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #5c1f4a, #7c3aed);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95em;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+}
