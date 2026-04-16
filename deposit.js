@@ -97,14 +97,15 @@ async function renderInvestHub() {
     content.innerHTML = `
         <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0 8px;">
 
-            <div class="invest-hub-card" style="border-color:#e0e0e0;opacity:0.55;cursor:not-allowed;">
-                <div class="invest-hub-icon" style="background:linear-gradient(135deg,#bbb,#ccc);">🏦</div>
+            <div class="invest-hub-card" onclick="openDepositModal()" style="border-color:#27ae60;">
+                <div class="invest-hub-icon" style="background:linear-gradient(135deg,#27ae60,#2ecc71);">🏦</div>
                 <div class="invest-hub-body">
                     <div class="invest-hub-title">Депозит</div>
                     <div class="invest-hub-desc">Пассивный доход под процент</div>
-                    <div style="font-size:0.85em;color:#aaa;font-weight:600;margin-top:5px;">🔒 Скоро открытие</div>
+                    <div style="font-size:0.85em;color:#27ae60;font-weight:700;margin-top:5px;">Ставка растёт с уровнем · до 30% / мес</div>
+                    ${depositBadge}
                 </div>
-                <div class="invest-hub-arrow" style="color:#ddd;">›</div>
+                <div class="invest-hub-arrow">›</div>
             </div>
 
             <div class="invest-hub-card" onclick="openExchangeFromHub()" style="border-color:#f7931a;">
