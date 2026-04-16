@@ -3167,3 +3167,38 @@ th {
 }
 .deposit-preview-row { margin-bottom: 4px; }
 .deposit-preview-row:last-child { margin-bottom: 0; }
+.deposit-action-card {
+    background: #fff;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 10px;
+}
+.deposit-action-title {
+    font-size: 0.95em;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px;
+}
+.deposit-withdraw-btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #f7931a, #e67e22);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95em;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.deposit-withdraw-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.deposit-hint {
+    font-size: 0.8em;
+    color: #888;
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    line-height: 1.5;
+}
