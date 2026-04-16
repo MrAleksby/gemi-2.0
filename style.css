@@ -3071,3 +3071,99 @@ th {
 .crypto-lock-title { font-weight:800; font-size:1.05em; color:#5c1f4a; margin-bottom:6px; }
 .crypto-lock-desc { font-size:0.88em; color:#888; line-height:1.5; margin-bottom:10px; }
 .crypto-lock-progress { font-size:0.9em; color:#e8956d; }
+
+/* ─── Инвестиции: хаб ────────────────────────────────────────────────────── */
+.invest-hub-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 18px;
+    padding: 18px 16px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.invest-hub-card:active { transform: scale(0.97); box-shadow: none; }
+.invest-hub-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75em;
+    flex-shrink: 0;
+}
+.invest-hub-body { flex: 1; min-width: 0; }
+.invest-hub-title { font-size: 1.1em; font-weight: 700; color: #222; }
+.invest-hub-desc { font-size: 0.84em; color: #888; margin-top: 2px; }
+.invest-hub-arrow { font-size: 1.6em; color: #ccc; flex-shrink: 0; line-height: 1; }
+.invest-hub-badge {
+    margin-top: 6px;
+    font-size: 0.78em;
+    color: #27ae60;
+    font-weight: 600;
+}
+.invest-hub-badge.inactive { color: #aaa; font-weight: 400; }
+
+/* ─── Депозит ────────────────────────────────────────────────────────────── */
+.deposit-active-card, .deposit-create-card {
+    background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+    border: 1.5px solid #a5d6a7;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+}
+.deposit-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.deposit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.92em;
+    color: #555;
+}
+.deposit-collect-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.deposit-collect-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.deposit-close-btn {
+    width: 100%;
+    padding: 11px;
+    background: #fff;
+    color: #e53935;
+    border: 1.5px solid #e53935;
+    border-radius: 12px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+.deposit-rate-table {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+.deposit-preview {
+    background: #fff;
+    border: 1px solid #c8e6c9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 0.88em;
+    color: #555;
+}
+.deposit-preview-row { margin-bottom: 4px; }
+.deposit-preview-row:last-child { margin-bottom: 0; }

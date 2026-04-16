@@ -2,7 +2,7 @@
 
 // ─── Управление модалками ────────────────────────────────────────────────────
 
-const ALL_MODALS = ['rating-modal', 'shop-modal', 'crypto-modal', 'business-modal', 'chat-modal'];
+const ALL_MODALS = ['rating-modal', 'shop-modal', 'crypto-modal', 'business-modal', 'chat-modal', 'invest-modal', 'deposit-modal'];
 
 function hideAllModals() {
     ALL_MODALS.forEach(id => {

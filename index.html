@@ -335,8 +335,8 @@
         <span class="nav-label">Магазин</span>
     </button>
     <button class="nav-tab" id="nav-crypto">
-        <span class="nav-icon">📈</span>
-        <span class="nav-label">Биржа</span>
+        <span class="nav-icon">💼</span>
+        <span class="nav-label">Инвестиции</span>
     </button>
     <button class="nav-tab" id="nav-business">
         <span class="nav-icon">🏪</span>
@@ -363,6 +363,26 @@
     </div>
 </div>
 
+<div id="invest-modal" class="modal" style="display:none">
+    <div class="modal-content crypto-modal-content">
+        <span class="close" id="invest-close">&times;</span>
+        <h2 style="text-align:center;margin-bottom:16px;">💼 Инвестиции</h2>
+        <div id="invest-content"></div>
+    </div>
+</div>
+
+<div id="deposit-modal" class="modal" style="display:none">
+    <div class="modal-content crypto-modal-content">
+        <span class="close" id="deposit-close">&times;</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <button onclick="showModal('invest-modal');renderInvestHub();setNavTab('crypto');"
+                style="background:none;border:none;font-size:1.4em;cursor:pointer;padding:0;color:#555;line-height:1;">←</button>
+            <h2 style="margin:0;">🏦 Депозит</h2>
+        </div>
+        <div id="deposit-content"></div>
+    </div>
+</div>
+
 <div id="crypto-modal" class="modal" style="display:none">
     <div class="modal-content crypto-modal-content">
         <span class="close" id="crypto-close">&times;</span>
@@ -383,6 +403,7 @@
 <script src="transfer.js"></script>
 <script src="admin-actions.js"></script>
 <script src="crypto.js"></script>
+<script src="deposit.js"></script>
 <script src="business.js"></script>
 <script src="chat.js"></script>
 </body>

@@ -1011,8 +1011,8 @@ document.getElementById('nav-shop').onclick = () => {
 };
 
 document.getElementById('nav-crypto').onclick = () => {
-    showModal('crypto-modal');
-    renderCryptoExchange();
+    showModal('invest-modal');
+    renderInvestHub();
     setNavTab('crypto');
 };
 
@@ -1140,7 +1140,7 @@ document.getElementById('toggle-rating-btn').onclick = () => {
 };
 
 // Универсальный обработчик закрытия для всех модалок
-['rating', 'crypto', 'business', 'chat'].forEach(name => {
+['rating', 'crypto', 'business', 'chat', 'invest', 'deposit'].forEach(name => {
     const modal = document.getElementById(name + '-modal');
     const closeBtn = document.getElementById(name + '-close');
     if (closeBtn) closeBtn.onclick = () => { hideAllModals(); setNavTab('home'); };
