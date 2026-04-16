@@ -24,9 +24,19 @@ function getNextDepositRate(level) {
     return null;
 }
 
-// Текущий баланс с учётом сложного процента
+// Получить текущую ставку игрока из Firestore (для action-функций)
+async function fetchUserDepositRate(uid) {
+    const snap  = await firebase.firestore().collection('users').doc(uid).get();
+    const data  = snap.data();
+    const level = typeof getLevelByPoints === 'function'
+        ? Math.max(1, Math.min(getLevelByPoints(data.points || 0), 25))
+        : (currentUserLevel || 1);
+    return { level, rate: getDepositRate(level) };
+}
+
+// Текущий баланс с учётом сложного процента по ТЕКУЩЕЙ ставке игрока
 // amount * (1 + dailyRate)^дней — капитализация
-function calcCompoundedAmount(dep) {
+function calcCompoundedAmount(dep, monthlyRate) {
     const now  = Date.now();
     const last = dep.lastCompounded?.toMillis
         ? dep.lastCompounded.toMillis()
@@ -34,13 +44,13 @@ function calcCompoundedAmount(dep) {
             ? dep.createdAt.toMillis()
             : now;
     const diffDays  = (now - last) / (1000 * 60 * 60 * 24);
-    const dailyRate = dep.ratePercent / 100 / 30;
+    const dailyRate = monthlyRate / 100 / 30;
     return dep.amount * Math.pow(1 + dailyRate, diffDays);
 }
 
-// Применить накопленный процент в Firestore перед любым действием
-async function applyCompound(db, depRef, dep) {
-    const current = calcCompoundedAmount(dep);
+// Зафиксировать накопленный процент в Firestore перед любым действием
+async function applyCompound(db, depRef, dep, monthlyRate) {
+    const current = calcCompoundedAmount(dep, monthlyRate);
     const earned  = current - dep.amount;
     await depRef.update({
         amount:         current,
@@ -78,7 +88,7 @@ async function renderInvestHub() {
     let depositBadge = '';
     if (!depSnap.empty) {
         const dep     = depSnap.docs[0].data();
-        const current = calcCompoundedAmount(dep);
+        const current = calcCompoundedAmount(dep, rate); // текущая ставка игрока
         depositBadge  = `<div class="invest-hub-badge">✅ Активен · ${current.toFixed(2)} монет</div>`;
     } else {
         depositBadge = `<div class="invest-hub-badge inactive">Нет активного депозита</div>`;
@@ -124,7 +134,7 @@ function openDepositModal() {
     renderDepositTab();
 }
 
-// ─── Таблица ставок (хелпер) ──────────────────────────────────────────────────
+// ─── Таблица ставок ───────────────────────────────────────────────────────────
 
 function buildRateTableRows(currentRate) {
     return DEPOSIT_RATES.slice().reverse().map(r => {
@@ -166,17 +176,17 @@ async function renderDepositTab() {
     const level     = typeof getLevelByPoints === 'function'
         ? Math.max(1, Math.min(getLevelByPoints(userData.points || 0), 25))
         : (currentUserLevel || 1);
-    const rate      = getDepositRate(level);
+    const rate      = getDepositRate(level);   // ← всегда актуальная ставка
     const nextRate  = getNextDepositRate(level);
     const rateRows  = buildRateTableRows(rate);
 
     if (!depSnap.empty) {
         // ── Активный депозит ──
-        const dep       = { id: depSnap.docs[0].id, ...depSnap.docs[0].data() };
-        const current   = calcCompoundedAmount(dep);
-        const earned    = current - dep.amount;          // проценты с момента последней капитализации
+        const dep         = { id: depSnap.docs[0].id, ...depSnap.docs[0].data() };
+        const current     = calcCompoundedAmount(dep, rate); // текущая ставка игрока
+        const earned      = current - dep.amount;
         const totalEarned = (dep.totalEarned || 0) + earned;
-        const createdAt = dep.createdAt?.toDate ? dep.createdAt.toDate() : new Date();
+        const createdAt   = dep.createdAt?.toDate ? dep.createdAt.toDate() : new Date();
 
         content.innerHTML = `
             <div class="deposit-active-card">
@@ -191,8 +201,8 @@ async function renderDepositTab() {
                         <b style="color:#2e7d32;font-size:1.05em;">${current.toFixed(2)} монет</b>
                     </div>
                     <div class="deposit-row">
-                        <span>📈 Ставка</span>
-                        <b style="color:#27ae60;">${dep.ratePercent}% в месяц</b>
+                        <span>📈 Ваша ставка сейчас</span>
+                        <b style="color:#27ae60;">${rate}% / мес (уровень ${level})</b>
                     </div>
                     <div class="deposit-row">
                         <span>📅 Открыт</span>
@@ -204,8 +214,16 @@ async function renderDepositTab() {
                     </div>
                 </div>
 
+                ${nextRate ? `
                 <div class="deposit-hint">
-                    ♻️ Проценты капают в тело депозита каждую секунду — следующее начисление считается уже на новую сумму
+                    ⬆️ Подними уровень до ${nextRate.minLevel} — ставка вырастет до <b>${nextRate.rate}% в месяц</b> автоматически
+                </div>` : `
+                <div class="deposit-hint" style="color:#f7931a;">
+                    🏆 У тебя максимальная ставка ${rate}% в месяц!
+                </div>`}
+
+                <div class="deposit-hint" style="margin-top:6px;">
+                    ♻️ Проценты капают в тело депозита — следующее начисление считается на увеличенную сумму
                 </div>
             </div>
 
@@ -233,7 +251,7 @@ async function renderDepositTab() {
             <div class="deposit-action-card">
                 <div class="deposit-action-title">💸 Вывести на основной счёт</div>
                 <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">
-                    Доступно в депозите: <b>${current.toFixed(2)} монет</b> · Налог: <b>0%</b>
+                    Доступно: <b>${current.toFixed(2)} монет</b> · Налог: <b>0%</b>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <input type="number" id="dep-withdraw-input" min="1"
@@ -244,13 +262,13 @@ async function renderDepositTab() {
                         Всё
                     </button>
                 </div>
-                <button onclick="withdrawFromDeposit('${dep.id}', ${current})" class="deposit-withdraw-btn" style="margin-top:10px;">
+                <button onclick="withdrawFromDeposit('${dep.id}')" class="deposit-withdraw-btn" style="margin-top:10px;">
                     💸 Вывести
                 </button>
             </div>
 
             <!-- Закрыть -->
-            <button onclick="closeDeposit('${dep.id}', ${current})" class="deposit-close-btn">
+            <button onclick="closeDeposit('${dep.id}')" class="deposit-close-btn">
                 🔓 Закрыть депозит и вывести всё (${current.toFixed(2)} монет)
             </button>
 
@@ -294,11 +312,11 @@ async function renderDepositTab() {
                     <div class="deposit-preview-row">📆 За 7 дней: <b id="dep-7d">0</b> монет</div>
                     <div class="deposit-preview-row">📆 За 30 дней: <b id="dep-30d">0</b> монет</div>
                     <div class="deposit-preview-row" style="margin-top:4px;font-size:0.9em;color:#888;">
-                        ♻️ Сложный процент — каждое начисление увеличивает тело депозита
+                        ♻️ Сложный процент — ставка обновляется вместе с вашим уровнем
                     </div>
                 </div>
 
-                <button onclick="createDeposit(${rate})" class="deposit-collect-btn" style="margin-top:4px;">
+                <button onclick="createDeposit()" class="deposit-collect-btn" style="margin-top:4px;">
                     🏦 Открыть депозит
                 </button>
             </div>
@@ -306,7 +324,7 @@ async function renderDepositTab() {
             <div class="deposit-rate-table">
                 <div style="font-size:0.88em;color:#888;margin-bottom:8px;font-weight:600;">📊 Ставки по уровням</div>
                 <table style="width:100%;border-collapse:collapse;font-size:0.9em;">${rateRows}</table>
-                <div style="font-size:0.78em;color:#aaa;margin-top:8px;text-align:center;">Повышай уровень — получай больше!</div>
+                <div style="font-size:0.78em;color:#aaa;margin-top:8px;text-align:center;">Повышай уровень — ставка вырастет автоматически!</div>
             </div>
 
             <div id="deposit-msg" class="crypto-msg"></div>
@@ -330,7 +348,7 @@ function updateDepositPreview(rate) {
 
 // ─── Создать депозит ──────────────────────────────────────────────────────────
 
-async function createDeposit(rate) {
+async function createDeposit() {
     const amount = parseInt(document.getElementById('deposit-amount-input')?.value) || 0;
     const msgEl  = document.getElementById('deposit-msg');
     if (amount < 1) {
@@ -360,7 +378,7 @@ async function createDeposit(rate) {
             userId:         user.uid,
             userName,
             amount,
-            ratePercent:    rate,
+            // ratePercent не храним — ставка всегда берётся из текущего уровня игрока
             createdAt:      new Date(),
             lastCompounded: new Date(),
             totalEarned:    0,
@@ -396,10 +414,11 @@ async function topUpDeposit(depId) {
         const userRef = db.collection('users').doc(user.uid);
         const depRef  = db.collection('deposits').doc(depId);
 
-        // Сначала применяем накопленный процент, чтобы не потерять его
-        const depSnap = await depRef.get();
-        const current = calcCompoundedAmount(depSnap.data());
-        const earned  = current - depSnap.data().amount;
+        // Берём актуальную ставку игрока
+        const { rate } = await fetchUserDepositRate(user.uid);
+        const depSnap  = await depRef.get();
+        const current  = calcCompoundedAmount(depSnap.data(), rate);
+        const earned   = current - depSnap.data().amount;
 
         await db.runTransaction(async (tx) => {
             const uSnap = await tx.get(userRef);
@@ -423,15 +442,11 @@ async function topUpDeposit(depId) {
 
 // ─── Вывести часть депозита ───────────────────────────────────────────────────
 
-async function withdrawFromDeposit(depId, currentAmount) {
+async function withdrawFromDeposit(depId) {
     const withdraw = parseFloat(document.getElementById('dep-withdraw-input')?.value) || 0;
     const msgEl    = document.getElementById('deposit-msg');
     if (withdraw < 1) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Введите сумму вывода'; }
-        return;
-    }
-    if (withdraw > currentAmount) {
-        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = `❌ Нельзя вывести больше чем есть (${currentAmount.toFixed(2)})`; }
         return;
     }
 
@@ -446,30 +461,28 @@ async function withdrawFromDeposit(depId, currentAmount) {
         const userRef = db.collection('users').doc(user.uid);
         const depRef  = db.collection('deposits').doc(depId);
 
-        // Применяем накопленный процент перед выводом
-        const depSnap = await depRef.get();
-        const current = calcCompoundedAmount(depSnap.data());
-        const earned  = current - depSnap.data().amount;
-        const remaining = current - withdraw;
+        const { rate } = await fetchUserDepositRate(user.uid);
+        const depSnap  = await depRef.get();
+        const current  = calcCompoundedAmount(depSnap.data(), rate);
+        const earned   = current - depSnap.data().amount;
 
-        if (remaining < 0) throw new Error('Недостаточно средств в депозите');
+        if (withdraw > current)
+            throw new Error(`Нельзя вывести больше чем есть (${current.toFixed(2)} монет)`);
+
+        const remaining = current - withdraw;
 
         await db.runTransaction(async (tx) => {
             tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(Math.floor(withdraw)) });
             if (remaining < 1) {
-                // Если осталось меньше 1 монеты — закрываем депозит
                 tx.update(depRef, {
-                    amount:         0,
-                    lastCompounded: new Date(),
-                    totalEarned:    firebase.firestore.FieldValue.increment(earned),
-                    status:         'closed',
-                    closedAt:       new Date(),
+                    amount: 0, lastCompounded: new Date(),
+                    totalEarned: firebase.firestore.FieldValue.increment(earned),
+                    status: 'closed', closedAt: new Date(),
                 });
             } else {
                 tx.update(depRef, {
-                    amount:         remaining,
-                    lastCompounded: new Date(),
-                    totalEarned:    firebase.firestore.FieldValue.increment(earned),
+                    amount: remaining, lastCompounded: new Date(),
+                    totalEarned: firebase.firestore.FieldValue.increment(earned),
                 });
             }
         });
@@ -479,48 +492,48 @@ async function withdrawFromDeposit(depId, currentAmount) {
             msgEl.style.color = '#27ae60';
             msgEl.textContent = closed
                 ? `✅ Выведено ${Math.floor(withdraw)} монет. Депозит закрыт.`
-                : `✅ Выведено ${Math.floor(withdraw)} монет. В депозите осталось ${remaining.toFixed(2)} монет`;
+                : `✅ Выведено ${Math.floor(withdraw)} монет. В депозите: ${remaining.toFixed(2)} монет`;
         }
         setTimeout(() => renderDepositTab(), 1000);
     } catch(e) {
-        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ ' + e.message; }
         if (btn) { btn.disabled = false; btn.textContent = '💸 Вывести'; }
     }
 }
 
 // ─── Закрыть депозит (вывести всё) ───────────────────────────────────────────
 
-async function closeDeposit(depId, currentAmount) {
-    const total = Math.floor(currentAmount);
-    if (!confirm(`Закрыть депозит и вывести ${total.toLocaleString('ru-RU')} монет на основной счёт?`)) return;
-
+async function closeDeposit(depId) {
     const user = firebase.auth().currentUser;
     if (!user) return;
 
     try {
         const db      = firebase.firestore();
         const depRef  = db.collection('deposits').doc(depId);
-        const depSnap = await depRef.get();
-        const current = calcCompoundedAmount(depSnap.data());
-        const earned  = current - depSnap.data().amount;
+
+        const { rate } = await fetchUserDepositRate(user.uid);
+        const depSnap  = await depRef.get();
+        const current  = calcCompoundedAmount(depSnap.data(), rate);
+        const earned   = current - depSnap.data().amount;
+        const total    = Math.floor(current);
+
+        if (!confirm(`Закрыть депозит и вывести ${total.toLocaleString('ru-RU')} монет на основной счёт?`)) return;
 
         await Promise.all([
             db.collection('users').doc(user.uid).update({
-                coins: firebase.firestore.FieldValue.increment(Math.floor(current))
+                coins: firebase.firestore.FieldValue.increment(total)
             }),
             depRef.update({
-                amount:         0,
-                lastCompounded: new Date(),
-                totalEarned:    firebase.firestore.FieldValue.increment(earned),
-                status:         'closed',
-                closedAt:       new Date(),
+                amount: 0, lastCompounded: new Date(),
+                totalEarned: firebase.firestore.FieldValue.increment(earned),
+                status: 'closed', closedAt: new Date(),
             })
         ]);
 
         const msgEl = document.getElementById('deposit-msg');
         if (msgEl) {
             msgEl.style.color = '#27ae60';
-            msgEl.textContent = `✅ Депозит закрыт. Получено ${Math.floor(current).toLocaleString('ru-RU')} монет`;
+            msgEl.textContent = `✅ Депозит закрыт. Получено ${total.toLocaleString('ru-RU')} монет`;
         }
         setTimeout(() => renderDepositTab(), 1200);
     } catch(e) {
