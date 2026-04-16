@@ -755,7 +755,7 @@ async function executeSell() {
         const oldAvg     = freshData[`${asset.id}AvgPrice`] || 0;
         const coinsGross = assetInput * price;
         const commission = coinsGross * CRYPTO_COMMISSION;
-        const coinsNet   = Math.floor(coinsGross - commission);
+        const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
         const pnl        = (price - oldAvg) * assetInput - commission;
         const dec        = assetDecimals(asset.id);
 
