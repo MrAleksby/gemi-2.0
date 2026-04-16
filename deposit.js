@@ -209,6 +209,10 @@ async function renderDepositTab() {
                         <b>${createdAt.toLocaleDateString('ru-RU')}</b>
                     </div>
                     <div class="deposit-row" style="border-top:1px dashed #c8e6c9;padding-top:10px;margin-top:4px;">
+                        <span>📅 Начисляется в день</span>
+                        <b style="color:#27ae60;">+${(current * rate / 100 / 30).toFixed(2)} монет</b>
+                    </div>
+                    <div class="deposit-row">
                         <span>📊 Заработано всего</span>
                         <b style="color:#27ae60;">+${totalEarned.toFixed(2)} монет</b>
                     </div>
