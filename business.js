@@ -84,16 +84,15 @@ function todayStr() {
     return new Date().toISOString().slice(0, 10);
 }
 
-// Ключ дня — сбрасывается в 6:00 утра
+// Ключ дня — сбрасывается в 6:00 утра (локальное время)
 function bizDayKey() {
     const now = new Date();
-    // если время меньше 6:00 — считаем что это ещё «вчерашний» день
-    if (now.getHours() < 6) {
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().slice(0, 10);
-    }
-    return now.toISOString().slice(0, 10);
+    const d = now.getHours() < 6
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
 }
 
 // Получить текущую загрузку бизнеса, сбросить если новый день (в 6:00)
