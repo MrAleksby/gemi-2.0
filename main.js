@@ -1492,7 +1492,6 @@ async function loadPlayersList() {
                 <span class="players-list-name">${d.name}</span>
                 ${statusBadge}${approveBtn}
                 <button class="btn-edit-name" data-uid="${doc.id}">изменить</button>
-                <button class="btn-reset-password" data-uid="${doc.id}" style="font-size:0.75em;padding:2px 8px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;cursor:pointer;margin-left:4px;">🔑 пароль</button>
             </div>
             <div class="players-list-edit" style="display:none;">
                 <input class="edit-firstname" type="text" value="${first}" placeholder="Имя">
@@ -1500,12 +1499,6 @@ async function loadPlayersList() {
                 <button class="btn-save-name">✅</button>
                 <button class="btn-cancel-name">✖</button>
                 <span class="edit-name-error" style="color:#e53935;font-size:0.8em;display:none;"></span>
-            </div>
-            <div class="players-list-reset-pwd" style="display:none;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
-                <input class="reset-pwd-input" type="text" placeholder="Новый пароль" style="flex:1;min-width:120px;padding:6px 10px;border:1.5px solid #ffcc80;border-radius:8px;font-size:0.9em;">
-                <button class="btn-save-password" style="padding:6px 12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:0.85em;cursor:pointer;font-weight:600;">Сохранить</button>
-                <button class="btn-cancel-password" style="padding:6px 10px;background:#eee;color:#555;border:none;border-radius:8px;font-size:0.85em;cursor:pointer;">Отмена</button>
-                <span class="reset-pwd-msg" style="font-size:0.8em;width:100%;"></span>
             </div>
         </div>`;
     }).join('');
@@ -1531,64 +1524,6 @@ async function loadPlayersList() {
             const row = btn.closest('.players-list-row');
             row.querySelector('.players-list-view').style.display = '';
             row.querySelector('.players-list-edit').style.display = 'none';
-        };
-    });
-
-    // ─── Сброс пароля ──────────────────────────────────────────────────────────
-    container.querySelectorAll('.btn-reset-password').forEach(btn => {
-        btn.onclick = () => {
-            const row = btn.closest('.players-list-row');
-            const pwdBlock = row.querySelector('.players-list-reset-pwd');
-            const isOpen = pwdBlock.style.display === 'flex';
-            pwdBlock.style.display = isOpen ? 'none' : 'flex';
-            if (!isOpen) row.querySelector('.reset-pwd-input').focus();
-        };
-    });
-
-    container.querySelectorAll('.btn-cancel-password').forEach(btn => {
-        btn.onclick = () => {
-            const row = btn.closest('.players-list-row');
-            row.querySelector('.players-list-reset-pwd').style.display = 'none';
-            row.querySelector('.reset-pwd-input').value = '';
-            row.querySelector('.reset-pwd-msg').textContent = '';
-        };
-    });
-
-    container.querySelectorAll('.btn-save-password').forEach(btn => {
-        btn.onclick = async () => {
-            const row      = btn.closest('.players-list-row');
-            const uid      = row.dataset.uid;
-            const msgEl    = row.querySelector('.reset-pwd-msg');
-            const input    = row.querySelector('.reset-pwd-input');
-            const newPwd   = input.value.trim();
-
-            if (newPwd.length < 4) {
-                msgEl.style.color = '#e53935';
-                msgEl.textContent = '❌ Минимум 4 символа';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = '⏳...';
-            msgEl.textContent = '';
-
-            try {
-                const resetFn = firebase.functions().httpsCallable('resetUserPassword');
-                await resetFn({ uid, newPassword: newPwd });
-                msgEl.style.color = '#27ae60';
-                msgEl.textContent = '✅ Пароль изменён!';
-                input.value = '';
-                setTimeout(() => {
-                    row.querySelector('.players-list-reset-pwd').style.display = 'none';
-                    msgEl.textContent = '';
-                }, 2000);
-            } catch(e) {
-                msgEl.style.color = '#e53935';
-                msgEl.textContent = '❌ ' + (e.message || 'Ошибка');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Сохранить';
-            }
         };
     });
 
