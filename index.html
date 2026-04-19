@@ -22,7 +22,7 @@
         <h2>Вход</h2>
         <form id="login-form">
             <input type="tel" id="login-phone" placeholder="Номер телефона" required>
-            <input type="password" id="login-password" placeholder="Пароль" required>
+            <div class="password-wrap"><input type="password" id="login-password" placeholder="Пароль" required><button type="button" class="pwd-eye" onclick="togglePwd('login-password',this)">👁</button></div>
             <button type="submit">Войти</button>
         </form>
         <div id="login-msg" class="transfer-message"></div>
@@ -36,8 +36,8 @@
             <input type="text" id="register-firstname" placeholder="Имя (на русском)" required>
             <input type="text" id="register-lastname" placeholder="Фамилия (на русском)" required>
             <input type="tel" id="register-phone" placeholder="Номер телефона" required>
-            <input type="password" id="register-password" placeholder="Пароль" required>
-            <input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" required>
+            <div class="password-wrap"><input type="password" id="register-password" placeholder="Пароль" required><button type="button" class="pwd-eye" onclick="togglePwd('register-password',this)">👁</button></div>
+            <div class="password-wrap"><input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" required><button type="button" class="pwd-eye" onclick="togglePwd('register-password-confirm',this)">👁</button></div>
             <button type="submit">Зарегистрироваться</button>
         </form>
         <div id="register-msg" class="transfer-message"></div>
@@ -116,7 +116,7 @@
             <h2>🗑 Удалить аккаунт</h2>
             <p class="delete-warning">⚠️ Это действие необратимо. Все твои данные (монеты, CF, опыт, история) будут удалены навсегда.</p>
             <label>Введи пароль для подтверждения:</label>
-            <input type="password" id="delete-account-password" placeholder="Твой пароль">
+            <div class="password-wrap"><input type="password" id="delete-account-password" placeholder="Твой пароль"><button type="button" class="pwd-eye" onclick="togglePwd('delete-account-password',this)">👁</button></div>
             <div id="delete-account-msg" class="form-message"></div>
             <button id="delete-account-confirm" class="btn-danger">Да, удалить мой аккаунт</button>
         </div>

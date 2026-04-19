@@ -3214,3 +3214,30 @@ th {
     cursor: pointer;
     margin-top: 14px;
 }
+
+/* ─── Глазик для полей пароля ──────────────────────────────────────────────── */
+.password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-wrap input {
+    flex: 1;
+    padding-right: 42px !important;
+}
+.pwd-eye {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    padding: 4px;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    width: auto !important;
+    margin: 0 !important;
+}
+.pwd-eye:hover { opacity: 1; }
+.pwd-eye.active { opacity: 1; }
