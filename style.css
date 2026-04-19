@@ -2492,10 +2492,11 @@ th {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     display: flex;
-    background: rgba(30, 10, 46, 0.96);
+    background: rgba(44, 18, 66, 0.98);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255,255,255,0.12);
+    border-top: 2px solid #e8956d;
+    box-shadow: 0 -4px 20px rgba(232, 149, 109, 0.25);
     z-index: 500;
     padding-bottom: env(safe-area-inset-bottom);
 }
@@ -2507,20 +2508,24 @@ th {
     align-items: center;
     justify-content: center;
     padding: 10px 0;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255,255,255,0.65);
     background: none;
     border: none;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color 0.2s, transform 0.15s;
     -webkit-tap-highlight-color: transparent;
 }
+
+.nav-tab:active { transform: scale(0.9); }
 
 .nav-tab.active {
     color: #e8956d;
 }
 
-.nav-tab .nav-icon { font-size: 22px; line-height: 1; }
-.nav-tab .nav-label { font-size: 11px; margin-top: 3px; font-weight: 500; }
+.nav-tab.active .nav-icon { transform: scale(1.15); }
+
+.nav-tab .nav-icon { font-size: 24px; line-height: 1; transition: transform 0.2s; }
+.nav-tab .nav-label { font-size: 11px; margin-top: 4px; font-weight: 600; }
 
 /* отступ снизу чтобы навбар не перекрывал контент */
 #profile-card { padding-bottom: 80px; }
