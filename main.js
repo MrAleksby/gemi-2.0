@@ -386,6 +386,11 @@ function showCFConversion(cfAmount) {
             <div class="popup-row"><span>CF:</span><strong>${cfAmount}</strong></div>
             <div class="popup-row"><span>Сум:</span><strong class="highlight">${sumAmount}</strong></div>
             <div class="popup-rate">Курс: 1 CF = 1000 сум</div>
+            <div class="popup-hint" style="margin-top:10px;font-size:0.82em;color:#555;text-align:left;line-height:1.5;">
+                💡 CF можно обменять на:<br>
+                🍕 дополнительную еду на занятии<br>
+                🎓 скидку на занятие
+            </div>
         `
     });
 }
