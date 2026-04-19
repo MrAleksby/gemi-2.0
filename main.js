@@ -483,7 +483,8 @@ function showAdulthoodProgress() {
                 <div class="current-stage">
                     <div class="stage-emoji">${getLevelEmoji(lvl)}</div>
                     <div class="stage-info">
-                        <div class="stage-title">${getLevelTitle(lvl)} ${lvl}</div>
+                        <div class="stage-level-badge">Уровень ${lvl}</div>
+                        <div class="stage-title">${getLevelTitle(lvl)}</div>
                         <div class="stage-description">${getLevelDescription(lvl)}</div>
                     </div>
                 </div>
@@ -491,7 +492,7 @@ function showAdulthoodProgress() {
                     <div class="progress-fill" style="width:${progress}%; background:${getLevelColor(lvl)};"></div>
                 </div>
                 <div class="next-stage">
-                    <span>Следующий: ${getLevelTitle(nextLvl)} ${nextLvl}</span>
+                    <span>Следующий уровень: ${getLevelTitle(nextLvl)} ${nextLvl}</span>
                     <span>${lvl < 25 ? `ещё ${pointsLeft} опыта` : '🏆 MAX'}</span>
                 </div>
             </div>
