@@ -17,6 +17,7 @@ const SHOP_ITEMS = [
         name: '2BIG акции',
         icon: '📊',
         color: '#e53935',
+        unit: 'акций в игре',
         maxLevel: 5,
         upgrades: [
             { charLevel: 5,  cost: 75,  reward: 5  },
@@ -31,6 +32,7 @@ const SHOP_ITEMS = [
         name: 'OK4U',
         icon: '🔷',
         color: '#1976d2',
+        unit: 'акций в игре',
         maxLevel: 5,
         upgrades: [
             { charLevel: 5,  cost: 75,  reward: 100  },
@@ -45,6 +47,7 @@ const SHOP_ITEMS = [
         name: 'MYT4U',
         icon: '⭐',
         color: '#f9a825',
+        unit: 'акций в игре',
         maxLevel: 5,
         upgrades: [
             { charLevel: 5,  cost: 75,  reward: 100  },
@@ -59,6 +62,7 @@ const SHOP_ITEMS = [
         name: 'ON2U',
         icon: '🌿',
         color: '#00897b',
+        unit: 'акций в игре',
         maxLevel: 5,
         upgrades: [
             { charLevel: 5,  cost: 113, reward: 100  },
@@ -73,6 +77,7 @@ const SHOP_ITEMS = [
         name: 'GRO4US',
         icon: '🚀',
         color: '#e65100',
+        unit: 'акций в игре',
         maxLevel: 5,
         upgrades: [
             { charLevel: 5,  cost: 113, reward: 100  },
@@ -159,8 +164,9 @@ function buildCard(item, data, coins) {
             <div class="shop-bar-fill" style="width:${pct}%;background:${item.color};"></div>
         </div>`;
 
+    const unit = item.unit ? ` <span style="font-size:0.8em;font-weight:400;color:#888;">${item.unit}</span>` : '';
     const nextInfo = (!maxed && next)
-        ? `<div class="shop-next">Следующий уровень: <b>${next.reward}</b></div>`
+        ? `<div class="shop-next">Следующий уровень: <b>${next.reward}</b>${unit}</div>`
         : '';
 
     return `
