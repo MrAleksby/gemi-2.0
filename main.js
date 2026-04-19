@@ -389,7 +389,8 @@ function showCFConversion(cfAmount) {
             <div class="popup-hint" style="margin-top:10px;font-size:0.82em;color:#555;text-align:left;line-height:1.5;">
                 💡 CF можно обменять на:<br>
                 🍕 дополнительную еду на занятии<br>
-                🎓 скидку на занятие
+                🎓 скидку на занятие<br>
+                ⭐ опыт и монеты в игре
             </div>
         `
     });
