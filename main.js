@@ -785,7 +785,6 @@ async function showProfile() {
         profileHeader.innerHTML = `
             <span>${getLevelEmoji(lvl)}</span>
             <b>${data.name}</b>
-            <span class="level-tag" style="background:${lvlColor};">${lvlTitle} ${lvl}</span>
         `;
     }
 
