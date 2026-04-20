@@ -286,7 +286,9 @@ async function renderDepositTab() {
             ${isAdmin ? `<button onclick="renderAdminDepositStats()" class="deposit-admin-btn">📊 Депозиты всех игроков</button>` : ''}
             <div id="admin-deposit-stats"></div>
             <div id="deposit-msg" class="crypto-msg"></div>
+            <div id="deposit-history"></div>
         `;
+        renderDepositHistory(user.uid);
 
     } else {
         // ── Форма открытия депозита ──
@@ -338,7 +340,9 @@ async function renderDepositTab() {
             ${isAdmin ? `<button onclick="renderAdminDepositStats()" class="deposit-admin-btn">📊 Депозиты всех игроков</button>` : ''}
             <div id="admin-deposit-stats"></div>
             <div id="deposit-msg" class="crypto-msg"></div>
+            <div id="deposit-history"></div>
         `;
+        renderDepositHistory(user.uid);
     }
 }
 
@@ -519,6 +523,7 @@ async function closeDeposit(depId) {
 
     try {
         const db      = firebase.firestore();
+        const userRef = db.collection('users').doc(user.uid);
         const depRef  = db.collection('deposits').doc(depId);
 
         const { rate } = await fetchUserDepositRate(user.uid);
@@ -529,16 +534,15 @@ async function closeDeposit(depId) {
 
         if (!confirm(`Закрыть депозит и вывести ${total.toLocaleString('ru-RU')} монет на основной счёт?`)) return;
 
-        await Promise.all([
-            db.collection('users').doc(user.uid).update({
-                coins: firebase.firestore.FieldValue.increment(total)
-            }),
-            depRef.update({
+        // Атомарная транзакция — либо оба обновления, либо ни одного
+        await db.runTransaction(async (tx) => {
+            tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(total) });
+            tx.update(depRef, {
                 amount: 0, lastCompounded: new Date(),
                 totalEarned: firebase.firestore.FieldValue.increment(earned),
                 status: 'closed', closedAt: new Date(),
-            })
-        ]);
+            });
+        });
 
         const msgEl = document.getElementById('deposit-msg');
         if (msgEl) {
@@ -550,6 +554,44 @@ async function closeDeposit(depId) {
         const msgEl = document.getElementById('deposit-msg');
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
     }
+}
+
+// ─── История закрытых депозитов ───────────────────────────────────────────────
+
+async function renderDepositHistory(uid) {
+    const container = document.getElementById('deposit-history');
+    if (!container) return;
+
+    try {
+        const snap = await firebase.firestore().collection('deposits')
+            .where('userId', '==', uid)
+            .where('status', '==', 'closed')
+            .get();
+
+        const closed = snap.docs
+            .map(d => ({ ...d.data() }))
+            .filter(d => d.closedAt)
+            .sort((a, b) => b.closedAt.toMillis() - a.closedAt.toMillis())
+            .slice(0, 10);
+
+        if (!closed.length) return;
+
+        const rows = closed.map(d => {
+            const openDate  = d.createdAt?.toDate?.().toLocaleDateString('ru-RU') || '—';
+            const closeDate = d.closedAt?.toDate?.().toLocaleDateString('ru-RU') || '—';
+            const earned    = (d.totalEarned || 0).toFixed(2);
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:0.88em;">
+                <div style="color:#555;">${openDate} → ${closeDate}</div>
+                <div style="color:#27ae60;font-weight:700;">+${earned} 💰</div>
+            </div>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div style="margin-top:16px;background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;padding:14px 16px;">
+                <div style="font-weight:700;color:#555;font-size:0.9em;margin-bottom:8px;">📋 История депозитов</div>
+                ${rows}
+            </div>`;
+    } catch(e) { /* тихо */ }
 }
 
 // ─── Админ: статистика депозитов всех игроков ─────────────────────────────────
