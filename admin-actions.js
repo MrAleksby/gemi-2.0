@@ -18,7 +18,7 @@ async function adminAddCF(username, amount, reason) {
     if (adminMessage) adminMessage.textContent = `Добавлено ${amount} CF → ${username}. Баланс: ${newCF} CF`;
     clearTransactionInputs();
     updateUsersList();
-    setTimeout(() => { showProfile(); showRating(); }, 500);
+    showRating();
 }
 
 async function adminWithdrawCF(username, amount, reason) {
@@ -42,7 +42,7 @@ async function adminWithdrawCF(username, amount, reason) {
     if (adminMessage) adminMessage.textContent = `Снято ${amount} CF у ${username}. Баланс: ${newCF} CF`;
     clearTransactionInputs();
     updateUsersList();
-    setTimeout(() => { showProfile(); showRating(); }, 500);
+    showRating();
 }
 
 async function addTransactionRecord(username, amount, type, reason, userId = null) {

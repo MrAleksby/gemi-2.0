@@ -229,7 +229,9 @@ async function handleShopPurchase(btn, userRef, snapshotData) {
         if (!freshNext || freshLevel !== snapshotLevel || freshCoins < freshNext.cost) {
             animatePurchase(btn, false);
             btn.disabled = false;
-            setTimeout(() => renderShop(), 1000);
+            animatePurchase(btn, false);
+            btn.disabled = false;
+            renderShop();
             return;
         }
 
@@ -240,8 +242,7 @@ async function handleShopPurchase(btn, userRef, snapshotData) {
         });
 
         animatePurchase(btn, true);
-        if (typeof showProfile === 'function') showProfile();
-        setTimeout(() => renderShop(), 1500);
+        renderShop();
     } catch(e) {
         animatePurchase(btn, false);
         btn.disabled = false;

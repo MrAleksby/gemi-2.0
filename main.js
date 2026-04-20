@@ -1097,19 +1097,7 @@ function showPendingScreen(data) {
         document.getElementById('pending-waiting').style.display  = '';
         document.getElementById('pending-rejected').style.display = 'none';
 
-        // Слушаем одобрение в реальном времени
-        if (unsubPendingStatus) unsubPendingStatus();
-        unsubPendingStatus = db.collection('users').doc(currentUser).onSnapshot(snap => {
-            if (!snap.exists) return;
-            const newStatus = snap.data().status;
-            if (newStatus === 'approved') {
-                if (unsubPendingStatus) { unsubPendingStatus(); unsubPendingStatus = null; }
-                window.location.reload();
-            } else if (newStatus === 'rejected') {
-                if (unsubPendingStatus) { unsubPendingStatus(); unsubPendingStatus = null; }
-                showPendingScreen(snap.data());
-            }
-        });
+        // Переключение на профиль при одобрении обрабатывает unsubProfileDoc в onAuthStateChanged
     }
 }
 
