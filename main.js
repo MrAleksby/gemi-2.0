@@ -1532,6 +1532,7 @@ async function loadPlayersList() {
                 <span class="players-list-name">${d.name}</span>
                 ${statusBadge}${approveBtn}
                 <button class="btn-edit-name" data-uid="${doc.id}">изменить</button>
+                <button class="btn-reset-password" data-uid="${doc.id}" style="font-size:0.75em;padding:2px 8px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;cursor:pointer;margin-left:4px;">🔑 пароль</button>
             </div>
             <div class="players-list-edit" style="display:none;">
                 <input class="edit-firstname" type="text" value="${first}" placeholder="Имя">
@@ -1549,6 +1550,24 @@ async function loadPlayersList() {
             row.querySelector('.players-list-view').style.display = 'none';
             row.querySelector('.players-list-edit').style.display = 'flex';
             row.querySelector('.edit-firstname').focus();
+        };
+    });
+
+    container.querySelectorAll('.btn-reset-password').forEach(btn => {
+        btn.onclick = async () => {
+            const newPwd = prompt('Новый пароль для игрока (минимум 4 символа):');
+            if (!newPwd) return;
+            if (newPwd.length < 4) { alert('❌ Минимум 4 символа'); return; }
+            btn.disabled = true; btn.textContent = '⏳...';
+            try {
+                const resetFn = firebase.functions().httpsCallable('resetUserPassword');
+                await resetFn({ uid: btn.dataset.uid, newPassword: newPwd });
+                btn.textContent = '✅ готово';
+                setTimeout(() => { btn.textContent = '🔑 пароль'; btn.disabled = false; }, 2000);
+            } catch(e) {
+                alert('❌ Ошибка: ' + e.message);
+                btn.textContent = '🔑 пароль'; btn.disabled = false;
+            }
         };
     });
 
