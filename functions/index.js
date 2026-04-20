@@ -156,6 +156,54 @@ exports.checkOrders = functions.pubsub.schedule('every 1 minutes').onRun(async (
     return null;
 });
 
+// ─── Еженедельный сброс рейтинга инвесторов (пн 20:00 Ташкент = 15:00 UTC) ──
+exports.resetWeeklyInvestorRating = functions.pubsub
+    .schedule('0 15 * * 1')
+    .timeZone('Asia/Tashkent')
+    .onRun(async () => {
+        const db = admin.firestore();
+
+        const snap = await db.collection('users').where('isAdmin', '==', false).get();
+        if (snap.empty) return null;
+
+        // Ищем победителя — наибольший weeklyPnl > 0
+        let winner = null;
+        snap.docs.forEach(doc => {
+            const d = doc.data();
+            if (!d.name || !d.name.trim()) return;
+            const pnl = d.weeklyPnl || 0;
+            if (pnl > 0 && (!winner || pnl > winner.weeklyPnl)) {
+                winner = { uid: doc.id, name: d.name, weeklyPnl: pnl };
+            }
+        });
+
+        // Фиксируем победителя
+        if (winner) {
+            await db.collection('weekly_winners').add({
+                uid:       winner.uid,
+                name:      winner.name,
+                weeklyPnl: winner.weeklyPnl,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            // Награда победителю: +50 монет на биржевой кошелёк
+            await db.collection('users').doc(winner.uid).update({
+                exchangeCoins: admin.firestore.FieldValue.increment(50),
+            });
+
+            console.log(`[WeeklyReset] Победитель: ${winner.name}, PnL=${winner.weeklyPnl.toFixed(2)}, +50 монет`);
+        } else {
+            console.log('[WeeklyReset] Нет победителя (никто не в плюсе)');
+        }
+
+        // Сбрасываем weeklyPnl всем
+        const batch = db.batch();
+        snap.docs.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
+        await batch.commit();
+
+        return null;
+    });
+
 // ─── Сброс пароля игрока (только для админа) ────────────────────────────────
 exports.resetUserPassword = functions.https.onCall(async (data, context) => {
     // Проверяем что вызывающий авторизован

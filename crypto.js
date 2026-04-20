@@ -942,11 +942,53 @@ async function showInvestorStats() {
                 </table>`;
         };
 
-        const switchTab = (tab) => {
-            const field = tab === 'week' ? 'weeklyPnl' : 'totalPnl';
-            document.getElementById('investor-tab-body').innerHTML = buildTable(field);
-            document.getElementById('inv-tab-week').style.cssText    = tab === 'week'    ? 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;' : 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;';
-            document.getElementById('inv-tab-all').style.cssText     = tab === 'alltime' ? 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;' : 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;';
+        const buildWinnersTable = async () => {
+            try {
+                const wSnap = await firebase.firestore().collection('weekly_winners')
+                    .orderBy('timestamp', 'desc').limit(20).get();
+                if (wSnap.empty) return `<div style="text-align:center;color:#aaa;padding:16px;">Чемпионов ещё нет</div>`;
+                const medals = ['🥇', '🥈', '🥉'];
+                const rows = wSnap.docs.map((doc, i) => {
+                    const d = doc.data();
+                    const ts = d.timestamp?.toDate ? d.timestamp.toDate() : new Date();
+                    const dateStr = ts.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                    const place = i < 3 ? medals[i] : `<span style="color:#999;font-size:0.85em;">${i+1}</span>`;
+                    return `<tr style="${i%2===0?'background:#fff;':'background:#fafafa;'}">
+                        <td style="text-align:center;padding:9px 8px;width:36px;">${place}</td>
+                        <td style="padding:9px 6px;font-weight:500;color:#222;">${d.name}</td>
+                        <td style="text-align:right;padding:9px 8px;font-size:0.8em;color:#888;width:72px;">${dateStr}</td>
+                        <td style="text-align:right;padding:9px 12px;font-weight:700;color:#2e7d32;white-space:nowrap;width:90px;">+${(d.weeklyPnl||0).toFixed(2)} 💰</td>
+                    </tr>`;
+                }).join('');
+                return `<table style="width:100%;border-collapse:collapse;font-size:0.92em;table-layout:fixed;">
+                    <thead><tr style="background:#f0f0f0;color:#666;font-size:0.8em;font-weight:600;">
+                        <th style="padding:7px 8px;text-align:center;width:36px;">#</th>
+                        <th style="padding:7px 6px;text-align:left;">Чемпион</th>
+                        <th style="padding:7px 8px;text-align:right;width:72px;">Дата</th>
+                        <th style="padding:7px 12px;text-align:right;width:90px;">PnL</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+            } catch(e) {
+                return `<div style="text-align:center;color:#e53935;padding:16px;">Ошибка загрузки</div>`;
+            }
+        };
+
+        const tabStyle = (active) => active
+            ? 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.82em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;'
+            : 'flex:1;padding:7px;border:none;border-radius:8px;font-size:0.82em;font-weight:600;cursor:pointer;background:#eee;color:#555;';
+
+        const switchTab = async (tab) => {
+            const body = document.getElementById('investor-tab-body');
+            document.getElementById('inv-tab-week').style.cssText    = tabStyle(tab === 'week');
+            document.getElementById('inv-tab-all').style.cssText     = tabStyle(tab === 'alltime');
+            document.getElementById('inv-tab-champ').style.cssText   = tabStyle(tab === 'champ');
+            if (tab === 'champ') {
+                body.innerHTML = '<div style="text-align:center;color:#aaa;padding:12px;">Загрузка...</div>';
+                body.innerHTML = await buildWinnersTable();
+            } else {
+                body.innerHTML = buildTable(tab === 'week' ? 'weeklyPnl' : 'totalPnl');
+            }
         };
 
         window._investorSwitchTab = switchTab;
@@ -954,9 +996,10 @@ async function showInvestorStats() {
         popup.innerHTML = `
             <div style="padding:16px 16px 10px;text-align:center;">
                 <div style="font-size:1.1em;font-weight:700;margin-bottom:10px;">🏆 Рейтинг инвесторов</div>
-                <div style="display:flex;gap:8px;">
-                    <button id="inv-tab-week" onclick="event.stopPropagation();window._investorSwitchTab('week')" style="flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#1565c0;color:#fff;">📅 За неделю</button>
-                    <button id="inv-tab-all"  onclick="event.stopPropagation();window._investorSwitchTab('alltime')" style="flex:1;padding:7px;border:none;border-radius:8px;font-size:0.85em;font-weight:600;cursor:pointer;background:#eee;color:#555;">🏆 За всё время</button>
+                <div style="display:flex;gap:6px;">
+                    <button id="inv-tab-week"  onclick="event.stopPropagation();window._investorSwitchTab('week')"    style="${tabStyle(true)}">📅 Неделя</button>
+                    <button id="inv-tab-all"   onclick="event.stopPropagation();window._investorSwitchTab('alltime')" style="${tabStyle(false)}">🏆 Всё время</button>
+                    <button id="inv-tab-champ" onclick="event.stopPropagation();window._investorSwitchTab('champ')"   style="${tabStyle(false)}">👑 Чемпионы</button>
                 </div>
             </div>
             <div id="investor-tab-body" style="overflow-y:auto;flex:1;min-height:0;padding:0 0 4px;"></div>
