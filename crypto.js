@@ -293,8 +293,8 @@ async function renderCryptoExchange() {
 
             <div class="crypto-admin-commission">
                 <div style="font-weight:700; margin-bottom:8px; color:#5c1f4a;">💼 Биржевой кошелёк (комиссии)</div>
-                <div style="font-size:1.3em; font-weight:700; color:#f7931a; margin-bottom:12px;">${exchangeCoins.toLocaleString('ru-RU')} монет</div>
-                <div style="font-size:0.85em; color:#888; margin-bottom:10px;">💰 Основной счёт: ${coins.toLocaleString('ru-RU')} монет</div>
+                <div style="font-size:1.3em; font-weight:700; color:#f7931a; margin-bottom:12px;">${fmt(exchangeCoins)} монет</div>
+                <div style="font-size:0.85em; color:#888; margin-bottom:10px;">💰 Основной счёт: ${fmt(coins)} монет</div>
                 <button class="crypto-confirm-btn buy" style="margin-bottom:0;" onclick="adminWithdrawCommission()">💸 Вывести на основной счёт</button>
             </div>
 
@@ -379,7 +379,7 @@ async function renderCryptoExchange() {
 
         <div class="crypto-wallet-forms" id="crypto-wallet-forms" style="display:none;background:#fff8f0;border:1px solid #ffe0b2;border-radius:14px;padding:14px;margin-top:4px;">
             <div style="font-size:0.85em; color:#888; margin-bottom:4px;">Пополнить биржу (из основного кошелька):</div>
-            <div style="font-size:0.8em; color:#27ae60; margin-bottom:6px;">Доступно: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
+            <div style="font-size:0.8em; color:#27ae60; margin-bottom:6px;">Доступно: <b>${fmt(coins)} монет</b></div>
             <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
                 <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Введите сумму"
                     style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
@@ -388,7 +388,7 @@ async function renderCryptoExchange() {
             </div>
             <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
             <div style="font-size:0.85em; color:#888; margin-bottom:4px; margin-top:12px;">Вывести с биржи (на основной кошелёк):</div>
-            <div style="font-size:0.8em; color:#f7931a; margin-bottom:6px;">Доступно: <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b></div>
+            <div style="font-size:0.8em; color:#f7931a; margin-bottom:6px;">Доступно: <b>${fmt(exchangeCoins)} монет</b></div>
             <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
                 <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму"
                     style="flex:1; width:0; min-width:0; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em; box-sizing:border-box; margin-top:0;">
@@ -402,11 +402,11 @@ async function renderCryptoExchange() {
         <div class="crypto-portfolio">
             <div class="crypto-portfolio-row">
                 <span>💼 Биржевой кошелёк:</span>
-                <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b>
+                <b>${fmt(exchangeCoins)} монет</b>
             </div>
             <div class="crypto-portfolio-row">
                 <span>💰 Основной кошелёк:</span>
-                <b>${coins.toLocaleString('ru-RU')} монет</b>
+                <b>${fmt(coins)} монет</b>
             </div>
             <div class="crypto-portfolio-row">
                 <span>${asset.icon} Ваш ${asset.symbol}:</span>

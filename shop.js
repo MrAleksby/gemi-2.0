@@ -201,7 +201,7 @@ async function renderShop() {
     // Строим все карточки
     const cards = SHOP_ITEMS.map(item => buildCard(item, data, coins)).join('');
     shopItems.innerHTML = `
-        <div class="shop-balance">💰 Монеты: <b>${coins}</b></div>
+        <div class="shop-balance">💰 Монеты: <b>${fmt(coins)}</b></div>
         <div class="shop-cards">${cards}</div>`;
 
     // Один обработчик для всех кнопок

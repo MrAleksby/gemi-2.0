@@ -125,6 +125,17 @@ function escapeAttr(str) {
 }
 
 /**
+ * Форматирует монеты до 2 знаков после запятой
+ * fmt(0.8573355) → "0.86"
+ * fmt(1234.5)    → "1234.50"
+ * fmt(100)       → "100"
+ */
+function fmt(n) {
+    const v = parseFloat((+n || 0).toFixed(2));
+    return v % 1 === 0 ? String(v) : v.toFixed(2);
+}
+
+/**
  * Переключает видимость пароля (глазик)
  */
 function togglePwd(inputId, btn) {

@@ -772,7 +772,7 @@ async function showProfile() {
     profileInfo.innerHTML = `
     <div class="profile-stats">
       <span class="profile-badge points">⭐ ${data.points}</span>
-      <span class="profile-badge coins">💰 ${data.coins ?? 0}</span>
+      <span class="profile-badge coins">💰 ${fmt(data.coins)}</span>
       <span class="profile-badge kd"
             onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})"
             style="cursor:pointer" title="Нажмите для подробностей">

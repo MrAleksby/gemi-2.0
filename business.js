@@ -198,9 +198,9 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
             <button class="crypto-wallet-toggle" onclick="toggleBizWallet()">💼 Бизнес-кошелёк ▼</button>
             <div id="biz-wallet-forms" style="display:none;">
                 <div class="biz-wallet-balance">
-                    <div>💼 Бизнес-кошелёк: <b>${businessCoins.toLocaleString('ru-RU')} монет</b></div>
-                    <div>📈 Биржевой кошелёк: <b>${exchangeCoins.toLocaleString('ru-RU')} монет</b></div>
-                    <div>💰 Основной счёт: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
+                    <div>💼 Бизнес-кошелёк: <b>${fmt(businessCoins)} монет</b></div>
+                    <div>📈 Биржевой кошелёк: <b>${fmt(exchangeCoins)} монет</b></div>
+                    <div>💰 Основной счёт: <b>${fmt(coins)} монет</b></div>
                 </div>
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Пополнить (из основного):</div>
@@ -372,11 +372,11 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
         <div class="biz-balance-banner">
             <div class="biz-balance-item">
                 <span>💼 Бизнес-кошелёк</span>
-                <b>${businessCoins.toLocaleString('ru-RU')} монет</b>
+                <b>${fmt(businessCoins)} монет</b>
             </div>
             <div class="biz-balance-item">
                 <span>💰 Основной счёт</span>
-                <b>${coins.toLocaleString('ru-RU')} монет</b>
+                <b>${fmt(coins)} монет</b>
             </div>
         </div>
 

@@ -237,7 +237,7 @@ async function renderDepositTab() {
             <div class="deposit-action-card">
                 <div class="deposit-action-title">➕ Пополнить депозит</div>
                 <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">
-                    Основной счёт: <b>${coins.toLocaleString('ru-RU')} монет</b>
+                    Основной счёт: <b>${fmt(coins)} монет</b>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <input type="number" id="dep-topup-input" min="1" max="${coins}"
@@ -306,7 +306,7 @@ async function renderDepositTab() {
                 </div>
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Сумма (из основного кошелька):</div>
-                <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">Доступно: <b>${coins.toLocaleString('ru-RU')} монет</b></div>
+                <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">Доступно: <b>${fmt(coins)} монет</b></div>
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
                     <input type="number" id="deposit-amount-input" min="1" max="${coins}"
                         placeholder="Введите сумму" oninput="updateDepositPreview(${rate})"
