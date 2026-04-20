@@ -448,6 +448,11 @@ function getLevelEmoji(lvl) {
     return name.split(' ')[0] || '❓';
 }
 
+function getLevelName(lvl) {
+    const parts = (LEVEL_NAMES[lvl] || '').split(' ');
+    return parts.slice(1).join(' ') || '❓';
+}
+
 function getLevelDescription(lvl) {
     if (lvl >= 1 && lvl <= 4) return 'Только начинаешь изучать деньги';
     if (lvl >= 5 && lvl <= 9) return 'Изучаешь основы инвестиций';
@@ -490,7 +495,7 @@ function showAdulthoodProgress() {
                     <div class="stage-emoji">${getLevelEmoji(lvl)}</div>
                     <div class="stage-info">
                         <div class="stage-level-badge">Уровень ${lvl}</div>
-                        <div class="stage-title">${getLevelTitle(lvl)}</div>
+                        <div class="stage-title">${getLevelName(lvl)}</div>
                         <div class="stage-description">${getLevelDescription(lvl)}</div>
                     </div>
                 </div>
