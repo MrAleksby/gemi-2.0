@@ -187,6 +187,18 @@ async function renderCryptoExchange() {
     }
 
     const userData     = userDoc.data();
+
+    // ─── Уведомления о сработавших SL/TP ────────────────────────────────────
+    if (userData.slTpNotifications && userData.slTpNotifications.length > 0) {
+        userData.slTpNotifications.forEach(n => {
+            const type = n.type === 'stopLoss' ? '🔴 Stop-Loss' : '🟢 Take-Profit';
+            showToast(`${type} по ${n.assetSymbol} сработал по цене $${n.price.toFixed(2)}. Получено ${fmt(n.coinsNet)} монет`,
+                n.type === 'stopLoss' ? 'error' : 'success', 6000);
+        });
+        // Сбрасываем уведомления
+        firebase.firestore().collection('users').doc(user.uid).update({ slTpNotifications: [] });
+    }
+
     const coins        = userData.coins        || 0;
     const exchangeCoins= userData.exchangeCoins|| 0;
     const totalPnl     = userData.totalPnl     || 0;
@@ -350,6 +362,27 @@ async function renderCryptoExchange() {
         ? `<div class="crypto-portfolio-row"><span>📈 Средняя цена:</span><b>${avgBuyPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} монет</b></div>`
         : '';
 
+    const sltpSection = holding > 0 ? `
+        <div class="sltp-section">
+            <div class="sltp-title">🎯 Ордера</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <label style="flex:1;min-width:120px;">
+                    <div style="font-size:0.75em;color:#e53935;margin-bottom:3px;">🔴 Stop-Loss</div>
+                    <input type="number" id="sl-${asset.id}" placeholder="Цена" value="${userData[asset.id+'StopLoss'] || ''}"
+                        style="width:100%;padding:7px 10px;border:1.5px solid #ffcdd2;border-radius:8px;font-size:0.9em;box-sizing:border-box;">
+                </label>
+                <label style="flex:1;min-width:120px;">
+                    <div style="font-size:0.75em;color:#27ae60;margin-bottom:3px;">🟢 Take-Profit</div>
+                    <input type="number" id="tp-${asset.id}" placeholder="Цена" value="${userData[asset.id+'TakeProfit'] || ''}"
+                        style="width:100%;padding:7px 10px;border:1.5px solid #c8e6c9;border-radius:8px;font-size:0.9em;box-sizing:border-box;">
+                </label>
+            </div>
+            <button onclick="saveSlTp('${asset.id}')" style="margin-top:8px;width:100%;padding:9px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.88em;">
+                💾 Сохранить ордера
+            </button>
+            <div id="sltp-msg-${asset.id}" style="font-size:0.82em;text-align:center;margin-top:4px;"></div>
+        </div>` : '';
+
     const pnlClass = totalPnl >= 0 ? 'positive' : 'negative';
     const pnlSign  = totalPnl >= 0 ? '+' : '';
 
@@ -418,6 +451,8 @@ async function renderCryptoExchange() {
             </div>
             ${avgPriceInfo}
         </div>
+
+        ${sltpSection}
 
         <div class="crypto-total-pnl ${pnlClass}">
             <span class="crypto-pnl-label">📈 Заработано за всё время</span>
@@ -889,5 +924,32 @@ async function resetWeeklyRating() {
         alert('✅ Недельный рейтинг сброшен!');
     } catch(e) {
         alert('❌ Ошибка: ' + e.message);
+    }
+}
+
+// ─── Сохранение Stop-Loss / Take-Profit ───────────────────────────────────────
+
+async function saveSlTp(assetId) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const sl = parseFloat(document.getElementById(`sl-${assetId}`)?.value) || 0;
+    const tp = parseFloat(document.getElementById(`tp-${assetId}`)?.value) || 0;
+    const msgEl = document.getElementById(`sltp-msg-${assetId}`);
+
+    // Валидация: SL должен быть ниже TP
+    if (sl > 0 && tp > 0 && sl >= tp) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ SL должен быть ниже TP'; }
+        return;
+    }
+
+    try {
+        await firebase.firestore().collection('users').doc(user.uid).update({
+            [`${assetId}StopLoss`]:   sl,
+            [`${assetId}TakeProfit`]: tp,
+        });
+        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = '✅ Ордера сохранены'; }
+        setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000);
+    } catch(e) {
+        if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка'; }
     }
 }

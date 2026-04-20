@@ -3247,6 +3247,21 @@ th {
 .pwd-eye:hover { opacity: 1; }
 .pwd-eye.active { opacity: 1; }
 
+/* ─── Stop-Loss / Take-Profit ──────────────────────────────────────────────── */
+.sltp-section {
+    background: #f8f9fa;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 10px;
+}
+.sltp-title {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 8px;
+}
+
 /* ─── Бейдж уровня в профиле ──────────────────────────────────────────────── */
 .stage-level-badge {
     font-size: 0.72em;
