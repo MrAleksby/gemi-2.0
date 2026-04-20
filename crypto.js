@@ -525,8 +525,10 @@ async function renderCryptoExchange() {
             <div id="crypto-sell-form" style="display:none;">
                 <div class="ex-form-label">Продать ${asset.symbol}:</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-                    <input type="number" id="crypto-sell-amount" min="0.000001" step="0.000001" placeholder="Количество ${asset.symbol}" oninput="updateSellPreview()"
-                        style="flex:1;min-width:0;padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                    <div style="flex:1;min-width:0;">
+                        <input type="number" id="crypto-sell-amount" min="0.000001" step="0.000001" placeholder="Количество ${asset.symbol}" oninput="updateSellPreview()"
+                            style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                    </div>
                     <button class="crypto-all-btn" onclick="sellAll()" style="padding:11px 14px;">Всё</button>
                 </div>
                 <div class="crypto-preview" id="crypto-sell-preview"></div>
