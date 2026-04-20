@@ -396,6 +396,39 @@ function showCFConversion(cfAmount) {
     });
 }
 
+function showPointsInfo() {
+    showPopup({
+        title: '⭐ Опыт',
+        content: `
+            <div style="font-size:0.88em;color:#555;line-height:1.7;">
+                Опыт показывает твой прогресс в игре и определяет уровень персонажа.<br><br>
+                <b>Как получить опыт:</b><br>
+                🏆 Занимать места на занятиях Cashflow<br>
+                📋 Выполнять задания в канале BMK<br>
+                🏪 Работать в бизнесе (1 энергия = 1 опыт)<br>
+                🎁 Получать награды от тренера
+            </div>
+        `
+    });
+}
+
+function showCoinsInfo() {
+    showPopup({
+        title: '💰 Монеты',
+        content: `
+            <div style="font-size:0.88em;color:#555;line-height:1.7;">
+                Монеты — игровая валюта. Трать их в магазине или приумножай.<br><br>
+                <b>Как заработать монеты:</b><br>
+                🏆 Места на занятиях Cashflow<br>
+                🏦 Депозит под процент<br>
+                🏪 Вкладка Бизнес<br>
+                📈 Торговля на бирже<br>
+                🎁 Награды от тренера
+            </div>
+        `
+    });
+}
+
 // ─── Уровни ───────────────────────────────────────────────────────────────────
 
 const levelThresholds = [
@@ -776,8 +809,8 @@ async function showProfile() {
 
     profileInfo.innerHTML = `
     <div class="profile-stats">
-      <span class="profile-badge points">⭐ ${data.points}</span>
-      <span class="profile-badge coins">💰 ${fmt(data.coins)}</span>
+      <span class="profile-badge points" onclick="showPointsInfo()" style="cursor:pointer">⭐ ${data.points}</span>
+      <span class="profile-badge coins" onclick="showCoinsInfo()" style="cursor:pointer">💰 ${fmt(data.coins)}</span>
       <span class="profile-badge kd"
             onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})"
             style="cursor:pointer" title="Нажмите для подробностей">
