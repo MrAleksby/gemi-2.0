@@ -551,6 +551,8 @@ function showAdulthoodProgress() {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
 auth.onAuthStateChanged(async (user) => {
     // Отписываемся от старых слушателей
     if (unsubPlayerRequests) { unsubPlayerRequests(); unsubPlayerRequests = null; }
