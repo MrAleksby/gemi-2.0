@@ -26,7 +26,8 @@ const auth = firebase.auth();
 
 // Unsubscribe функции для Firestore слушателей
 let unsubPlayerRequests = null;
-let unsubAdminRequests = null;
+let unsubAdminRequests  = null;
+let unsubProfileDoc     = null;
 
 // ─── Кеш рейтинга ─────────────────────────────────────────────────────────────
 let ratingCache = null;
@@ -558,56 +559,68 @@ auth.onAuthStateChanged(async (user) => {
     if (unsubPlayerRequests) { unsubPlayerRequests(); unsubPlayerRequests = null; }
     if (unsubAdminRequests)  { unsubAdminRequests();  unsubAdminRequests  = null; }
     if (unsubPendingRegs)    { unsubPendingRegs();    unsubPendingRegs    = null; }
+    if (unsubProfileDoc)     { unsubProfileDoc();     unsubProfileDoc     = null; }
 
     if (user) {
         currentUser = user.uid;
         loginSection.style.display    = 'none';
         registerSection.style.display = 'none';
 
-        const doc = await db.collection('users').doc(currentUser).get();
-        if (!doc.exists) {
-            // Если регистрация ещё не завершила запись документа — ждём, не выходим
-            if (isRegistering) return;
-            await auth.signOut(); return;
-        }
-        const data   = doc.data();
-        const status = data.status;
+        let _initialized = false;
 
-        // Ожидает подтверждения или отклонён — показываем экран ожидания
-        if (status === 'pending' || status === 'rejected') {
-            profileCard.style.display = 'none';
-            adminSection.style.display = 'none';
-            document.getElementById('bottom-nav').style.display = 'none';
-            showPendingScreen(data);
-            return;
-        }
+        unsubProfileDoc = db.collection('users').doc(currentUser).onSnapshot(async (doc) => {
+            if (!doc.exists) {
+                if (isRegistering) return;
+                await auth.signOut(); return;
+            }
+            const data   = doc.data();
+            const status = data.status;
 
-        // Обычный поток (approved или без статуса — старые пользователи)
-        document.getElementById('pending-section').style.display = 'none';
-        profileCard.style.display = '';
-        document.getElementById('bottom-nav').style.display = 'flex';
-        setNavTab('home');
-        await showProfile();
-        await showRating();
-        showRandomQuote();
-        checkDailyBonus(currentUser);
-        if (typeof setupChatBadge === 'function') setupChatBadge(currentUser);
+            // Ожидает подтверждения или отклонён — показываем экран ожидания
+            if (status === 'pending' || status === 'rejected') {
+                profileCard.style.display  = 'none';
+                adminSection.style.display = 'none';
+                document.getElementById('bottom-nav').style.display = 'none';
+                showPendingScreen(data);
+                return;
+            }
 
-        const isAdmin = data.isAdmin === true;
-        if (isAdmin) {
-            adminSection.style.display = '';
-            loadUsersList();
-            loadAdminFinanceStats();
-            updateTransactionsLists();
-            loadTaxLog();
-            setupAdminRequestsListener();
-            setupPendingRegistrationsListener();
-            loadPlayersList();
-        } else {
-            adminSection.style.display = 'none';
-            loadPlayerHistory(currentUser);
-        }
-        setupPlayerRequestListener();
+            // Обычный поток (approved или без статуса — старые пользователи)
+            document.getElementById('pending-section').style.display = 'none';
+            profileCard.style.display = '';
+            document.getElementById('bottom-nav').style.display = 'flex';
+
+            // Обновляем профиль с новыми данными
+            await showProfileFromData(data);
+
+            if (!_initialized) {
+                _initialized = true;
+                setNavTab('home');
+                await showRating();
+                showRandomQuote();
+                checkDailyBonus(currentUser);
+                if (typeof setupChatBadge === 'function') setupChatBadge(currentUser);
+                setupPlayerRequestListener();
+
+                const isAdmin = data.isAdmin === true;
+                if (isAdmin) {
+                    adminSection.style.display = '';
+                    loadUsersList();
+                    loadAdminFinanceStats();
+                    updateTransactionsLists();
+                    loadTaxLog();
+                    setupAdminRequestsListener();
+                    setupPendingRegistrationsListener();
+                    loadPlayersList();
+                } else {
+                    adminSection.style.display = 'none';
+                    loadPlayerHistory(currentUser);
+                }
+            } else {
+                // При обновлении данных — обновляем историю игрока
+                if (!data.isAdmin) loadPlayerHistory(currentUser);
+            }
+        });
     } else {
         currentUser = null;
         loginSection.style.display    = '';
@@ -799,11 +812,12 @@ async function showProfile() {
     if (!currentUser) return;
     const doc = await db.collection('users').doc(currentUser).get();
     if (!doc.exists) return;
-    const data = doc.data();
+    await showProfileFromData(doc.data());
+}
+
+async function showProfileFromData(data) {
     const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
     currentUserLevel = lvl;
-    const lvlTitle = getLevelTitle(lvl);
-    const lvlColor = getLevelColor(lvl);
     const totalCF = data.cf ?? 0;
 
     showAdulthoodProgress();
@@ -826,9 +840,7 @@ async function showProfile() {
     `;
 
     const profileHeader = document.getElementById('profile-header');
-    if (profileHeader) {
-        profileHeader.innerHTML = `<b>${data.name}</b>`;
-    }
+    if (profileHeader) profileHeader.innerHTML = `<b>${data.name}</b>`;
 
     // Топ-5
     const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(10).get();
@@ -843,8 +855,7 @@ async function showProfile() {
         if (!d.name || d.name.trim() === '' || d.isAdmin) return;
         if (d.status && d.status !== 'approved') return;
         const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
-        const kd = d.games > 0 ? (d.wins / d.games).toFixed(2) : '0.00';
-        const lvlIcon = getLevelTitle(l).split(' ')[0]; // только эмодзи
+        const lvlIcon = getLevelTitle(l).split(' ')[0];
         top5Html += `<tr>
             <td><b>${place}</b></td>
             <td>${d.name}</td>
