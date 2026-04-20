@@ -793,10 +793,7 @@ async function showProfile() {
 
     const profileHeader = document.getElementById('profile-header');
     if (profileHeader) {
-        profileHeader.innerHTML = `
-            <span>${getLevelEmoji(lvl)}</span>
-            <b>${data.name}</b>
-        `;
+        profileHeader.innerHTML = `<b>${data.name}</b>`;
     }
 
     // Топ-5
