@@ -514,8 +514,10 @@ async function renderCryptoExchange() {
             <div id="crypto-buy-form">
                 <div class="ex-form-label">Потратить монет (биржевой кошелёк):</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-                    <input type="number" id="crypto-buy-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму" oninput="updateBuyPreview()"
-                        style="flex:1;padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                    <div style="flex:1;min-width:0;">
+                        <input type="number" id="crypto-buy-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму" oninput="updateBuyPreview()"
+                            style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                    </div>
                     <button class="crypto-all-btn" onclick="buyAll()" style="padding:11px 14px;">На всё</button>
                 </div>
                 <div class="crypto-preview" id="crypto-buy-preview"></div>
