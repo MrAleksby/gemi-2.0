@@ -2926,7 +2926,7 @@ th {
 .crypto-wallet-action-btn { display: block; width: 100%; padding: 11px; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer; margin-bottom: 4px; }
 .crypto-deposit-btn { background: #27ae60; color: white; }
 .crypto-withdraw-btn { background: #e53935; color: white; }
-.crypto-all-btn { background: rgba(247,147,26,0.15); border: 1px solid #f7931a !important; color: #f7931a; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; cursor: pointer; margin-left: 4px; }
+.crypto-all-btn { background: rgba(247,147,26,0.15); border: 1px solid #f7931a !important; color: #f7931a; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; cursor: pointer; margin-left: 4px; flex-shrink: 0; }
 .crypto-trade-history { margin-top: 16px; }
 .crypto-trade-history h4 { font-size: 0.9em; color: #888; margin-bottom: 8px; }
 .crypto-trade-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; font-size: 0.82em; background: rgba(0,0,0,0.03); }
