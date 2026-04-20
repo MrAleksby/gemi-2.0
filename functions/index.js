@@ -158,7 +158,7 @@ exports.checkOrders = functions.pubsub.schedule('every 1 minutes').onRun(async (
 
 // ─── Еженедельный сброс рейтинга инвесторов (пн 20:00 Ташкент = 15:00 UTC) ──
 exports.resetWeeklyInvestorRating = functions.pubsub
-    .schedule('0 15 * * 1')
+    .schedule('0 15 * * 0')
     .timeZone('Asia/Tashkent')
     .onRun(async () => {
         const db = admin.firestore();
@@ -186,12 +186,7 @@ exports.resetWeeklyInvestorRating = functions.pubsub
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // Награда победителю: +50 монет на биржевой кошелёк
-            await db.collection('users').doc(winner.uid).update({
-                exchangeCoins: admin.firestore.FieldValue.increment(50),
-            });
-
-            console.log(`[WeeklyReset] Победитель: ${winner.name}, PnL=${winner.weeklyPnl.toFixed(2)}, +50 монет`);
+            console.log(`[WeeklyReset] Победитель: ${winner.name}, PnL=${winner.weeklyPnl.toFixed(2)}`);
         } else {
             console.log('[WeeklyReset] Нет победителя (никто не в плюсе)');
         }
