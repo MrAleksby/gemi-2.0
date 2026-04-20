@@ -22,19 +22,24 @@ let currentCryptoAsset = 'btc'; // текущий актив
 // ─── Получение цены ────────────────────────────────────────────────────────────
 
 async function fetchAssetPrice(asset) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 7000);
     try {
         if (asset.type === 'crypto') {
             const base = asset.futures
                 ? 'https://fapi.binance.com/fapi/v1/ticker/24hr'
                 : 'https://api.binance.com/api/v3/ticker/24hr';
-            const res = await fetch(`${base}?symbol=${asset.binance}`);
+            const res = await fetch(`${base}?symbol=${asset.binance}`, { signal: ctrl.signal });
+            clearTimeout(timer);
             const d = await res.json();
             return { price: parseFloat(d.lastPrice), change24h: parseFloat(d.priceChangePercent) };
         } else {
             // Yahoo Finance для акций
             const res = await fetch(
-                `https://query1.finance.yahoo.com/v8/finance/chart/${asset.yahoo}?interval=1d&range=1d`
+                `https://query1.finance.yahoo.com/v8/finance/chart/${asset.yahoo}?interval=1d&range=1d`,
+                { signal: ctrl.signal }
             );
+            clearTimeout(timer);
             const d = await res.json();
             const meta = d.chart.result[0].meta;
             const price = meta.regularMarketPrice;
@@ -42,6 +47,7 @@ async function fetchAssetPrice(asset) {
             return { price, change24h: ((price - prev) / prev) * 100 };
         }
     } catch(e) {
+        clearTimeout(timer);
         // fallback: query2 для Yahoo
         if (asset.type === 'stock') {
             try {
@@ -173,11 +179,11 @@ async function renderCryptoExchange() {
 
     const asset = getAsset(currentCryptoAsset);
 
-    const cached = cryptoPrices[asset.id] && Date.now() - cryptoPrices[asset.id].fetchedAt < 30000
+    const cached = cryptoPrices[asset.id] && Date.now() - cryptoPrices[asset.id].fetchedAt < 60000
         ? cryptoPrices[asset.id] : null;
 
     const [priceData, userDoc] = await Promise.all([
-        cached ? Promise.resolve(cached) : fetchAssetPrice(asset),
+        cached ? Promise.resolve(cached) : fetchAssetPrice(asset).catch(() => cached || null),
         firebase.firestore().collection('users').doc(user.uid).get()
     ]);
 
