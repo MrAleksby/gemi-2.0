@@ -28,7 +28,7 @@ async function fetchBinancePrice(asset) {
 }
 
 // ─── Проверка стоп-лоссов и тейк-профитов ────────────────────────────────────
-exports.checkOrders = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 minutes').onRun(async (context) => {
     const db = admin.firestore();
 
     // Получаем цены всех активов
@@ -157,7 +157,7 @@ exports.checkOrders = functions.pubsub.schedule('every 1 minutes').onRun(async (
 });
 
 // ─── Еженедельный сброс рейтинга инвесторов (пн 20:00 Ташкент = 15:00 UTC) ──
-exports.resetWeeklyInvestorRating = functions.pubsub
+exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
     .schedule('0 15 * * 0')
     .timeZone('Asia/Tashkent')
     .onRun(async () => {
