@@ -583,7 +583,9 @@ function toggleExTransfer(type) {
 
 function toggleSltpForm(assetId) {
     const form = document.getElementById(`sltp-edit-${assetId}`);
-    if (form) form.style.display = form.style.display === 'none' ? '' : 'none';
+    if (!form) return;
+    const hidden = form.style.display === '' || form.style.display === 'none';
+    form.style.display = hidden ? 'block' : 'none';
 }
 
 function updateBuyPreview() {
