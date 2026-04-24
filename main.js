@@ -25,9 +25,10 @@ const ratingTableBody = document.querySelector('#rating-table tbody');
 const auth = firebase.auth();
 
 // Unsubscribe функции для Firestore слушателей
-let unsubPlayerRequests = null;
-let unsubAdminRequests  = null;
-let unsubProfileDoc     = null;
+let unsubPlayerRequests  = null;
+let unsubAdminRequests   = null;
+let unsubProfileDoc      = null;
+let adminAnalyticsTimer  = null;
 
 // ─── Кеш рейтинга ─────────────────────────────────────────────────────────────
 let ratingCache = null;
@@ -560,6 +561,7 @@ auth.onAuthStateChanged(async (user) => {
     if (unsubAdminRequests)  { unsubAdminRequests();  unsubAdminRequests  = null; }
     if (unsubPendingRegs)    { unsubPendingRegs();    unsubPendingRegs    = null; }
     if (unsubProfileDoc)     { unsubProfileDoc();     unsubProfileDoc     = null; }
+    if (adminAnalyticsTimer) { clearInterval(adminAnalyticsTimer);  adminAnalyticsTimer = null; }
 
     if (user) {
         currentUser = user.uid;
@@ -615,6 +617,8 @@ auth.onAuthStateChanged(async (user) => {
                     loadUsersList();
                     loadAdminFinanceStats();
                     loadAdminAnalytics();
+                    if (adminAnalyticsTimer) clearInterval(adminAnalyticsTimer);
+                    adminAnalyticsTimer = setInterval(loadAdminAnalytics, 10000);
                     updateTransactionsLists();
                     loadTaxLog();
                     setupAdminRequestsListener();
