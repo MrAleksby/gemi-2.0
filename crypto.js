@@ -475,13 +475,11 @@ async function renderCryptoExchange(silent = false) {
                 <div style="font-size:0.73em;color:#aaa;margin-bottom:8px;">Ордер сработает автоматически когда цена достигнет указанного уровня</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <label style="flex:1;min-width:110px;">
-                        <div style="font-size:0.73em;color:#e53935;font-weight:700;margin-bottom:3px;">🔴 Stop-Loss</div>
-                        <input type="number" id="sl-${asset.id}" placeholder="Цена" value="${_slVal || ''}"
+                        <input type="number" id="sl-${asset.id}" placeholder="🔴 Stop-Loss" value="${_slVal || ''}"
                             style="width:100%;padding:8px 10px;border:1.5px solid #ffcdd2;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
                     </label>
                     <label style="flex:1;min-width:110px;">
-                        <div style="font-size:0.73em;color:#27ae60;font-weight:700;margin-bottom:3px;">🟢 Take-Profit</div>
-                        <input type="number" id="tp-${asset.id}" placeholder="Цена" value="${_tpVal || ''}"
+                        <input type="number" id="tp-${asset.id}" placeholder="🟢 Take-Profit" value="${_tpVal || ''}"
                             style="width:100%;padding:8px 10px;border:1.5px solid #c8e6c9;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
                     </label>
                 </div>
