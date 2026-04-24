@@ -1074,3 +1074,199 @@ async function resetSlTp(assetId) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка'; }
     }
 }
+
+// ─── СТАТИСТИКА СДЕЛОК ────────────────────────────────────────────────────────
+
+let _statsChart = null;
+
+function switchCryptoTab(tab) {
+    const tradeEl  = document.getElementById('crypto-content');
+    const statsEl  = document.getElementById('crypto-stats-content');
+    const btnTrade = document.getElementById('crypto-tab-trade');
+    const btnStats = document.getElementById('crypto-tab-stats');
+    if (!tradeEl || !statsEl) return;
+
+    if (tab === 'trade') {
+        tradeEl.style.display  = '';
+        statsEl.style.display  = 'none';
+        btnTrade.style.background = '#f7931a'; btnTrade.style.color = '#fff'; btnTrade.style.borderColor = '#f7931a';
+        btnStats.style.background = '#fafafa'; btnStats.style.color = '#999'; btnStats.style.borderColor = '#eee';
+    } else {
+        tradeEl.style.display  = 'none';
+        statsEl.style.display  = '';
+        btnTrade.style.background = '#fafafa'; btnTrade.style.color = '#999'; btnTrade.style.borderColor = '#eee';
+        btnStats.style.background = '#1e293b'; btnStats.style.color = '#f8fafc'; btnStats.style.borderColor = '#3b82f6';
+        renderExchangeStats();
+    }
+}
+
+async function renderExchangeStats() {
+    const el = document.getElementById('crypto-stats-content');
+    if (!el) return;
+    el.innerHTML = `<div style="color:#64748b;text-align:center;padding:30px;font-size:0.9em;">Загружаем статистику...</div>`;
+
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    try {
+        const snap = await firebase.firestore()
+            .collection('exchange_trades')
+            .where('userId', '==', user.uid)
+            .orderBy('timestamp', 'asc')
+            .get({ source: 'server' });
+
+        const all    = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        const trades = all.filter(t => t.type === 'sell' && t.pnl != null);
+
+        if (trades.length === 0) {
+            el.innerHTML = `<div style="background:#151820;border-radius:14px;padding:40px;text-align:center;color:#475569;">
+                <div style="font-size:2em;margin-bottom:12px;">📊</div>
+                <div style="font-size:0.95em;">Сделок ещё нет.<br>Начни торговать на бирже!</div>
+            </div>`;
+            return;
+        }
+
+        // Статистика
+        const totalPnl  = trades.reduce((s, t) => s + t.pnl, 0);
+        const wins      = trades.filter(t => t.pnl > 0);
+        const losses    = trades.filter(t => t.pnl < 0);
+        const winRate   = (wins.length / trades.length * 100).toFixed(1);
+        const best      = Math.max(...trades.map(t => t.pnl));
+        const worst     = Math.min(...trades.map(t => t.pnl));
+        const avgTrade  = totalPnl / trades.length;
+        const totalComm = all.reduce((s, t) => s + (t.commission || 0), 0);
+
+        const fmtPnl = v => (v >= 0 ? '+' : '') + v.toFixed(2) + ' 💰';
+        const fmtC   = v => v >= 0 ? '#10b981' : '#ef4444';
+
+        // Накопленный PnL для графика
+        const labels = []; const cumData = [];
+        let running = 0;
+        trades.forEach((t, i) => {
+            running += t.pnl;
+            labels.push('#' + (i + 1));
+            cumData.push(+running.toFixed(2));
+        });
+
+        el.innerHTML = `
+        <div style="background:#0d0f14;border-radius:16px;padding:16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+
+            <!-- Карточки -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;padding:16px;border-top:2px solid ${fmtC(totalPnl)};">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Общий PnL</div>
+                    <div style="font-size:22px;font-weight:700;color:${fmtC(totalPnl)};">${fmtPnl(totalPnl)}</div>
+                    <div style="font-size:11px;color:#475569;margin-top:4px;">${trades.length} сделок закрыто</div>
+                </div>
+                <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;padding:16px;border-top:2px solid #3b82f6;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Win Rate</div>
+                    <div style="font-size:22px;font-weight:700;color:#f8fafc;">${winRate}%</div>
+                    <div style="font-size:11px;color:#475569;margin-top:4px;">${wins.length}W / ${losses.length}L</div>
+                </div>
+                <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;padding:16px;border-top:2px solid #10b981;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Лучшая сделка</div>
+                    <div style="font-size:22px;font-weight:700;color:#10b981;">+${best.toFixed(2)} 💰</div>
+                    <div style="font-size:11px;color:#475569;margin-top:4px;">Худшая: ${worst.toFixed(2)} 💰</div>
+                </div>
+                <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;padding:16px;border-top:2px solid #f59e0b;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Средняя сделка</div>
+                    <div style="font-size:22px;font-weight:700;color:${fmtC(avgTrade)};">${fmtPnl(avgTrade)}</div>
+                    <div style="font-size:11px;color:#475569;margin-top:4px;">Комиссий: ${totalComm.toFixed(2)} 💰</div>
+                </div>
+            </div>
+
+            <!-- График -->
+            <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;padding:16px;margin-bottom:14px;">
+                <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;">Рост капитала</div>
+                <div style="position:relative;height:180px;">
+                    <canvas id="exchangeStatsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Таблица сделок -->
+            <div style="background:#151820;border:1px solid #1e293b;border-radius:14px;overflow:hidden;">
+                <div style="padding:14px 16px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">История сделок</div>
+                    <div style="background:#1e293b;border-radius:6px;padding:2px 10px;font-size:12px;color:#64748b;">${trades.length} сделок</div>
+                </div>
+                <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead>
+                        <tr style="background:#0f1117;">
+                            <th style="padding:8px 12px;text-align:left;color:#475569;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid #1e293b;">Актив</th>
+                            <th style="padding:8px 12px;text-align:right;color:#475569;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid #1e293b;">Цена</th>
+                            <th style="padding:8px 12px;text-align:right;color:#475569;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid #1e293b;">PnL</th>
+                            <th style="padding:8px 12px;text-align:right;color:#475569;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid #1e293b;">Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${[...trades].reverse().map((t, i) => {
+                            const isWin = t.pnl >= 0;
+                            const ts = t.timestamp?.toDate ? t.timestamp.toDate().toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit'}) : '—';
+                            return `<tr style="border-bottom:1px solid #1a2234;">
+                                <td style="padding:10px 12px;color:#f8fafc;font-weight:600;">${t.assetSymbol || '—'}</td>
+                                <td style="padding:10px 12px;text-align:right;color:#94a3b8;">${t.price?.toFixed(4) || '—'}</td>
+                                <td style="padding:10px 12px;text-align:right;font-weight:700;color:${isWin ? '#10b981' : '#ef4444'};">${isWin ? '+' : ''}${t.pnl.toFixed(2)}</td>
+                                <td style="padding:10px 12px;text-align:right;color:#475569;">${ts}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>`;
+
+        // Рендерим Chart.js
+        if (_statsChart) { _statsChart.destroy(); _statsChart = null; }
+        const ctx = document.getElementById('exchangeStatsChart');
+        if (ctx && typeof Chart !== 'undefined') {
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 180);
+            gradient.addColorStop(0, 'rgba(59,130,246,0.25)');
+            gradient.addColorStop(1, 'rgba(59,130,246,0.00)');
+            _statsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'PnL',
+                        data: cumData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        borderWidth: 2.5,
+                        pointBackgroundColor: cumData.map(v => v >= 0 ? '#10b981' : '#ef4444'),
+                        pointBorderColor: '#151820',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.35,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            titleColor: '#94a3b8',
+                            bodyColor: '#f8fafc',
+                            callbacks: {
+                                label: c => ` PnL: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toFixed(2)} 💰`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#1e293b' }, ticks: { color: '#475569', font: { size: 10 } } },
+                        y: { grid: { color: '#1e293b' }, ticks: { color: '#475569', font: { size: 10 },
+                            callback: v => (v >= 0 ? '+' : '') + v.toFixed(1)
+                        }}
+                    }
+                }
+            });
+        }
+    } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px;">Ошибка загрузки: ${e.message}</div>`;
+    }
+}
