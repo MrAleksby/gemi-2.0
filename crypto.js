@@ -302,10 +302,6 @@ async function renderCryptoExchange(silent = false) {
                         <span style="font-size:1.4em;">🏆</span>
                         <span>Рейтинг инвесторов</span>
                     </button>
-                    <button onclick="resetWeeklyRating()" style="width:72px;padding:8px 4px;background:linear-gradient(135deg,#e53935,#c62828);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                        <span style="font-size:1.4em;">🔄</span>
-                        <span>Сброс недели</span>
-                    </button>
                 </div>
             </div>
 
