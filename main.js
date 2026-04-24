@@ -607,6 +607,7 @@ auth.onAuthStateChanged(async (user) => {
                     adminSection.style.display = '';
                     loadUsersList();
                     loadAdminFinanceStats();
+                    loadAdminAnalytics();
                     updateTransactionsLists();
                     loadTaxLog();
                     setupAdminRequestsListener();
@@ -615,6 +616,13 @@ auth.onAuthStateChanged(async (user) => {
                 } else {
                     adminSection.style.display = 'none';
                     loadPlayerHistory(currentUser);
+                    // Обновляем lastSeen и счётчик сессий
+                    db.collection('users').doc(currentUser).update({
+                        lastSeen: new Date(),
+                        sessionCount: firebase.firestore.FieldValue.increment(1)
+                    }).catch(() => {});
+                    // Сохраняем начало сессии
+                    localStorage.setItem('_sessionStart', Date.now());
                 }
             } else {
                 // При обновлении данных — обновляем историю игрока
@@ -712,7 +720,7 @@ document.getElementById('register-form').onsubmit = async (e) => {
         await db.collection('users').doc(uid).set({
             name: fullname, phone: phoneKey, level: 1, experience: 0,
             points: 0, coins: 0, cf: 0, wins: 0, games: 0,
-            status: 'pending'
+            status: 'pending', createdAt: new Date()
         });
         isRegistering = false;
         currentUser = uid;
@@ -1045,6 +1053,29 @@ function setNavTab(name) {
     if (tab) tab.classList.add('active');
 }
 
+function trackTabOpen(tabName) {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser).update({
+        [`tabStats.${tabName}`]: firebase.firestore.FieldValue.increment(1)
+    }).catch(() => {});
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && currentUser) {
+        const start = parseInt(localStorage.getItem('_sessionStart') || '0');
+        if (!start) return;
+        const duration = Math.round((Date.now() - start) / 1000);
+        if (duration < 5 || duration > 86400) return;
+        db.collection('users').doc(currentUser).update({
+            totalSessionSec: firebase.firestore.FieldValue.increment(duration)
+        }).catch(() => {});
+        localStorage.removeItem('_sessionStart');
+    }
+    if (document.visibilityState === 'visible' && currentUser) {
+        localStorage.setItem('_sessionStart', Date.now());
+    }
+});
+
 document.getElementById('nav-home').onclick = () => {
     hideAllModals();
     setNavTab('home');
@@ -1055,29 +1086,34 @@ document.getElementById('nav-rating').onclick = () => {
     showModal('rating-modal');
     showRating();
     setNavTab('rating');
+    trackTabOpen('rating');
 };
 
 document.getElementById('nav-shop').onclick = () => {
     showModal('shop-modal', 'block');
     renderShop();
     setNavTab('shop');
+    trackTabOpen('shop');
 };
 
 document.getElementById('nav-crypto').onclick = () => {
     showModal('invest-modal');
     renderInvestHub();
     setNavTab('crypto');
+    trackTabOpen('crypto');
 };
 
 document.getElementById('nav-business').onclick = () => {
     showModal('business-modal');
     renderBusinessTab();
     setNavTab('business');
+    trackTabOpen('business');
 };
 
 document.getElementById('nav-chat').onclick = () => {
     if (typeof openChatModal === 'function') openChatModal();
     setNavTab('chat');
+    trackTabOpen('chat');
 };
 
 // ─── Экран ожидания подтверждения ─────────────────────────────────────────────
@@ -1687,6 +1723,107 @@ async function loadPlayerHistory(userId) {
         await fetchPage();
     } catch (err) {
         console.error('Ошибка загрузки истории игрока:', err);
+    }
+}
+
+// ─── Аналитика (админ) ────────────────────────────────────────────────────────
+
+async function loadAdminAnalytics() {
+    const el = document.getElementById('admin-analytics');
+    if (!el) return;
+    el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px;">Загрузка...</div>';
+    try {
+        const now = Date.now();
+        const day1 = new Date(now - 86400000);
+        const day7 = new Date(now - 7 * 86400000);
+
+        const [usersSnap, txSnap] = await Promise.all([
+            db.collection('users').get(),
+            db.collection('transactions').get()
+        ]);
+
+        const players = usersSnap.docs.map(d => d.data()).filter(d => !d.isAdmin && d.name);
+        const total   = players.length;
+
+        // DAU / WAU
+        const dau = players.filter(d => d.lastSeen?.toDate?.() >= day1).length;
+        const wau = players.filter(d => d.lastSeen?.toDate?.() >= day7).length;
+
+        // Active / Total (lastSeen за 7 дней)
+        const activeRatio = total > 0 ? Math.round(wau / total * 100) : 0;
+
+        // Retention D1 / D7
+        const withDates = players.filter(d => d.createdAt && d.lastSeen);
+        const retD1 = withDates.length
+            ? Math.round(withDates.filter(d => {
+                const diff = d.lastSeen.toDate() - d.createdAt.toDate();
+                return diff > 86400000;
+              }).length / withDates.length * 100) : 0;
+        const retD7 = withDates.length
+            ? Math.round(withDates.filter(d => {
+                const diff = d.lastSeen.toDate() - d.createdAt.toDate();
+                return diff > 7 * 86400000;
+              }).length / withDates.length * 100) : 0;
+
+        // Среднее время сессии
+        const withSession = players.filter(d => d.totalSessionSec && d.sessionCount);
+        const avgSessionMin = withSession.length
+            ? Math.round(withSession.reduce((s, d) => s + d.totalSessionSec / d.sessionCount, 0) / withSession.length / 60)
+            : 0;
+
+        // Переводы
+        const transfers7d = txSnap.docs.filter(d => {
+            const ts = d.data().timestamp?.toDate?.();
+            return ts && ts >= day7;
+        }).length;
+
+        // Самая популярная вкладка
+        const tabTotals = { rating: 0, shop: 0, crypto: 0, business: 0, chat: 0 };
+        const tabNames  = { rating: 'Рейтинг', shop: 'Магазин', crypto: 'Биржа', business: 'Бизнес', chat: 'Чат' };
+        players.forEach(d => {
+            if (!d.tabStats) return;
+            Object.keys(tabTotals).forEach(k => { tabTotals[k] += d.tabStats[k] || 0; });
+        });
+        const topTab = Object.entries(tabTotals).sort((a, b) => b[1] - a[1])[0];
+        const tabRows = Object.entries(tabTotals)
+            .sort((a, b) => b[1] - a[1])
+            .map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.88em;">
+                <span>${tabNames[k]}</span><b>${v}</b></div>`).join('');
+
+        el.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div class="admin-stat-card" style="background:#e3f2fd;">
+                    <div class="admin-stat-label">👤 DAU / WAU</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;">${dau} / ${wau}</div>
+                    <div class="admin-stat-sub">день / неделя</div>
+                </div>
+                <div class="admin-stat-card" style="background:#f3e5f5;">
+                    <div class="admin-stat-label">⏱ Ср. сессия</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;">${avgSessionMin} мин</div>
+                    <div class="admin-stat-sub">на игрока</div>
+                </div>
+                <div class="admin-stat-card" style="background:#e8f5e9;">
+                    <div class="admin-stat-label">🔄 Retention</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;">D1: ${retD1}%</div>
+                    <div class="admin-stat-sub">D7: ${retD7}%</div>
+                </div>
+                <div class="admin-stat-card" style="background:#fff3e0;">
+                    <div class="admin-stat-label">💸 Переводы (7д)</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;">${transfers7d}</div>
+                    <div class="admin-stat-sub">транзакций</div>
+                </div>
+                <div class="admin-stat-card" style="background:#fce4ec;grid-column:span 2;">
+                    <div class="admin-stat-label">📊 Активные / Всего</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;">${wau} / ${total} (${activeRatio}%)</div>
+                    <div class="admin-stat-sub">активны за 7 дней</div>
+                </div>
+            </div>
+            <div style="background:#f9f9f9;border-radius:10px;padding:10px;">
+                <div style="font-weight:700;font-size:0.85em;color:#555;margin-bottom:6px;">📱 Популярность вкладок</div>
+                ${tabRows}
+            </div>`;
+    } catch(e) {
+        if (el) el.innerHTML = `<div style="color:#e53935;">Ошибка загрузки аналитики</div>`;
     }
 }
 
