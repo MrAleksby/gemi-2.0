@@ -184,7 +184,7 @@ async function renderCryptoExchange(silent = false) {
 
     const [priceData, userDoc] = await Promise.all([
         cached ? Promise.resolve(cached) : fetchAssetPrice(asset).catch(() => cached || null),
-        firebase.firestore().collection('users').doc(user.uid).get()
+        firebase.firestore().collection('users').doc(user.uid).get({ source: 'server' })
     ]);
 
     if (!priceData) {
