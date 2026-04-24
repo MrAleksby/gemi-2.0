@@ -1023,7 +1023,7 @@ async function bizWithdraw() {
             const freshBiz = snap.data().businessCoins || 0;
             userName = snap.data().name || '';
             if (freshBiz < amount) throw new Error(`Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`);
-            const tax      = adminRef ? Math.max(1, Math.floor(amount * taxRate)) : 0;
+            const tax      = adminRef ? Math.max(0.01, Math.round(amount * taxRate * 100) / 100) : 0;
             const received = amount - tax;
             tx.update(ref, {
                 businessCoins: firebase.firestore.FieldValue.increment(-amount),

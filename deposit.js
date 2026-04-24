@@ -50,8 +50,8 @@ function calcCompoundedAmount(dep, monthlyRate) {
 
 // Зафиксировать накопленный процент в Firestore перед любым действием
 async function applyCompound(db, depRef, dep, monthlyRate) {
-    const current = calcCompoundedAmount(dep, monthlyRate);
-    const earned  = current - dep.amount;
+    const current = Math.round(calcCompoundedAmount(dep, monthlyRate) * 100) / 100;
+    const earned  = Math.round((current - dep.amount) * 100) / 100;
     await depRef.update({
         amount:         current,
         lastCompounded: new Date(),
@@ -419,8 +419,8 @@ async function topUpDeposit(depId) {
         // Берём актуальную ставку игрока
         const { rate } = await fetchUserDepositRate(user.uid);
         const depSnap  = await depRef.get();
-        const current  = calcCompoundedAmount(depSnap.data(), rate);
-        const earned   = current - depSnap.data().amount;
+        const current  = Math.round(calcCompoundedAmount(depSnap.data(), rate) * 100) / 100;
+        const earned   = Math.round((current - depSnap.data().amount) * 100) / 100;
 
         await db.runTransaction(async (tx) => {
             const uSnap = await tx.get(userRef);
@@ -428,7 +428,7 @@ async function topUpDeposit(depId) {
                 throw new Error(`Недостаточно монет. У вас: ${uSnap.data().coins || 0}`);
             tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(-topup) });
             tx.update(depRef, {
-                amount:         current + topup,
+                amount:         Math.round((current + topup) * 100) / 100,
                 lastCompounded: new Date(),
                 totalEarned:    firebase.firestore.FieldValue.increment(earned),
             });
@@ -465,16 +465,16 @@ async function withdrawFromDeposit(depId) {
 
         const { rate } = await fetchUserDepositRate(user.uid);
         const depSnap  = await depRef.get();
-        const current  = calcCompoundedAmount(depSnap.data(), rate);
-        const earned   = current - depSnap.data().amount;
+        const current  = Math.round(calcCompoundedAmount(depSnap.data(), rate) * 100) / 100;
+        const earned   = Math.round((current - depSnap.data().amount) * 100) / 100;
 
         if (withdraw > current)
             throw new Error(`Нельзя вывести больше чем есть (${current.toFixed(2)} монет)`);
 
-        const remaining = current - withdraw;
+        const remaining = Math.round((current - withdraw) * 100) / 100;
 
         await db.runTransaction(async (tx) => {
-            tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(Math.floor(withdraw)) });
+            tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(Math.round(withdraw * 100) / 100) });
             if (remaining < 1) {
                 tx.update(depRef, {
                     amount: 0, lastCompounded: new Date(),
