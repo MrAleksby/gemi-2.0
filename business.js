@@ -756,6 +756,8 @@ async function postVacancy(bizId) {
         });
         await batch.commit();
         showBizMsg('📢 Вакансия открыта! Игроки смогут откликнуться.');
+        if (btn) { btn.disabled = false; }
+        _lastBizId = null; // секция вакансий требует полного рендера
         renderBusinessTab(true);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -768,6 +770,7 @@ async function closeVacancy(bizId) {
         await firebase.firestore().collection('businesses').doc(bizId).update({ vacancyOpen: false, vacancySalary: 0 });
         await firebase.firestore().collection('job_board').doc(bizId).delete();
         showBizMsg('✅ Вакансия закрыта.');
+        _lastBizId = null;
         renderBusinessTab(true);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -796,6 +799,7 @@ async function fireWorker(bizId, workerId) {
         const workers = (bizSnap.data().workers || []).filter(w => w.userId !== workerId);
         await bizRef.update({ workers });
         showBizMsg('✅ Работник уволен.');
+        _lastBizId = null;
         renderBusinessTab(true);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -1117,6 +1121,7 @@ async function bizDeposit() {
             businessCoins: firebase.firestore.FieldValue.increment(amount)
         });
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
         renderBusinessTab(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
@@ -1172,6 +1177,7 @@ async function bizWithdraw() {
         }
         const msg = tax > 0 ? `✅ Выведено ${received} монет (налог ${taxPct}%: ${tax})` : `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
         renderBusinessTab(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }

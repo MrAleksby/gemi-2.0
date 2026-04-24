@@ -703,6 +703,7 @@ async function cryptoDeposit() {
             exchangeCoins: firebase.firestore.FieldValue.increment(amount)
         });
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Пополнить →'; }
         renderCryptoExchange(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
@@ -753,6 +754,7 @@ async function cryptoWithdraw() {
         }
         const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Вывести ←'; }
         renderCryptoExchange(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ Ошибка: ' + e.message; }
@@ -856,6 +858,7 @@ async function executeBuy() {
 
         msgEl.innerHTML = `✅ Куплено <b>${assetReceived.toFixed(dec)} ${asset.symbol}</b> за ${coinsInput} монет`;
         msgEl.style.color = '#27ae60';
+        btn.disabled = false; btn.textContent = `Купить ${asset.symbol}`;
         cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
         renderCryptoExchange(true);
     } catch(e) {
@@ -929,6 +932,7 @@ async function executeSell() {
         const xpMsg = xpGain > 0 ? ` &nbsp;⭐ +${xpGain} опыта` : '';
         msgEl.innerHTML = `✅ Продано <b>${assetInput} ${asset.symbol}</b> за ${coinsNet} монет${xpMsg}`;
         msgEl.style.color = '#27ae60';
+        btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
         cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
         renderCryptoExchange(true);
     } catch(e) {
