@@ -566,6 +566,13 @@ auth.onAuthStateChanged(async (user) => {
         loginSection.style.display    = 'none';
         registerSection.style.display = 'none';
 
+        // Обновляем lastSeen сразу при любом входе (для аналитики)
+        db.collection('users').doc(currentUser).update({
+            lastSeen: new Date(),
+            sessionCount: firebase.firestore.FieldValue.increment(1)
+        }).catch(() => {});
+        localStorage.setItem('_sessionStart', Date.now());
+
         let _initialized = false;
 
         unsubProfileDoc = db.collection('users').doc(currentUser).onSnapshot(async (doc) => {
@@ -616,13 +623,6 @@ auth.onAuthStateChanged(async (user) => {
                 } else {
                     adminSection.style.display = 'none';
                     loadPlayerHistory(currentUser);
-                    // Обновляем lastSeen и счётчик сессий
-                    db.collection('users').doc(currentUser).update({
-                        lastSeen: new Date(),
-                        sessionCount: firebase.firestore.FieldValue.increment(1)
-                    }).catch(() => {});
-                    // Сохраняем начало сессии
-                    localStorage.setItem('_sessionStart', Date.now());
                 }
             } else {
                 // При обновлении данных — обновляем историю игрока
