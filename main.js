@@ -34,6 +34,9 @@ let adminAnalyticsTimer  = null;
 let ratingCache = null;
 let ratingCacheTime = 0;
 
+// ─── Анти-мигание профиля ─────────────────────────────────────────────────────
+let _lastProfilePoints = -1; // для пропуска повторной загрузки топ-5
+
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
 /**
@@ -831,53 +834,80 @@ async function showProfileFromData(data) {
     const lvl = Math.max(1, Math.min(getLevelByPoints(data.points), 25));
     currentUserLevel = lvl;
     const totalCF = data.cf ?? 0;
+    const kd = data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00';
 
     showAdulthoodProgress();
 
-    profileInfo.innerHTML = `
-    <div class="profile-stats">
-      <span class="profile-badge points" onclick="showPointsInfo()" style="cursor:pointer">⭐ ${data.points}</span>
-      <span class="profile-badge coins" onclick="showCoinsInfo()" style="cursor:pointer">💰 ${fmt(data.coins)}</span>
-      <span class="profile-badge kd"
-            onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})"
-            style="cursor:pointer" title="Нажмите для подробностей">
-        🎯 ${data.games > 0 ? (data.wins / data.games).toFixed(2) : '0.00'}
-      </span>
-      <span class="profile-badge cf"
-            onclick="showCFConversion(${totalCF})"
-            style="cursor:pointer" title="Нажмите для конвертации">
-        <img src="logo2.jpg" class="cf-logo-icon" alt="CF"> ${totalCF.toFixed(2)}
-      </span>
-    </div>
-    `;
+    // ── Профиль: обновляем значения в месте — без замены всего innerHTML ──────
+    const pbPoints = document.getElementById('pb-points');
+    if (pbPoints) {
+        // Элементы уже есть — обновляем только текст
+        pbPoints.textContent = `⭐ ${data.points}`;
+        const pbCoins = document.getElementById('pb-coins');
+        if (pbCoins) pbCoins.textContent = `💰 ${fmt(data.coins)}`;
+        const pbKd = document.getElementById('pb-kd');
+        if (pbKd) {
+            pbKd.textContent = `🎯 ${kd}`;
+            pbKd.setAttribute('onclick', `showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})`);
+        }
+        const pbCfNum = document.getElementById('pb-cf-num');
+        if (pbCfNum) {
+            pbCfNum.textContent = totalCF.toFixed(2);
+            const pbCf = document.getElementById('pb-cf');
+            if (pbCf) pbCf.setAttribute('onclick', `showCFConversion(${totalCF})`);
+        }
+    } else {
+        // Первый рендер — создаём структуру со стабильными ID
+        profileInfo.innerHTML = `
+        <div class="profile-stats">
+          <span id="pb-points" class="profile-badge points" onclick="showPointsInfo()" style="cursor:pointer">⭐ ${data.points}</span>
+          <span id="pb-coins" class="profile-badge coins" onclick="showCoinsInfo()" style="cursor:pointer">💰 ${fmt(data.coins)}</span>
+          <span id="pb-kd" class="profile-badge kd"
+                onclick="showKDDetails(${data.wins ?? 0}, ${data.games ?? 0})"
+                style="cursor:pointer" title="Нажмите для подробностей">🎯 ${kd}</span>
+          <span id="pb-cf" class="profile-badge cf"
+                onclick="showCFConversion(${totalCF})"
+                style="cursor:pointer" title="Нажмите для конвертации">
+            <img src="logo2.jpg" class="cf-logo-icon" alt="CF"><span id="pb-cf-num"> ${totalCF.toFixed(2)}</span>
+          </span>
+        </div>
+        `;
+    }
 
     const profileHeader = document.getElementById('profile-header');
-    if (profileHeader) profileHeader.innerHTML = `<b>${data.name}</b>`;
+    if (profileHeader && !profileHeader.querySelector('b')) {
+        profileHeader.innerHTML = `<b>${data.name}</b>`;
+    }
 
-    // Топ-5
-    const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(10).get();
-    let top5Html = `<div class="top5-title">🏆 Топ-5 игроков</div>
-        <table class="top5-table"><thead><tr>
-            <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th>
-        </tr></thead><tbody>`;
-    let place = 1;
-    top5Snap.forEach(doc => {
-        if (place > 5) return;
-        const d = doc.data();
-        if (!d.name || d.name.trim() === '' || d.isAdmin) return;
-        if (d.status && d.status !== 'approved') return;
-        const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
-        const lvlIcon = getLevelTitle(l).split(' ')[0];
-        top5Html += `<tr>
-            <td><b>${place}</b></td>
-            <td>${d.name}</td>
-            <td><span class="level-badge" style="background:${getLevelColor(l)};">${lvlIcon} ${l}</span></td>
-            <td>${d.points}</td>
-        </tr>`;
-        place++;
-    });
-    top5Html += '</tbody></table>';
-    document.getElementById('top5-container').innerHTML = top5Html;
+    // ── Топ-5: грузим только если изменились очки (или первый раз) ──────────
+    const top5Container = document.getElementById('top5-container');
+    const pointsChanged = data.points !== _lastProfilePoints;
+    if (top5Container && (pointsChanged || !top5Container.querySelector('table'))) {
+        _lastProfilePoints = data.points;
+        const top5Snap = await db.collection('users').orderBy('points', 'desc').limit(10).get();
+        let top5Html = `<div class="top5-title">🏆 Топ-5 игроков</div>
+            <table class="top5-table"><thead><tr>
+                <th>🏅</th><th>👤</th><th>Уровень</th><th>⭐</th>
+            </tr></thead><tbody>`;
+        let place = 1;
+        top5Snap.forEach(doc => {
+            if (place > 5) return;
+            const d = doc.data();
+            if (!d.name || d.name.trim() === '' || d.isAdmin) return;
+            if (d.status && d.status !== 'approved') return;
+            const l = Math.max(1, Math.min(getLevelByPoints(d.points), 25));
+            const lvlIcon = getLevelTitle(l).split(' ')[0];
+            top5Html += `<tr>
+                <td><b>${place}</b></td>
+                <td>${d.name}</td>
+                <td><span class="level-badge" style="background:${getLevelColor(l)};">${lvlIcon} ${l}</span></td>
+                <td>${d.points}</td>
+            </tr>`;
+            place++;
+        });
+        top5Html += '</tbody></table>';
+        top5Container.innerHTML = top5Html;
+    }
 
     updateShopButton(lvl);
     await checkAndAwardBadges(data);

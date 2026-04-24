@@ -122,13 +122,21 @@ async function getOrResetEnergy(uid) {
 
 // ─── Главный рендер вкладки Бизнес ───────────────────────────────────────────
 
+let _lastBizId    = null; // для анти-мигания
+let _lastBizStage = null;
+
 async function renderBusinessTab(silent = false) {
     const content = document.getElementById('business-content');
     if (!content) return;
-    if (!silent) content.innerHTML = '<div class="crypto-loading">Загружаем бизнес... 🏪</div>';
 
     const user = firebase.auth().currentUser;
     if (!user) return;
+
+    const rootEl = document.getElementById('biz-content-root');
+    const isFirstRender = !rootEl;
+    if (!silent && isFirstRender) {
+        content.innerHTML = '<div class="crypto-loading">Загружаем бизнес... 🏪</div>';
+    }
 
     const [energy, userSnap, bizSnap] = await Promise.all([
         getOrResetEnergy(user.uid),
@@ -154,12 +162,39 @@ async function renderBusinessTab(silent = false) {
         .slice(0, isAdmin ? 50 : 10);
 
     if (!hasBusiness) {
-        renderNoBusiness(content, coins, businessCoins, exchangeCoins, energy, taxLogs, isAdmin);
+        // Бизнеса нет — проверяем, не сменилось ли состояние
+        const sameState = !isFirstRender && rootEl && rootEl.dataset.bizState === 'no-business';
+        if (sameState) {
+            // Обновляем только балансы в кошельке
+            _bizUpdateWalletBalances(coins, businessCoins, exchangeCoins);
+        } else {
+            renderNoBusiness(content, coins, businessCoins, exchangeCoins, energy, taxLogs, isAdmin);
+            _lastBizId = null; _lastBizStage = null;
+        }
+        return;
+    }
+
+    const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
+    const bizRef = firebase.firestore().collection('businesses').doc(biz.id);
+    const energyUsedToday = await getOrResetBizCapacity(bizRef);
+
+    // Проверяем, можно ли обновить вместо полного рендера
+    const canInPlace = !isFirstRender && _lastBizId === biz.id && _lastBizStage === biz.stage
+        && rootEl && rootEl.dataset.bizState === 'has-business';
+
+    if (canInPlace) {
+        // Обновляем только изменившиеся значения (без мигания)
+        _bizInPlaceUpdate(biz, coins, businessCoins, exchangeCoins, energy, energyUsedToday);
+        // Логи перерисовываем только если нужно (асинхронно, тихо)
+        firebase.firestore().collection('businesses').doc(biz.id)
+            .collection('work_logs').orderBy('timestamp', 'desc').limit(15).get()
+            .then(logsSnap => {
+                const workLogs = logsSnap.docs.map(d => d.data());
+                const logsContainer = document.getElementById('biz-work-logs');
+                if (logsContainer) logsContainer.innerHTML = _renderWorkLogs(workLogs, biz);
+            }).catch(() => {});
     } else {
-        const biz = { id: bizSnap.docs[0].id, ...bizSnap.docs[0].data() };
-        // Загружаем дневную загрузку и историю работы
-        const bizRef = firebase.firestore().collection('businesses').doc(biz.id);
-        const energyUsedToday = await getOrResetBizCapacity(bizRef);
+        // Полный рендер
         let workLogs = [];
         try {
             const logsSnap = await firebase.firestore()
@@ -169,7 +204,92 @@ async function renderBusinessTab(silent = false) {
             workLogs = logsSnap.docs.map(d => d.data());
         } catch(e) { workLogs = []; }
         renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins, energy, energyUsedToday, user.uid, userData.name || '', workLogs, taxLogs, isAdmin);
+        _lastBizId    = biz.id;
+        _lastBizStage = biz.stage;
     }
+}
+
+// ─── Вспомогательные функции обновления без мигания ──────────────────────────
+
+function _bizUpdateWalletBalances(coins, businessCoins, exchangeCoins) {
+    const el1 = document.getElementById('biz-wallet-biz-bal');
+    if (el1) el1.textContent = `${fmt(businessCoins)} монет`;
+    const el2 = document.getElementById('biz-wallet-exch-bal');
+    if (el2) el2.textContent = `${fmt(exchangeCoins)} монет`;
+    const el3 = document.getElementById('biz-wallet-main-bal');
+    if (el3) el3.textContent = `${fmt(coins)} монет`;
+}
+
+function _bizInPlaceUpdate(biz, coins, businessCoins, exchangeCoins, energy, energyUsedToday) {
+    const stage = getStage(biz.stage);
+    const capacityFull = energyUsedToday >= stage.dailyCapacity;
+    const canWork = energy > 0 && !capacityFull;
+    const capacityPct = Math.min(100, Math.round((energyUsedToday / stage.dailyCapacity) * 100));
+
+    // Балансы в баннере
+    const balBiz = document.getElementById('biz-bal-biz');
+    if (balBiz) balBiz.textContent = `${fmt(businessCoins)} монет`;
+    const balMain = document.getElementById('biz-bal-main');
+    if (balMain) balMain.textContent = `${fmt(coins)} монет`;
+
+    // Балансы в кошельке
+    _bizUpdateWalletBalances(coins, businessCoins, exchangeCoins);
+
+    // Энергия
+    const energyBarsEl = document.getElementById('biz-energy-bars-id');
+    if (energyBarsEl) energyBarsEl.innerHTML = renderEnergyBars(energy);
+    const energyCountEl = document.getElementById('biz-energy-count-id');
+    if (energyCountEl) energyCountEl.textContent = `${energy} / ${ENERGY_MAX}`;
+
+    // Загрузка
+    const capFill = document.getElementById('biz-capacity-fill-id');
+    if (capFill) {
+        capFill.style.width = `${capacityPct}%`;
+        capFill.className = `biz-capacity-bar-fill${capacityFull ? ' full' : ''}`;
+    }
+    const capUsed = document.getElementById('biz-capacity-used-id');
+    if (capUsed) capUsed.innerHTML = `<b>${energyUsedToday}/${stage.dailyCapacity}</b> энергий`;
+
+    // Кнопка работы
+    const workBtn = document.getElementById('biz-work-btn-id');
+    if (workBtn) {
+        workBtn.disabled = !canWork;
+        workBtn.className = `biz-work-btn${canWork ? '' : ' disabled'}`;
+        workBtn.textContent = capacityFull
+            ? '🏁 Бизнес заполнен на сегодня'
+            : canWork
+                ? `🔨 Работать (+${stage.incomePerEnergy} монет)`
+                : '😴 Твоя энергия закончилась';
+    }
+
+    // Статистика
+    const totalStatEl = document.getElementById('biz-total-stat-id');
+    if (totalStatEl) totalStatEl.textContent = biz.totalEarned || 0;
+}
+
+function _renderWorkLogs(workLogs, biz) {
+    const stage = getStage(biz.stage);
+    const dec = 2;
+    if (workLogs.length === 0) {
+        return '<div style="color:#aaa;font-size:0.85em;text-align:center;padding:10px;">Пока никто не работал</div>';
+    }
+    return workLogs.map(l => {
+        const ts = l.timestamp?.toDate ? l.timestamp.toDate() : new Date(l.timestamp);
+        const dateStr = ts.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const isOwner = l.isOwner;
+        return `<div class="biz-log-item">
+            <div class="biz-log-left">
+                <span class="biz-log-who">${isOwner ? '👑' : '👤'} ${l.workerName}</span>
+                <span class="biz-log-date">${dateStr}</span>
+            </div>
+            <div class="biz-log-right">
+                ${isOwner
+                    ? `<span class="biz-log-income">+${l.income} монет</span>`
+                    : `<span class="biz-log-income">+${l.ownerProfit} прибыль</span><span class="biz-log-salary">зп: ${l.salary}</span>`
+                }
+            </div>
+        </div>`;
+    }).join('');
 }
 
 // ─── Экран «нет бизнеса» ─────────────────────────────────────────────────────
@@ -198,9 +318,9 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
             <button class="crypto-wallet-toggle" onclick="toggleBizWallet()">💼 Бизнес-кошелёк ▼</button>
             <div id="biz-wallet-forms" style="display:none;">
                 <div class="biz-wallet-balance">
-                    <div>💼 Бизнес-кошелёк: <b>${fmt(businessCoins)} монет</b></div>
-                    <div>📈 Биржевой кошелёк: <b>${fmt(exchangeCoins)} монет</b></div>
-                    <div>💰 Основной счёт: <b>${fmt(coins)} монет</b></div>
+                    <div>💼 Бизнес-кошелёк: <b id="biz-wallet-biz-bal">${fmt(businessCoins)} монет</b></div>
+                    <div>📈 Биржевой кошелёк: <b id="biz-wallet-exch-bal">${fmt(exchangeCoins)} монет</b></div>
+                    <div>💰 Основной счёт: <b id="biz-wallet-main-bal">${fmt(coins)} монет</b></div>
                 </div>
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Пополнить (из основного):</div>
@@ -233,13 +353,15 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
 function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, energy, taxLogs = [], isAdmin = false) {
     if (isAdmin) {
         content.innerHTML = `
-            <div style="text-align:center; padding:16px 0 8px;">
-                <div style="font-size:2.5rem;">🏛</div>
-                <div style="font-weight:700; color:#5c1f4a; font-size:1.1em; margin-top:4px;">Панель администратора</div>
-                <div style="font-size:0.85em; color:#888; margin-top:4px;">Налоги и бизнес-кошелёк</div>
+            <div id="biz-content-root" data-biz-state="no-business">
+                <div style="text-align:center; padding:16px 0 8px;">
+                    <div style="font-size:2.5rem;">🏛</div>
+                    <div style="font-weight:700; color:#5c1f4a; font-size:1.1em; margin-top:4px;">Панель администратора</div>
+                    <div style="font-size:0.85em; color:#888; margin-top:4px;">Налоги и бизнес-кошелёк</div>
+                </div>
+                ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, true)}
+                <div id="biz-msg" class="biz-msg"></div>
             </div>
-            ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, true)}
-            <div id="biz-msg" class="biz-msg"></div>
         `;
         return;
     }
@@ -249,6 +371,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
     const canBuy = businessCoins >= stage.buyCost;
 
     content.innerHTML = `
+        <div id="biz-content-root" data-biz-state="no-business">
         <div class="biz-welcome">
             <div class="biz-welcome-icon">🍦</div>
             <div class="biz-welcome-title">Открой свой бизнес!</div>
@@ -291,6 +414,7 @@ function renderNoBusiness(content, coins, businessCoins, exchangeCoins = 0, ener
 
         ${bizWalletSection(coins, businessCoins, exchangeCoins, taxLogs, isAdmin)}
         <div id="biz-msg" class="biz-msg"></div>
+        </div>
     `;
 }
 
@@ -361,6 +485,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
         }).join('');
 
     content.innerHTML = `
+        <div id="biz-content-root" data-biz-state="has-business">
         <div class="biz-header-card">
             <div class="biz-stage-badge">${stage.icon}</div>
             <div class="biz-header-info">
@@ -372,11 +497,11 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
         <div class="biz-balance-banner">
             <div class="biz-balance-item">
                 <span>💼 Бизнес-кошелёк</span>
-                <b>${fmt(businessCoins)} монет</b>
+                <b id="biz-bal-biz">${fmt(businessCoins)} монет</b>
             </div>
             <div class="biz-balance-item">
                 <span>💰 Основной счёт</span>
-                <b>${fmt(coins)} монет</b>
+                <b id="biz-bal-main">${fmt(coins)} монет</b>
             </div>
         </div>
 
@@ -384,22 +509,22 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
 
         <div class="biz-energy-section">
             <div class="biz-energy-label">⚡ Энергия на сегодня</div>
-            <div class="biz-energy-bars">${energyBars}</div>
-            <div class="biz-energy-count">${energy} / ${ENERGY_MAX}</div>
+            <div class="biz-energy-bars" id="biz-energy-bars-id">${energyBars}</div>
+            <div class="biz-energy-count" id="biz-energy-count-id">${energy} / ${ENERGY_MAX}</div>
         </div>
 
         <div class="biz-capacity-bar-wrap">
             <div class="biz-capacity-label">
                 <span>📦 Загрузка на сегодня</span>
-                <span><b>${energyUsedToday}/${stage.dailyCapacity}</b> энергий</span>
+                <span id="biz-capacity-used-id"><b>${energyUsedToday}/${stage.dailyCapacity}</b> энергий</span>
             </div>
             <div class="biz-capacity-bar-bg">
-                <div class="biz-capacity-bar-fill ${capacityFull ? 'full' : ''}" style="width:${capacityPct}%"></div>
+                <div id="biz-capacity-fill-id" class="biz-capacity-bar-fill ${capacityFull ? 'full' : ''}" style="width:${capacityPct}%"></div>
             </div>
             <div class="biz-capacity-reset">🕕 Сбрасывается в 6:00 утра</div>
         </div>
 
-        <button class="biz-work-btn ${canWork ? '' : 'disabled'}" onclick="workInBusiness('${biz.id}')" ${canWork ? '' : 'disabled'}>
+        <button id="biz-work-btn-id" class="biz-work-btn ${canWork ? '' : 'disabled'}" onclick="workInBusiness('${biz.id}')" ${canWork ? '' : 'disabled'}>
             ${capacityFull
                 ? '🏁 Бизнес заполнен на сегодня'
                 : canWork
@@ -420,7 +545,7 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
             </div>
             <div class="biz-stat-box">
                 <div class="biz-stat-icon">📊</div>
-                <div class="biz-stat-val">${biz.totalEarned || 0}</div>
+                <div class="biz-stat-val" id="biz-total-stat-id">${biz.totalEarned || 0}</div>
                 <div class="biz-stat-label">всего монет</div>
             </div>
         </div>
@@ -445,10 +570,11 @@ function renderMyBusiness(content, biz, coins, businessCoins, exchangeCoins = 0,
 
         <div class="biz-work-history">
             <div class="biz-work-history-title">📋 История работы</div>
-            ${logsHtml}
+            <div id="biz-work-logs">${logsHtml}</div>
         </div>
 
         <div id="biz-msg" class="biz-msg"></div>
+        </div>
     `;
 }
 
