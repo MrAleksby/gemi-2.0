@@ -18,6 +18,7 @@ const CRYPTO_ITEMS = [
 let cryptoPrices = {};           // кэш цен { btc: {price, change24h, fetchedAt}, ... }
 let cryptoPriceInterval = null;
 let currentCryptoAsset = 'btc'; // текущий актив
+let _lastRenderedCryptoAsset = null; // для анти-мигания
 
 // ─── Получение цены ────────────────────────────────────────────────────────────
 
@@ -122,10 +123,15 @@ function startCryptoPriceUpdates() {
         if (!pd) return;
         cryptoPrices[asset.id] = { ...pd, fetchedAt: Date.now() };
 
-        const priceEl  = document.querySelector('.crypto-price');
-        const changeEl = document.querySelector('.crypto-change');
+        // Обновляем цену по новым стабильным ID (player view)
+        const priceEl  = document.getElementById('ex-asset-price')  || document.querySelector('.crypto-price');
+        const changeEl = document.getElementById('ex-asset-change') || document.querySelector('.crypto-change');
         if (priceEl) {
-            priceEl.innerHTML = `${pd.price.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span>`;
+            if (priceEl.id === 'ex-asset-price') {
+                priceEl.innerHTML = `${pd.price.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span style="font-size:0.52em;font-weight:400;color:#999;">монет</span>`;
+            } else {
+                priceEl.innerHTML = `${pd.price.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span>`;
+            }
         }
         if (changeEl) {
             const s = pd.change24h >= 0 ? '+' : '';
@@ -175,9 +181,14 @@ async function renderCryptoExchange(silent = false) {
     const user = firebase.auth().currentUser;
     if (!user) return;
 
-    if (!silent) content.innerHTML = '<div class="crypto-loading">Загружаем данные... ₿</div>';
-
     const asset = getAsset(currentCryptoAsset);
+    const isFirstRender = !document.getElementById('ex-crypto-content-root');
+    const assetChanged  = _lastRenderedCryptoAsset !== asset.id;
+    const needsFullRender = isFirstRender || assetChanged;
+
+    if (!silent && needsFullRender) {
+        content.innerHTML = '<div class="crypto-loading">Загружаем данные... ₿</div>';
+    }
 
     const cached = cryptoPrices[asset.id] && Date.now() - cryptoPrices[asset.id].fetchedAt < 60000
         ? cryptoPrices[asset.id] : null;
@@ -192,7 +203,7 @@ async function renderCryptoExchange(silent = false) {
         return;
     }
 
-    const userData     = userDoc.data();
+    const userData = userDoc.data();
 
     // ─── Уведомления о сработавших SL/TP ────────────────────────────────────
     if (userData.slTpNotifications && userData.slTpNotifications.length > 0) {
@@ -201,26 +212,32 @@ async function renderCryptoExchange(silent = false) {
             showToast(`${type} по ${n.assetSymbol} сработал по цене $${n.price.toFixed(2)}. Получено ${fmt(n.coinsNet)} монет`,
                 n.type === 'stopLoss' ? 'error' : 'success', 6000);
         });
-        // Сбрасываем уведомления
         firebase.firestore().collection('users').doc(user.uid).update({ slTpNotifications: [] });
     }
 
-    const coins        = userData.coins        || 0;
-    const exchangeCoins= userData.exchangeCoins|| 0;
-    const totalPnl     = userData.totalPnl     || 0;
-    const isAdmin      = userData.isAdmin === true;
-    const userLevel    = typeof getLevelByPoints === 'function'
+    const coins         = userData.coins         || 0;
+    const exchangeCoins = userData.exchangeCoins  || 0;
+    const totalPnl      = userData.totalPnl      || 0;
+    const isAdmin       = userData.isAdmin === true;
+    const userLevel     = typeof getLevelByPoints === 'function'
         ? Math.max(1, getLevelByPoints(userData.points || 0)) : (currentUserLevel || 1);
-    const canTrade     = true;
+    const canTrade      = true;
 
     const { amount: holding, avgPrice: avgBuyPrice } = assetHoldings(userData, asset.id);
 
-    const btcPrice   = priceData.price;
-    const change24h  = priceData.change24h;
-    const changeSign = change24h >= 0 ? '+' : '';
-    const changeColor= change24h >= 0 ? '#27ae60' : '#e53935';
+    const btcPrice     = priceData.price;
+    const change24h    = priceData.change24h;
+    const changeSign   = change24h >= 0 ? '+' : '';
+    const changeColor  = change24h >= 0 ? '#27ae60' : '#e53935';
     const holdingValue = holding * btcPrice;
-    const dec = assetDecimals(asset.id);
+    const dec          = assetDecimals(asset.id);
+    const pnlClass     = totalPnl >= 0 ? 'positive' : 'negative';
+    const pnlSign      = totalPnl >= 0 ? '+' : '';
+
+    const _slVal    = userData[asset.id + 'StopLoss']  || 0;
+    const _tpVal    = userData[asset.id + 'TakeProfit'] || 0;
+    const _slActive = _slVal > 0;
+    const _tpActive = _tpVal > 0;
 
     cryptoPrices[asset.id] = { ...priceData, fetchedAt: Date.now() };
 
@@ -259,280 +276,321 @@ async function renderCryptoExchange(silent = false) {
 
     // ─── ADMIN VIEW ───────────────────────────────────────────────────────────
     if (isAdmin) {
-        let commissionsHtml = '';
-        try {
-            const commSnap = await firebase.firestore().collection('exchange_commissions').get();
-            const commDocs = commSnap.docs
-                .sort((a, b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0))
-                .slice(0, 20);
-            if (commDocs.length === 0) {
-                commissionsHtml = '<div style="color:#aaa;font-size:0.85em;">Комиссий ещё нет</div>';
-            } else {
-                commissionsHtml = commDocs.map(doc => {
-                    const d = doc.data();
-                    const ts = d.timestamp?.toDate ? d.timestamp.toDate() : new Date(d.timestamp);
-                    const dateStr = ts.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                    const typeLabel = d.type === 'buy' ? 'покупка' : 'продажа';
-                    return `<div class="crypto-commission-item">
-                        <span>От ${d.userName} | ${d.assetSymbol || 'BTC'} | ${typeLabel}</span>
-                        <span>${(d.commission || 0).toFixed(2)} монет | ${dateStr}</span>
-                    </div>`;
-                }).join('');
+        const adminStructureExists = !!document.getElementById('ex-admin-exchange-bal');
+        if (needsFullRender || !adminStructureExists) {
+            let commissionsHtml = '';
+            try {
+                const commSnap = await firebase.firestore().collection('exchange_commissions').get();
+                const commDocs = commSnap.docs
+                    .sort((a, b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0))
+                    .slice(0, 20);
+                if (commDocs.length === 0) {
+                    commissionsHtml = '<div style="color:#aaa;font-size:0.85em;">Комиссий ещё нет</div>';
+                } else {
+                    commissionsHtml = commDocs.map(doc => {
+                        const d = doc.data();
+                        const ts = d.timestamp?.toDate ? d.timestamp.toDate() : new Date(d.timestamp);
+                        const dateStr = ts.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                        const typeLabel = d.type === 'buy' ? 'покупка' : 'продажа';
+                        return `<div class="crypto-commission-item">
+                            <span>От ${d.userName} | ${d.assetSymbol || 'BTC'} | ${typeLabel}</span>
+                            <span>${(d.commission || 0).toFixed(2)} монет | ${dateStr}</span>
+                        </div>`;
+                    }).join('');
+                }
+            } catch(e) {
+                commissionsHtml = '<div style="color:#e53935;font-size:0.85em;">Ошибка загрузки истории</div>';
             }
-        } catch(e) {
-            commissionsHtml = '<div style="color:#e53935;font-size:0.85em;">Ошибка загрузки истории</div>';
-        }
 
-        content.innerHTML = `
-            ${assetTabsHtml}
-
-            <div style="display:flex;gap:8px;align-items:stretch;">
-                <div class="crypto-card" style="flex:1;margin:0;">
-                    <div class="crypto-header">
-                        <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
-                        <div>
-                            <div class="crypto-name">${asset.name} (${asset.symbol})</div>
-                            <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
-                            <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+            content.innerHTML = `
+                <div id="ex-crypto-content-root">
+                    ${assetTabsHtml}
+                    <div style="display:flex;gap:8px;align-items:stretch;">
+                        <div class="crypto-card" style="flex:1;margin:0;">
+                            <div class="crypto-header">
+                                <span class="crypto-icon" style="color:${asset.color}">${asset.icon}</span>
+                                <div>
+                                    <div class="crypto-name">${asset.name} (${asset.symbol})</div>
+                                    <div class="crypto-price">${btcPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} <span class="crypto-currency">монет</span></div>
+                                    <div class="crypto-change" style="color:${changeColor}">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                            <button onclick="showInvestorStats()" style="width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                                <span style="font-size:1.4em;">🏆</span>
+                                <span>Рейтинг инвесторов</span>
+                            </button>
                         </div>
                     </div>
+                    <div class="crypto-admin-commission">
+                        <div style="font-weight:700;margin-bottom:8px;color:#5c1f4a;">💼 Биржевой кошелёк (комиссии)</div>
+                        <div id="ex-admin-exchange-bal" style="font-size:1.3em;font-weight:700;color:#f7931a;margin-bottom:12px;">${fmt(exchangeCoins)} монет</div>
+                        <div style="font-size:0.85em;color:#888;margin-bottom:10px;">💰 Основной счёт: <span id="ex-admin-main-bal">${fmt(coins)}</span> монет</div>
+                        <button class="crypto-confirm-btn buy" style="margin-bottom:0;" onclick="adminWithdrawCommission()">💸 Вывести на основной счёт</button>
+                    </div>
+                    <div style="margin-top:16px;">
+                        <h4 style="font-size:0.9em;color:#888;margin-bottom:8px;">📋 История комиссий (последние 20)</h4>
+                        ${commissionsHtml}
+                    </div>
+                    <div id="crypto-msg" class="crypto-msg"></div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-                    <button onclick="showInvestorStats()" style="width:72px;padding:8px 4px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;border-radius:14px;font-size:0.75em;font-weight:600;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
-                        <span style="font-size:1.4em;">🏆</span>
-                        <span>Рейтинг инвесторов</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="crypto-admin-commission">
-                <div style="font-weight:700; margin-bottom:8px; color:#5c1f4a;">💼 Биржевой кошелёк (комиссии)</div>
-                <div style="font-size:1.3em; font-weight:700; color:#f7931a; margin-bottom:12px;">${fmt(exchangeCoins)} монет</div>
-                <div style="font-size:0.85em; color:#888; margin-bottom:10px;">💰 Основной счёт: ${fmt(coins)} монет</div>
-                <button class="crypto-confirm-btn buy" style="margin-bottom:0;" onclick="adminWithdrawCommission()">💸 Вывести на основной счёт</button>
-            </div>
-
-            <div style="margin-top:16px;">
-                <h4 style="font-size:0.9em; color:#888; margin-bottom:8px;">📋 История комиссий (последние 20)</h4>
-                ${commissionsHtml}
-            </div>
-
-            <div id="crypto-msg" class="crypto-msg"></div>
-        `;
+            `;
+        } else {
+            // Обновляем только балансы (без перестройки всего DOM)
+            const elEx = document.getElementById('ex-admin-exchange-bal');
+            if (elEx) elEx.textContent = `${fmt(exchangeCoins)} монет`;
+            const elMain = document.getElementById('ex-admin-main-bal');
+            if (elMain) elMain.textContent = fmt(coins);
+        }
+        _lastRenderedCryptoAsset = asset.id;
         startCryptoPriceUpdates();
         return;
     }
 
     // ─── PLAYER VIEW ──────────────────────────────────────────────────────────
 
-    let tradesHtml = '';
-    try {
-        const tradesSnap = await firebase.firestore().collection('exchange_trades')
-            .where('userId', '==', user.uid)
-            .where('assetId', '==', asset.id)
-            .get();
-        // Сортируем на клиенте, чтобы не нужен был составной индекс Firestore
-        const tradeDocs = tradesSnap.docs
-            .sort((a, b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0))
-            .slice(0, 10);
-        if (tradeDocs.length === 0) {
-            tradesHtml = '<div style="color:#aaa;font-size:0.85em;">Сделок по этому активу ещё нет</div>';
-        } else {
-            tradesHtml = tradeDocs.map(doc => {
-                const d = doc.data();
-                if (d.type === 'buy') {
-                    return `<div class="crypto-trade-item buy">
-                        <span>[покупка] Купил ${(d.assetAmount||0).toFixed(dec)} ${asset.symbol} по ${Math.round(d.price||0).toLocaleString('ru-RU')} монет</span>
-                        <span class="crypto-pnl-negative">-${(d.commission||0).toFixed(2)} монет</span>
-                    </div>`;
-                } else {
-                    const pnl = d.pnl || 0;
-                    const pnlClass = pnl >= 0 ? 'crypto-pnl-positive' : 'crypto-pnl-negative';
-                    const pnlLabel = pnl >= 0 ? `+${pnl.toFixed(2)} монет ✅` : `${pnl.toFixed(2)} монет ❌`;
-                    return `<div class="crypto-trade-item sell">
-                        <span>[продажа] Продал ${(d.assetAmount||0).toFixed(dec)} ${asset.symbol}</span>
-                        <span class="${pnlClass}">${pnlLabel}</span>
-                    </div>`;
-                }
-            }).join('');
+    if (needsFullRender) {
+        // ── Полный рендер (первый показ или смена актива) ──────────────────
+        content.innerHTML = `
+        <div id="ex-crypto-content-root">
+
+            <!-- Выбор актива -->
+            <div class="asset-tabs">${assetTabsHtml}</div>
+
+            <!-- ① ЦЕНА -->
+            <div class="ex-card">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:2.2em;line-height:1;flex-shrink:0;color:${asset.color}">${asset.icon}</span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:700;font-size:0.97em;color:#222;">
+                            ${asset.name}
+                            <span style="color:#999;font-weight:400;font-size:0.85em;">${asset.symbol}${asset.type === 'stock' ? ' · Акция' : ''}</span>
+                        </div>
+                        <div id="ex-asset-price" style="font-size:1.38em;font-weight:800;color:#111;line-height:1.2;">
+                            ${btcPrice.toLocaleString('ru-RU',{maximumFractionDigits:4})}
+                            <span style="font-size:0.52em;font-weight:400;color:#999;">монет</span>
+                        </div>
+                        <div id="ex-asset-change" style="font-size:0.82em;font-weight:600;color:${changeColor};margin-top:2px;">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
+                    </div>
+                    <button onclick="showInvestorStats()" class="ex-rank-btn">
+                        <span style="font-size:1.5em;">🏆</span>
+                        <span>Рейтинг</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ② КОШЕЛЬКИ -->
+            <div class="ex-card">
+                <div class="ex-section-label">Кошельки</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                    <div style="background:#fff8f0;border:1.5px solid #ffe0b2;border-radius:12px;padding:11px;">
+                        <div style="font-size:0.68em;font-weight:700;color:#f57c00;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;">💼 Биржевой</div>
+                        <div id="ex-exchange-bal" style="font-size:1.12em;font-weight:800;color:#e65100;">${fmt(exchangeCoins)} 💰</div>
+                    </div>
+                    <div style="background:#f1f8e9;border:1.5px solid #c5e1a5;border-radius:12px;padding:11px;">
+                        <div style="font-size:0.68em;font-weight:700;color:#558b2f;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;">💰 Основной</div>
+                        <div id="ex-main-bal" style="font-size:1.12em;font-weight:800;color:#33691e;">${fmt(coins)} 💰</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="toggleExTransfer('deposit')" style="flex:1;padding:8px 6px;background:#fff8f0;border:1.5px solid #ffcc80;border-radius:10px;font-size:0.8em;font-weight:700;color:#e65100;cursor:pointer;">↓ Пополнить</button>
+                    <button onclick="toggleExTransfer('withdraw')" style="flex:1;padding:8px 6px;background:#f1f8e9;border:1.5px solid #a5d6a7;border-radius:10px;font-size:0.8em;font-weight:700;color:#2e7d32;cursor:pointer;">↑ Вывести</button>
+                </div>
+                <div id="ex-transfer-panel" style="display:none;margin-top:8px;padding:12px;background:#fafafa;border-radius:12px;border:1px solid #eee;">
+                    <div id="ex-deposit-form">
+                        <div style="font-size:0.75em;font-weight:700;color:#e65100;margin-bottom:5px;">↓ Пополнить биржевой кошелёк</div>
+                        <div id="ex-deposit-avail" style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#33691e">${fmt(coins)} монет</b></div>
+                        <div style="margin-bottom:8px;">
+                            <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Сумма"
+                                style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                        </div>
+                        <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
+                    </div>
+                    <div id="ex-withdraw-form" style="display:none;">
+                        <div style="font-size:0.75em;font-weight:700;color:#2e7d32;margin-bottom:5px;">↑ Вывести на основной кошелёк</div>
+                        <div id="ex-withdraw-avail" style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 1%</div>
+                        <div style="margin-bottom:8px;">
+                            <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" step="0.01" placeholder="Сумма"
+                                style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                        </div>
+                        <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
+                    </div>
+                    <div id="crypto-wallet-msg" style="font-size:0.82em;margin-top:6px;"></div>
+                </div>
+            </div>
+
+            <!-- ③ ПОРТФЕЛЬ (всегда в DOM, скрыт при нулевой позиции) -->
+            <div class="ex-card" id="ex-portfolio-card" style="${holding > 0 ? '' : 'display:none'}">
+                <div class="ex-section-label">Мой портфель — ${asset.symbol}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;">
+                    <div class="ex-pf-cell">
+                        <span>Количество</span>
+                        <b id="ex-pf-amount">${holding.toFixed(dec)} ${asset.symbol}</b>
+                    </div>
+                    <div class="ex-pf-cell">
+                        <span>Стоимость</span>
+                        <b id="ex-pf-value">≈ ${holdingValue.toFixed(2)} 💰</b>
+                    </div>
+                    <div class="ex-pf-cell" id="ex-pf-avgprice-cell" style="${avgBuyPrice > 0 ? '' : 'display:none'}">
+                        <span>Ср. цена входа</span>
+                        <b id="ex-pf-avgprice">${avgBuyPrice.toLocaleString('ru-RU',{maximumFractionDigits:2})}</b>
+                    </div>
+                </div>
+                <!-- SL/TP статус -->
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <div id="ex-sl-badge" class="ex-sltp-badge ${_slActive ? 'ex-sltp-badge--sl-on' : 'ex-sltp-badge--off'}">
+                        🔴 SL: ${_slActive ? _slVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}
+                    </div>
+                    <div id="ex-tp-badge" class="ex-sltp-badge ${_tpActive ? 'ex-sltp-badge--tp-on' : 'ex-sltp-badge--off'}">
+                        🟢 TP: ${_tpActive ? _tpVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}
+                    </div>
+                    <button onclick="toggleSltpForm('${asset.id}')" title="Редактировать ордера" class="ex-sltp-edit-btn">✏️</button>
+                </div>
+                <!-- Форма SL/TP — скрыта по умолчанию -->
+                <div id="sltp-edit-${asset.id}" class="ex-sltp-form">
+                    <div style="font-size:0.73em;color:#aaa;margin-bottom:8px;">Ордер сработает автоматически когда цена достигнет указанного уровня</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <label style="flex:1;min-width:110px;">
+                            <input type="number" id="sl-${asset.id}" placeholder="🔴 Stop-Loss" value="${_slVal || ''}"
+                                style="width:100%;padding:8px 10px;border:1.5px solid #ffcdd2;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
+                        </label>
+                        <label style="flex:1;min-width:110px;">
+                            <input type="number" id="tp-${asset.id}" placeholder="🟢 Take-Profit" value="${_tpVal || ''}"
+                                style="width:100%;padding:8px 10px;border:1.5px solid #c8e6c9;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
+                        </label>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <button onclick="saveSlTp('${asset.id}')" style="flex:1;padding:9px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.83em;">💾 Сохранить</button>
+                        <button onclick="resetSlTp('${asset.id}')" style="padding:9px 13px;background:#e53935;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.83em;">🗑 Сбросить</button>
+                    </div>
+                    <div id="sltp-msg-${asset.id}" style="font-size:0.8em;text-align:center;margin-top:4px;"></div>
+                </div>
+            </div>
+
+            <!-- ④ P&L -->
+            <div id="ex-pnl-card" class="crypto-total-pnl ${pnlClass}">
+                <span class="crypto-pnl-label">📈 Заработано за всё время</span>
+                <span class="crypto-pnl-value" id="ex-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
+            </div>
+
+            <!-- ⑤ ТОРГОВЛЯ -->
+            ${!canTrade ? `
+            <div class="crypto-level-lock">
+                <div class="crypto-lock-icon">🔒</div>
+                <div class="crypto-lock-title">Торговля заблокирована</div>
+                <div class="crypto-lock-desc">Достигни уровня 5 ⚡ Пикачу чтобы покупать и продавать активы.</div>
+                <div class="crypto-lock-progress">Твой уровень: <b>${userLevel}</b> / 5</div>
+            </div>
+            ` : `
+            <div class="ex-card">
+                <div class="ex-section-label">Торговля</div>
+                <div class="ex-trade-tabs">
+                    <button class="ex-trade-tab ex-tab--buy-active" id="crypto-buy-tab" onclick="switchCryptoTab('buy')">🟢 Купить</button>
+                    <button class="ex-trade-tab" id="crypto-sell-tab" onclick="switchCryptoTab('sell')">🔴 Продать</button>
+                </div>
+                <div id="crypto-buy-form">
+                    <div class="ex-form-label">Потратить монет (биржевой кошелёк):</div>
+                    <input type="number" id="crypto-buy-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму" oninput="updateBuyPreview()"
+                        style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;margin-bottom:6px;">
+                    <button class="crypto-all-btn" onclick="buyAll()" style="padding:9px 14px;width:auto;">На всё</button>
+                    <div class="crypto-preview" id="crypto-buy-preview"></div>
+                    <div class="ex-form-note">Комиссия 0.1% включена в стоимость</div>
+                    <button class="crypto-confirm-btn buy" onclick="executeBuy()">Купить ${asset.symbol}</button>
+                </div>
+                <div id="crypto-sell-form" style="display:none;">
+                    <div class="ex-form-label">Продать ${asset.symbol}:</div>
+                    <input type="number" id="crypto-sell-amount" min="0.000001" step="0.000001" placeholder="Количество ${asset.symbol}" oninput="updateSellPreview()"
+                        style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;margin-bottom:6px;">
+                    <button class="crypto-all-btn" onclick="sellAll()" style="padding:9px 14px;width:auto;">Всё</button>
+                    <div class="crypto-preview" id="crypto-sell-preview"></div>
+                    <div class="ex-form-note">Комиссия 0.1% от суммы продажи</div>
+                    <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать ${asset.symbol}</button>
+                </div>
+            </div>
+            `}
+
+            <div id="crypto-msg" class="crypto-msg"></div>
+
+        </div>
+        `;
+        _lastRenderedCryptoAsset = asset.id;
+
+    } else {
+        // ── Обновление значений без перестройки DOM (без мигания) ─────────────
+
+        // Цена и изменение
+        const priceEl = document.getElementById('ex-asset-price');
+        if (priceEl) priceEl.innerHTML = `${btcPrice.toLocaleString('ru-RU',{maximumFractionDigits:4})} <span style="font-size:0.52em;font-weight:400;color:#999;">монет</span>`;
+
+        const changeEl = document.getElementById('ex-asset-change');
+        if (changeEl) {
+            changeEl.textContent = `${changeSign}${change24h.toFixed(2)}% за 24ч`;
+            changeEl.style.color = changeColor;
         }
-    } catch(e) {
-        tradesHtml = '<div style="color:#e53935;font-size:0.85em;">Ошибка загрузки истории</div>';
+
+        // Балансы кошельков
+        const exBalEl = document.getElementById('ex-exchange-bal');
+        if (exBalEl) exBalEl.textContent = `${fmt(exchangeCoins)} 💰`;
+
+        const mainBalEl = document.getElementById('ex-main-bal');
+        if (mainBalEl) mainBalEl.textContent = `${fmt(coins)} 💰`;
+
+        // Доступно в формах пополнения/вывода
+        const depositAvailEl = document.getElementById('ex-deposit-avail');
+        if (depositAvailEl) depositAvailEl.innerHTML = `Доступно: <b style="color:#33691e">${fmt(coins)} монет</b>`;
+        const depInput = document.getElementById('crypto-deposit-amount');
+        if (depInput) depInput.max = coins;
+
+        const withdrawAvailEl = document.getElementById('ex-withdraw-avail');
+        if (withdrawAvailEl) withdrawAvailEl.innerHTML = `Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 1%`;
+        const witInput = document.getElementById('crypto-withdraw-amount');
+        if (witInput) witInput.max = exchangeCoins;
+
+        // Портфель
+        const portfolioCard = document.getElementById('ex-portfolio-card');
+        if (portfolioCard) {
+            portfolioCard.style.display = holding > 0 ? '' : 'none';
+            if (holding > 0) {
+                const pfAmount = document.getElementById('ex-pf-amount');
+                if (pfAmount) pfAmount.textContent = `${holding.toFixed(dec)} ${asset.symbol}`;
+
+                const pfValue = document.getElementById('ex-pf-value');
+                if (pfValue) pfValue.textContent = `≈ ${holdingValue.toFixed(2)} 💰`;
+
+                const pfAvgCell = document.getElementById('ex-pf-avgprice-cell');
+                if (pfAvgCell) pfAvgCell.style.display = avgBuyPrice > 0 ? '' : 'none';
+                const pfAvg = document.getElementById('ex-pf-avgprice');
+                if (pfAvg && avgBuyPrice > 0) pfAvg.textContent = avgBuyPrice.toLocaleString('ru-RU',{maximumFractionDigits:2});
+
+                // SL/TP бейджи
+                const slBadge = document.getElementById('ex-sl-badge');
+                if (slBadge) {
+                    slBadge.className = `ex-sltp-badge ${_slActive ? 'ex-sltp-badge--sl-on' : 'ex-sltp-badge--off'}`;
+                    slBadge.textContent = `🔴 SL: ${_slActive ? _slVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}`;
+                }
+                const tpBadge = document.getElementById('ex-tp-badge');
+                if (tpBadge) {
+                    tpBadge.className = `ex-sltp-badge ${_tpActive ? 'ex-sltp-badge--tp-on' : 'ex-sltp-badge--off'}`;
+                    tpBadge.textContent = `🟢 TP: ${_tpActive ? _tpVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}`;
+                }
+            }
+        }
+
+        // P&L
+        const pnlCard = document.getElementById('ex-pnl-card');
+        if (pnlCard) pnlCard.className = `crypto-total-pnl ${pnlClass}`;
+        const pnlValue = document.getElementById('ex-pnl-value');
+        if (pnlValue) pnlValue.textContent = `${pnlSign}${totalPnl.toFixed(2)} монет`;
+
+        // max у торговых инпутов
+        const buyInput = document.getElementById('crypto-buy-amount');
+        if (buyInput) buyInput.max = exchangeCoins;
+
+        // Обновляем список активов в дропдауне (только список, не кнопку)
+        const ddList = document.getElementById('asset-dropdown-list');
+        if (ddList) ddList.innerHTML = assetDropdownItems;
     }
-
-    const avgPriceInfo = avgBuyPrice > 0 && holding > 0
-        ? `<div class="crypto-portfolio-row"><span>📈 Средняя цена:</span><b>${avgBuyPrice.toLocaleString('ru-RU', {maximumFractionDigits: 4})} монет</b></div>`
-        : '';
-
-    const _slVal = userData[asset.id+'StopLoss']  || 0;
-    const _tpVal = userData[asset.id+'TakeProfit'] || 0;
-    const _slActive = _slVal > 0;
-    const _tpActive = _tpVal > 0;
-    const pnlClass = totalPnl >= 0 ? 'positive' : 'negative';
-    const pnlSign  = totalPnl >= 0 ? '+' : '';
-
-    content.innerHTML = `
-        <!-- Выбор актива -->
-        <div class="asset-tabs">${assetTabsHtml}</div>
-
-        <!-- ① ЦЕНА -->
-        <div class="ex-card">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:2.2em;line-height:1;flex-shrink:0;color:${asset.color}">${asset.icon}</span>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:0.97em;color:#222;">
-                        ${asset.name}
-                        <span style="color:#999;font-weight:400;font-size:0.85em;">${asset.symbol}${asset.type === 'stock' ? ' · Акция' : ''}</span>
-                    </div>
-                    <div style="font-size:1.38em;font-weight:800;color:#111;line-height:1.2;">
-                        ${btcPrice.toLocaleString('ru-RU',{maximumFractionDigits:4})}
-                        <span style="font-size:0.52em;font-weight:400;color:#999;">монет</span>
-                    </div>
-                    <div style="font-size:0.82em;font-weight:600;color:${changeColor};margin-top:2px;">${changeSign}${change24h.toFixed(2)}% за 24ч</div>
-                </div>
-                <button onclick="showInvestorStats()" class="ex-rank-btn">
-                    <span style="font-size:1.5em;">🏆</span>
-                    <span>Рейтинг</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- ② КОШЕЛЬКИ -->
-        <div class="ex-card">
-            <div class="ex-section-label">Кошельки</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-                <div style="background:#fff8f0;border:1.5px solid #ffe0b2;border-radius:12px;padding:11px;">
-                    <div style="font-size:0.68em;font-weight:700;color:#f57c00;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;">💼 Биржевой</div>
-                    <div style="font-size:1.12em;font-weight:800;color:#e65100;">${fmt(exchangeCoins)} 💰</div>
-                </div>
-                <div style="background:#f1f8e9;border:1.5px solid #c5e1a5;border-radius:12px;padding:11px;">
-                    <div style="font-size:0.68em;font-weight:700;color:#558b2f;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;">💰 Основной</div>
-                    <div style="font-size:1.12em;font-weight:800;color:#33691e;">${fmt(coins)} 💰</div>
-                </div>
-            </div>
-            <div style="display:flex;gap:8px;">
-                <button onclick="toggleExTransfer('deposit')" style="flex:1;padding:8px 6px;background:#fff8f0;border:1.5px solid #ffcc80;border-radius:10px;font-size:0.8em;font-weight:700;color:#e65100;cursor:pointer;">↓ Пополнить</button>
-                <button onclick="toggleExTransfer('withdraw')" style="flex:1;padding:8px 6px;background:#f1f8e9;border:1.5px solid #a5d6a7;border-radius:10px;font-size:0.8em;font-weight:700;color:#2e7d32;cursor:pointer;">↑ Вывести</button>
-            </div>
-            <div id="ex-transfer-panel" style="display:none;margin-top:8px;padding:12px;background:#fafafa;border-radius:12px;border:1px solid #eee;">
-                <div id="ex-deposit-form">
-                    <div style="font-size:0.75em;font-weight:700;color:#e65100;margin-bottom:5px;">↓ Пополнить биржевой кошелёк</div>
-                    <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#33691e">${fmt(coins)} монет</b></div>
-                    <div style="margin-bottom:8px;">
-                        <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Сумма"
-                            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
-                    </div>
-                    <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
-                </div>
-                <div id="ex-withdraw-form" style="display:none;">
-                    <div style="font-size:0.75em;font-weight:700;color:#2e7d32;margin-bottom:5px;">↑ Вывести на основной кошелёк</div>
-                    <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 1%</div>
-                    <div style="margin-bottom:8px;">
-                        <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" step="0.01" placeholder="Сумма"
-                            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
-                    </div>
-                    <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
-                </div>
-                <div id="crypto-wallet-msg" style="font-size:0.82em;margin-top:6px;"></div>
-            </div>
-        </div>
-
-        <!-- ③ ПОРТФЕЛЬ (только при наличии позиции) -->
-        ${holding > 0 ? `
-        <div class="ex-card">
-            <div class="ex-section-label">Мой портфель — ${asset.symbol}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr${avgBuyPrice > 0 ? ' 1fr' : ''};gap:7px;margin-bottom:10px;">
-                <div class="ex-pf-cell">
-                    <span>Количество</span>
-                    <b>${holding.toFixed(dec)} ${asset.symbol}</b>
-                </div>
-                <div class="ex-pf-cell">
-                    <span>Стоимость</span>
-                    <b>≈ ${holdingValue.toFixed(2)} 💰</b>
-                </div>
-                ${avgBuyPrice > 0 ? `
-                <div class="ex-pf-cell">
-                    <span>Ср. цена входа</span>
-                    <b>${avgBuyPrice.toLocaleString('ru-RU',{maximumFractionDigits:2})}</b>
-                </div>` : ''}
-            </div>
-            <!-- SL/TP статус -->
-            <div style="display:flex;gap:6px;align-items:center;">
-                <div class="ex-sltp-badge ${_slActive ? 'ex-sltp-badge--sl-on' : 'ex-sltp-badge--off'}">
-                    🔴 SL: ${_slActive ? _slVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}
-                </div>
-                <div class="ex-sltp-badge ${_tpActive ? 'ex-sltp-badge--tp-on' : 'ex-sltp-badge--off'}">
-                    🟢 TP: ${_tpActive ? _tpVal.toLocaleString('ru-RU',{maximumFractionDigits:2}) + ' · ●' : 'не задан'}
-                </div>
-                <button onclick="toggleSltpForm('${asset.id}')" title="Редактировать ордера" class="ex-sltp-edit-btn">✏️</button>
-            </div>
-            <!-- Форма SL/TP — скрыта по умолчанию -->
-            <div id="sltp-edit-${asset.id}" class="ex-sltp-form">
-                <div style="font-size:0.73em;color:#aaa;margin-bottom:8px;">Ордер сработает автоматически когда цена достигнет указанного уровня</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <label style="flex:1;min-width:110px;">
-                        <input type="number" id="sl-${asset.id}" placeholder="🔴 Stop-Loss" value="${_slVal || ''}"
-                            style="width:100%;padding:8px 10px;border:1.5px solid #ffcdd2;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
-                    </label>
-                    <label style="flex:1;min-width:110px;">
-                        <input type="number" id="tp-${asset.id}" placeholder="🟢 Take-Profit" value="${_tpVal || ''}"
-                            style="width:100%;padding:8px 10px;border:1.5px solid #c8e6c9;border-radius:8px;font-size:0.88em;box-sizing:border-box;">
-                    </label>
-                </div>
-                <div style="display:flex;gap:8px;margin-top:8px;">
-                    <button onclick="saveSlTp('${asset.id}')" style="flex:1;padding:9px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.83em;">💾 Сохранить</button>
-                    <button onclick="resetSlTp('${asset.id}')" style="padding:9px 13px;background:#e53935;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.83em;">🗑 Сбросить</button>
-                </div>
-                <div id="sltp-msg-${asset.id}" style="font-size:0.8em;text-align:center;margin-top:4px;"></div>
-            </div>
-        </div>
-        ` : ''}
-
-        <!-- ④ P&L -->
-        <div class="crypto-total-pnl ${pnlClass}">
-            <span class="crypto-pnl-label">📈 Заработано за всё время</span>
-            <span class="crypto-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
-        </div>
-
-        <!-- ⑤ ТОРГОВЛЯ -->
-        ${!canTrade ? `
-        <div class="crypto-level-lock">
-            <div class="crypto-lock-icon">🔒</div>
-            <div class="crypto-lock-title">Торговля заблокирована</div>
-            <div class="crypto-lock-desc">Достигни уровня 5 ⚡ Пикачу чтобы покупать и продавать активы.</div>
-            <div class="crypto-lock-progress">Твой уровень: <b>${userLevel}</b> / 5</div>
-        </div>
-        ` : `
-        <div class="ex-card">
-            <div class="ex-section-label">Торговля</div>
-            <div class="ex-trade-tabs">
-                <button class="ex-trade-tab ex-tab--buy-active" id="crypto-buy-tab" onclick="switchCryptoTab('buy')">🟢 Купить</button>
-                <button class="ex-trade-tab" id="crypto-sell-tab" onclick="switchCryptoTab('sell')">🔴 Продать</button>
-            </div>
-            <div id="crypto-buy-form">
-                <div class="ex-form-label">Потратить монет (биржевой кошелёк):</div>
-                <input type="number" id="crypto-buy-amount" min="1" max="${exchangeCoins}" placeholder="Введите сумму" oninput="updateBuyPreview()"
-                    style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;margin-bottom:6px;">
-                <button class="crypto-all-btn" onclick="buyAll()" style="padding:9px 14px;width:auto;">На всё</button>
-                <div class="crypto-preview" id="crypto-buy-preview"></div>
-                <div class="ex-form-note">Комиссия 0.1% включена в стоимость</div>
-                <button class="crypto-confirm-btn buy" onclick="executeBuy()">Купить ${asset.symbol}</button>
-            </div>
-            <div id="crypto-sell-form" style="display:none;">
-                <div class="ex-form-label">Продать ${asset.symbol}:</div>
-                <input type="number" id="crypto-sell-amount" min="0.000001" step="0.000001" placeholder="Количество ${asset.symbol}" oninput="updateSellPreview()"
-                    style="padding:11px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;margin-bottom:6px;">
-                <button class="crypto-all-btn" onclick="sellAll()" style="padding:9px 14px;width:auto;">Всё</button>
-                <div class="crypto-preview" id="crypto-sell-preview"></div>
-                <div class="ex-form-note">Комиссия 0.1% от суммы продажи</div>
-                <button class="crypto-confirm-btn sell" onclick="executeSell()">Продать ${asset.symbol}</button>
-            </div>
-        </div>
-        `}
-
-        <div id="crypto-msg" class="crypto-msg"></div>
-
-    `;
 
     startCryptoPriceUpdates();
 }
