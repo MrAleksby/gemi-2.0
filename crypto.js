@@ -532,11 +532,6 @@ async function renderCryptoExchange(silent = false) {
 
         <div id="crypto-msg" class="crypto-msg"></div>
 
-        <!-- ⑥ ИСТОРИЯ -->
-        <div class="ex-card">
-            <div class="ex-section-label">История сделок — ${asset.symbol}</div>
-            ${tradesHtml}
-        </div>
     `;
 
     startCryptoPriceUpdates();
