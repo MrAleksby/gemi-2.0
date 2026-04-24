@@ -1742,7 +1742,47 @@ async function loadPlayerHistory(userId) {
 async function loadAdminAnalytics() {
     const el = document.getElementById('admin-analytics');
     if (!el) return;
-    el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px;">Загрузка...</div>';
+
+    // Рендерим структуру один раз
+    if (!document.getElementById('an-dau')) {
+        const tabNames = { exchange: 'Биржа', deposit: 'Депозит', business: 'Бизнес', shop: 'Магазин', rating: 'Рейтинг', chat: 'Чат' };
+        el.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div class="admin-stat-card" style="background:#e3f2fd;">
+                    <div class="admin-stat-label">👤 DAU / WAU</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;" id="an-dau">—</div>
+                    <div class="admin-stat-sub">день / неделя</div>
+                </div>
+                <div class="admin-stat-card" style="background:#f3e5f5;">
+                    <div class="admin-stat-label">⏱ Ср. сессия</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;" id="an-session">—</div>
+                    <div class="admin-stat-sub">на игрока</div>
+                </div>
+                <div class="admin-stat-card" style="background:#e8f5e9;">
+                    <div class="admin-stat-label">🔄 Retention</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;" id="an-ret-d1">—</div>
+                    <div class="admin-stat-sub" id="an-ret-d7">—</div>
+                </div>
+                <div class="admin-stat-card" style="background:#fff3e0;">
+                    <div class="admin-stat-label">💸 Переводы (7д)</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;" id="an-transfers">—</div>
+                    <div class="admin-stat-sub">транзакций</div>
+                </div>
+                <div class="admin-stat-card" style="background:#fce4ec;grid-column:span 2;">
+                    <div class="admin-stat-label">📊 Активные / Всего</div>
+                    <div class="admin-stat-value" style="font-size:1.3em;" id="an-active">—</div>
+                    <div class="admin-stat-sub">активны за 7 дней</div>
+                </div>
+            </div>
+            <div style="background:#f9f9f9;border-radius:10px;padding:10px;">
+                <div style="font-weight:700;font-size:0.85em;color:#555;margin-bottom:6px;">📱 Популярность вкладок</div>
+                ${Object.entries(tabNames).map(([k, name]) =>
+                    `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.88em;">
+                        <span>${name}</span><b id="an-tab-${k}">0</b></div>`
+                ).join('')}
+            </div>`;
+    }
+
     try {
         const now = Date.now();
         const day1 = new Date(now - 86400000);
@@ -1755,86 +1795,41 @@ async function loadAdminAnalytics() {
 
         const players = usersSnap.docs.map(d => d.data()).filter(d => !d.isAdmin && d.name);
         const total   = players.length;
-
-        // DAU / WAU
         const dau = players.filter(d => d.lastSeen?.toDate?.() >= day1).length;
         const wau = players.filter(d => d.lastSeen?.toDate?.() >= day7).length;
-
-        // Active / Total (lastSeen за 7 дней)
         const activeRatio = total > 0 ? Math.round(wau / total * 100) : 0;
 
-        // Retention D1 / D7
         const withDates = players.filter(d => d.createdAt && d.lastSeen);
-        const retD1 = withDates.length
-            ? Math.round(withDates.filter(d => {
-                const diff = d.lastSeen.toDate() - d.createdAt.toDate();
-                return diff > 86400000;
-              }).length / withDates.length * 100) : 0;
-        const retD7 = withDates.length
-            ? Math.round(withDates.filter(d => {
-                const diff = d.lastSeen.toDate() - d.createdAt.toDate();
-                return diff > 7 * 86400000;
-              }).length / withDates.length * 100) : 0;
+        const retD1 = withDates.length ? Math.round(withDates.filter(d => d.lastSeen.toDate() - d.createdAt.toDate() > 86400000).length / withDates.length * 100) : 0;
+        const retD7 = withDates.length ? Math.round(withDates.filter(d => d.lastSeen.toDate() - d.createdAt.toDate() > 7 * 86400000).length / withDates.length * 100) : 0;
 
-        // Среднее время сессии
         const withSession = players.filter(d => d.totalSessionSec && d.sessionCount);
         const avgSessionMin = withSession.length
-            ? Math.round(withSession.reduce((s, d) => s + d.totalSessionSec / d.sessionCount, 0) / withSession.length / 60)
-            : 0;
+            ? Math.round(withSession.reduce((s, d) => s + d.totalSessionSec / d.sessionCount, 0) / withSession.length / 60) : 0;
 
-        // Переводы
         const transfers7d = txSnap.docs.filter(d => {
             const ts = d.data().timestamp?.toDate?.();
             return ts && ts >= day7;
         }).length;
 
-        // Самая популярная вкладка
         const tabTotals = { exchange: 0, deposit: 0, business: 0, shop: 0, rating: 0, chat: 0 };
-        const tabNames  = { exchange: 'Биржа', deposit: 'Депозит', business: 'Бизнес', shop: 'Магазин', rating: 'Рейтинг', chat: 'Чат' };
         players.forEach(d => {
             if (!d.tabStats) return;
             Object.keys(tabTotals).forEach(k => { tabTotals[k] += d.tabStats[k] || 0; });
         });
-        const topTab = Object.entries(tabTotals).sort((a, b) => b[1] - a[1])[0];
-        const tabRows = Object.entries(tabTotals)
-            .sort((a, b) => b[1] - a[1])
-            .map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.88em;">
-                <span>${tabNames[k]}</span><b>${v}</b></div>`).join('');
 
-        el.innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-                <div class="admin-stat-card" style="background:#e3f2fd;">
-                    <div class="admin-stat-label">👤 DAU / WAU</div>
-                    <div class="admin-stat-value" style="font-size:1.3em;">${dau} / ${wau}</div>
-                    <div class="admin-stat-sub">день / неделя</div>
-                </div>
-                <div class="admin-stat-card" style="background:#f3e5f5;">
-                    <div class="admin-stat-label">⏱ Ср. сессия</div>
-                    <div class="admin-stat-value" style="font-size:1.3em;">${avgSessionMin} мин</div>
-                    <div class="admin-stat-sub">на игрока</div>
-                </div>
-                <div class="admin-stat-card" style="background:#e8f5e9;">
-                    <div class="admin-stat-label">🔄 Retention</div>
-                    <div class="admin-stat-value" style="font-size:1.3em;">D1: ${retD1}%</div>
-                    <div class="admin-stat-sub">D7: ${retD7}%</div>
-                </div>
-                <div class="admin-stat-card" style="background:#fff3e0;">
-                    <div class="admin-stat-label">💸 Переводы (7д)</div>
-                    <div class="admin-stat-value" style="font-size:1.3em;">${transfers7d}</div>
-                    <div class="admin-stat-sub">транзакций</div>
-                </div>
-                <div class="admin-stat-card" style="background:#fce4ec;grid-column:span 2;">
-                    <div class="admin-stat-label">📊 Активные / Всего</div>
-                    <div class="admin-stat-value" style="font-size:1.3em;">${wau} / ${total} (${activeRatio}%)</div>
-                    <div class="admin-stat-sub">активны за 7 дней</div>
-                </div>
-            </div>
-            <div style="background:#f9f9f9;border-radius:10px;padding:10px;">
-                <div style="font-weight:700;font-size:0.85em;color:#555;margin-bottom:6px;">📱 Популярность вкладок</div>
-                ${tabRows}
-            </div>`;
+        // Обновляем только значения
+        const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+        set('an-dau',      `${dau} / ${wau}`);
+        set('an-session',  `${avgSessionMin} мин`);
+        set('an-ret-d1',   `D1: ${retD1}%`);
+        set('an-ret-d7',   `D7: ${retD7}%`);
+        set('an-transfers', transfers7d);
+        set('an-active',   `${wau} / ${total} (${activeRatio}%)`);
+        Object.entries(tabTotals).forEach(([k, v]) => set(`an-tab-${k}`, v));
+
     } catch(e) {
-        if (el) el.innerHTML = `<div style="color:#e53935;">Ошибка загрузки аналитики</div>`;
+        console.error('Analytics error:', e);
     }
 }
 
