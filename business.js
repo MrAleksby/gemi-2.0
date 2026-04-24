@@ -207,8 +207,6 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
                     <input type="number" id="biz-deposit-amount" min="1" placeholder="Сумма монет"
                         style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('biz-deposit-amount').value=${coins}"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
                     <button class="biz-deposit-btn" onclick="bizDeposit()"
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
                 </div>
@@ -217,8 +215,6 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
                     <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
                         style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('biz-withdraw-amount').value=${businessCoins}"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:rgba(247,147,26,0.15);border:1px solid #f7931a;color:#f7931a;border-radius:8px;cursor:pointer;">Макс</button>
                     <button class="biz-withdraw-btn" onclick="bizWithdraw()"
                         style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
                 </div>

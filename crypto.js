@@ -422,10 +422,9 @@ async function renderCryptoExchange(silent = false) {
                 <div id="ex-deposit-form">
                     <div style="font-size:0.75em;font-weight:700;color:#e65100;margin-bottom:5px;">↓ Пополнить биржевой кошелёк</div>
                     <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#33691e">${fmt(coins)} монет</b></div>
-                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                    <div style="margin-bottom:8px;">
                         <input type="number" id="crypto-deposit-amount" min="1" max="${coins}" placeholder="Сумма"
-                            style="flex:1;padding:9px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">
-                        <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-deposit-amount');el.value=${coins};el.dispatchEvent(new Event('input'));})()" style="padding:9px 12px;">Макс</button>
+                            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
                     </div>
                     <button class="crypto-deposit-btn crypto-wallet-action-btn" onclick="cryptoDeposit()">Пополнить →</button>
                 </div>

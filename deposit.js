@@ -239,14 +239,10 @@ async function renderDepositTab(silent = false) {
                 <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">
                     Основной счёт: <b>${fmt(coins)} монет</b>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
+                <div style="margin-bottom:8px;">
                     <input type="number" id="dep-topup-input" min="1" max="${coins}"
                         placeholder="Сумма пополнения"
-                        style="flex:1;width:0;min-width:0;padding:11px 12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('dep-topup-input').value=${coins};"
-                        style="width:auto !important;flex-shrink:0;padding:11px 14px;margin-top:0;background:rgba(39,174,96,0.12);border:1.5px solid #27ae60;color:#27ae60;border-radius:10px;cursor:pointer;font-weight:600;">
-                        Макс
-                    </button>
+                        style="width:100%;padding:11px 12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:0.95em;box-sizing:border-box;">
                 </div>
                 <button onclick="topUpDeposit('${dep.id}')" class="deposit-collect-btn" style="margin-top:10px;">
                     ➕ Пополнить
@@ -307,14 +303,10 @@ async function renderDepositTab(silent = false) {
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Сумма (из основного кошелька):</div>
                 <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">Доступно: <b>${fmt(coins)} монет</b></div>
-                <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+                <div style="margin-bottom:10px;">
                     <input type="number" id="deposit-amount-input" min="1" max="${coins}"
                         placeholder="Введите сумму" oninput="updateDepositPreview(${rate})"
-                        style="flex:1;width:0;min-width:0;padding:12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:1em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('deposit-amount-input').value=${coins};updateDepositPreview(${rate});"
-                        style="width:auto !important;flex-shrink:0;padding:12px 14px;margin-top:0;background:rgba(39,174,96,0.12);border:1.5px solid #27ae60;color:#27ae60;border-radius:10px;cursor:pointer;font-weight:600;">
-                        Макс
-                    </button>
+                        style="width:100%;padding:12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:1em;box-sizing:border-box;">
                 </div>
 
                 <div id="deposit-preview" class="deposit-preview" style="display:none;">
