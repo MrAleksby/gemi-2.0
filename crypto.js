@@ -1112,10 +1112,11 @@ async function renderExchangeStats() {
         const snap = await firebase.firestore()
             .collection('exchange_trades')
             .where('userId', '==', user.uid)
-            .orderBy('timestamp', 'asc')
             .get({ source: 'server' });
 
-        const all    = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        const all = snap.docs
+            .map(d => ({ ...d.data(), id: d.id }))
+            .sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
         const trades = all.filter(t => t.type === 'sell' && t.pnl != null);
 
         if (trades.length === 0) {
