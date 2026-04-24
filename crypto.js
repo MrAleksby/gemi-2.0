@@ -432,11 +432,9 @@ async function renderCryptoExchange(silent = false) {
                 <div id="ex-withdraw-form" style="display:none;">
                     <div style="font-size:0.75em;font-weight:700;color:#2e7d32;margin-bottom:5px;">↑ Вывести на основной кошелёк</div>
                     <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 1%</div>
-                    <div style="position:relative;margin-bottom:8px;">
+                    <div style="margin-bottom:8px;">
                         <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" step="0.01" placeholder="Сумма"
-                            style="width:100%;padding:10px 70px 10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
-                        <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()"
-                            style="position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:5px 10px;font-size:0.78em;">Макс</button>
+                            style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
                     </div>
                     <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
                 </div>
