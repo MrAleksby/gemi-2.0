@@ -1785,8 +1785,8 @@ async function loadAdminAnalytics() {
         }).length;
 
         // Самая популярная вкладка
-        const tabTotals = { rating: 0, shop: 0, crypto: 0, business: 0, chat: 0 };
-        const tabNames  = { rating: 'Рейтинг', shop: 'Магазин', crypto: 'Биржа', business: 'Бизнес', chat: 'Чат' };
+        const tabTotals = { exchange: 0, deposit: 0, business: 0, shop: 0, rating: 0, chat: 0 };
+        const tabNames  = { exchange: 'Биржа', deposit: 'Депозит', business: 'Бизнес', shop: 'Магазин', rating: 'Рейтинг', chat: 'Чат' };
         players.forEach(d => {
             if (!d.tabStats) return;
             Object.keys(tabTotals).forEach(k => { tabTotals[k] += d.tabStats[k] || 0; });

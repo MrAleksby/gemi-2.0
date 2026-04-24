@@ -128,11 +128,13 @@ function openExchangeFromHub() {
     showModal('crypto-modal');
     renderCryptoExchange();
     setNavTab('crypto');
+    trackTabOpen('exchange');
 }
 
 function openDepositModal() {
     showModal('deposit-modal');
     renderDepositTab();
+    trackTabOpen('deposit');
 }
 
 // ─── Таблица ставок ───────────────────────────────────────────────────────────
