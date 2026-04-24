@@ -132,7 +132,7 @@ async function renderBusinessTab(silent = false) {
 
     const [energy, userSnap, bizSnap] = await Promise.all([
         getOrResetEnergy(user.uid),
-        firebase.firestore().collection('users').doc(user.uid).get(),
+        firebase.firestore().collection('users').doc(user.uid).get({ source: 'server' }),
         firebase.firestore().collection('businesses').where('ownerId', '==', user.uid).limit(1).get()
     ]);
 

@@ -190,7 +190,7 @@ async function renderShop() {
     }
 
     const userRef = firebase.firestore().collection('users').doc(user.uid);
-    const doc     = await userRef.get();
+    const doc     = await userRef.get({ source: 'server' });
     if (!doc.exists) return;
 
     const data      = doc.data();
@@ -316,7 +316,7 @@ if (shopBtn && shopModal && shopClose) {
         const user = firebase.auth().currentUser;
         if (!user) { console.error('Магазин: пользователь не авторизован'); return; }
 
-        const doc  = await firebase.firestore().collection('users').doc(user.uid).get();
+        const doc  = await firebase.firestore().collection('users').doc(user.uid).get({ source: 'server' });
         const data = doc.exists ? doc.data() : null;
         if (!data) { console.error('Магазин: ошибка загрузки данных пользователя'); return; }
 

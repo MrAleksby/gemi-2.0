@@ -71,7 +71,7 @@ async function renderInvestHub() {
     content.innerHTML = '<div class="crypto-loading">Загружаем... 💼</div>';
 
     const [userSnap, depSnap] = await Promise.all([
-        firebase.firestore().collection('users').doc(user.uid).get(),
+        firebase.firestore().collection('users').doc(user.uid).get({ source: 'server' }),
         firebase.firestore().collection('deposits')
             .where('userId', '==', user.uid)
             .where('status', '==', 'active')
@@ -165,7 +165,7 @@ async function renderDepositTab(silent = false) {
     if (!user) return;
 
     const [userSnap, depSnap] = await Promise.all([
-        firebase.firestore().collection('users').doc(user.uid).get(),
+        firebase.firestore().collection('users').doc(user.uid).get({ source: 'server' }),
         firebase.firestore().collection('deposits')
             .where('userId', '==', user.uid)
             .where('status', '==', 'active')
