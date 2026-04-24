@@ -1564,10 +1564,17 @@ async function loadPlayersList() {
         const approveBtn = notApproved
             ? `<button class="btn-approve-player" data-uid="${doc.id}" style="font-size:0.75em;padding:2px 8px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;margin-right:4px;">✅ одобрить</button>`
             : '';
+        const totalSec  = d.totalSessionSec || 0;
+        const sessHours = Math.floor(totalSec / 3600);
+        const sessMins  = Math.floor((totalSec % 3600) / 60);
+        const sessTime  = sessHours > 0 ? `${sessHours}ч ${sessMins}м` : sessMins > 0 ? `${sessMins}м` : '—';
+        const sessCount = d.sessionCount || 0;
         return `<div class="players-list-row" data-uid="${doc.id}">
             <div class="players-list-view">
                 <span class="players-list-name">${d.name}</span>
                 ${statusBadge}${approveBtn}
+                <span style="font-size:0.75em;color:#888;margin-left:4px;">⏱ ${sessTime}</span>
+                <span style="font-size:0.75em;color:#888;margin-left:6px;">🔑 ${sessCount}x</span>
                 <button class="btn-edit-name" data-uid="${doc.id}">изменить</button>
                 <button class="btn-reset-password" data-uid="${doc.id}" style="font-size:0.75em;padding:2px 8px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;cursor:pointer;margin-left:4px;">🔑 пароль</button>
             </div>
