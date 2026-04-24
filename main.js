@@ -1543,7 +1543,7 @@ async function loadPlayersList() {
     const container = document.getElementById('players-list-container');
     if (!container) return;
     container.innerHTML = '<p class="empty-hint">Загрузка...</p>';
-    const snap = await db.collection('users').orderBy('name').get();
+    const snap = await db.collection('users').orderBy('name').get({ source: 'server' });
     const players = snap.docs.filter(doc => {
         const d = doc.data();
         return !d.isAdmin && d.name && d.name.trim();
@@ -1745,8 +1745,8 @@ async function loadAdminAnalytics() {
         const day7 = new Date(now - 7 * 86400000);
 
         const [usersSnap, txSnap] = await Promise.all([
-            db.collection('users').get(),
-            db.collection('transactions').get()
+            db.collection('users').get({ source: 'server' }),
+            db.collection('transactions').get({ source: 'server' })
         ]);
 
         const players = usersSnap.docs.map(d => d.data()).filter(d => !d.isAdmin && d.name);
