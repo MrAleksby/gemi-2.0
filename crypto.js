@@ -431,11 +431,12 @@ async function renderCryptoExchange(silent = false) {
                 </div>
                 <div id="ex-withdraw-form" style="display:none;">
                     <div style="font-size:0.75em;font-weight:700;color:#2e7d32;margin-bottom:5px;">↑ Вывести на основной кошелёк</div>
-                    <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 10%</div>
-                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
-                        <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" placeholder="Сумма"
-                            style="flex:1;padding:9px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">
-                        <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()" style="padding:9px 12px;">Макс</button>
+                    <div style="font-size:0.72em;color:#aaa;margin-bottom:5px;">Доступно: <b style="color:#e65100">${fmt(exchangeCoins)} монет</b> · комиссия 1%</div>
+                    <div style="position:relative;margin-bottom:8px;">
+                        <input type="number" id="crypto-withdraw-amount" min="1" max="${exchangeCoins}" step="0.01" placeholder="Сумма"
+                            style="width:100%;padding:10px 70px 10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                        <button class="crypto-all-btn" onclick="(function(){var el=document.getElementById('crypto-withdraw-amount');el.value=${exchangeCoins};el.dispatchEvent(new Event('input'));})()"
+                            style="position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:5px 10px;font-size:0.78em;">Макс</button>
                     </div>
                     <button class="crypto-withdraw-btn crypto-wallet-action-btn" onclick="cryptoWithdraw()">Вывести ←</button>
                 </div>
@@ -664,7 +665,7 @@ async function cryptoDeposit() {
 }
 
 async function cryptoWithdraw() {
-    const amount = parseInt(document.getElementById('crypto-withdraw-amount')?.value) || 0;
+    const amount = Math.round(parseFloat(document.getElementById('crypto-withdraw-amount')?.value) * 100) / 100 || 0;
     const msgEl  = document.getElementById('crypto-wallet-msg');
     const btn    = document.querySelector('.crypto-withdraw-btn');
     if (amount < 1) { if (msgEl) msgEl.textContent = '❌ Минимум 1 монета'; return; }
@@ -683,7 +684,7 @@ async function cryptoWithdraw() {
             const freshEx = snap.data().exchangeCoins || 0;
             userName = snap.data().name || '';
             if (freshEx < amount) throw new Error(`Недостаточно монет на бирже. У вас: ${freshEx}`);
-            const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+            const tax      = adminRef ? Math.max(0.01, Math.round(amount * 0.01 * 100) / 100) : 0;
             const received = amount - tax;
             tx.update(ref, {
                 exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
@@ -694,7 +695,7 @@ async function cryptoWithdraw() {
             }
         });
 
-        const tax      = adminRef ? Math.max(1, Math.floor(amount * 0.01)) : 0;
+        const tax      = adminRef ? Math.max(0.01, Math.round(amount * 0.01 * 100) / 100) : 0;
         const received = amount - tax;
         if (adminRef && tax > 0) {
             db.collection('tax_log').add({
