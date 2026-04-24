@@ -46,12 +46,15 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
     const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
 
     // Получаем всех пользователей (не админов)
-    const usersSnap = await db.collection('users').where('isAdmin', '==', false).get();
+    // Примечание: isAdmin может отсутствовать у старых/новых аккаунтов,
+    // поэтому получаем всех и фильтруем вручную
+    const usersSnap = await db.collection('users').get();
 
     const promises = [];
 
     for (const userDoc of usersSnap.docs) {
         const userData = userDoc.data();
+        if (userData.isAdmin === true) continue; // пропускаем администратора
         const userRef  = userDoc.ref;
 
         for (const asset of ASSETS) {
@@ -113,8 +116,8 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
                     });
                 }
 
-                // Лог комиссии
-                await db.collection('commission_log').add({
+                // Лог комиссии (та же коллекция что у обычных продаж)
+                await db.collection('exchange_commissions').add({
                     userId:      userDoc.id,
                     userName,
                     type:        'sell_sltp',
