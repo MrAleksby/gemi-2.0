@@ -242,7 +242,7 @@ async function renderDepositTab(silent = false) {
                 <div style="margin-bottom:8px;">
                     <input type="number" id="dep-topup-input" min="1" max="${coins}"
                         placeholder="Сумма пополнения"
-                        style="width:100%;padding:11px 12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:0.95em;box-sizing:border-box;">
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
                 </div>
                 <button onclick="topUpDeposit('${dep.id}')" class="deposit-collect-btn" style="margin-top:10px;">
                     ➕ Пополнить
@@ -255,14 +255,10 @@ async function renderDepositTab(silent = false) {
                 <div style="font-size:0.82em;color:#27ae60;margin-bottom:6px;">
                     Доступно: <b>${current.toFixed(2)} монет</b> · Налог: <b>0%</b>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
+                <div style="margin-bottom:8px;">
                     <input type="number" id="dep-withdraw-input" min="1"
                         placeholder="Сумма вывода"
-                        style="flex:1;width:0;min-width:0;padding:11px 12px;border:1.5px solid #ffe0b2;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
-                    <button onclick="document.getElementById('dep-withdraw-input').value=Math.floor(${current});"
-                        style="width:auto !important;flex-shrink:0;padding:11px 14px;margin-top:0;background:rgba(247,147,26,0.1);border:1.5px solid #f7931a;color:#f7931a;border-radius:10px;cursor:pointer;font-weight:600;">
-                        Всё
-                    </button>
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
                 </div>
                 <button onclick="withdrawFromDeposit('${dep.id}')" class="deposit-withdraw-btn" style="margin-top:10px;">
                     💸 Вывести
@@ -306,7 +302,7 @@ async function renderDepositTab(silent = false) {
                 <div style="margin-bottom:10px;">
                     <input type="number" id="deposit-amount-input" min="1" max="${coins}"
                         placeholder="Введите сумму" oninput="updateDepositPreview(${rate})"
-                        style="width:100%;padding:12px;border:1.5px solid #a5d6a7;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
                 </div>
 
                 <div id="deposit-preview" class="deposit-preview" style="display:none;">

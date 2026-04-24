@@ -204,19 +204,23 @@ function bizWalletSection(coins, businessCoins, exchangeCoins = 0, taxLogs = [],
                 </div>
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Пополнить (из основного):</div>
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                <div style="margin-bottom:8px;">
                     <input type="number" id="biz-deposit-amount" min="1" placeholder="Сумма монет"
-                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:8px;">
                     <button class="biz-deposit-btn" onclick="bizDeposit()"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
+                        style="width:100%;padding:10px 14px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Пополнить</button>
                 </div>
 
                 <div style="font-size:0.85em;color:#888;margin-bottom:4px;">Вывести (на основной) <span style="color:#e8956d;">−${withdrawTaxPct}% налог</span>:</div>
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                <div style="margin-bottom:8px;">
                     <input type="number" id="biz-withdraw-amount" min="1" placeholder="Сумма монет"
-                        style="flex:1;width:0;min-width:0;padding:10px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95em;box-sizing:border-box;margin-top:0;">
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:1em;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:8px;">
                     <button class="biz-withdraw-btn" onclick="bizWithdraw()"
-                        style="width:auto !important;flex-shrink:0;padding:10px 14px;margin-top:0;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
+                        style="width:100%;padding:10px 14px;background:#e53935;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Вывести</button>
                 </div>
 
                 <div id="biz-wallet-msg" style="font-size:0.85em;margin-top:6px;"></div>
