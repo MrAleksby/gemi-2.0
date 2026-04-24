@@ -486,8 +486,8 @@ async function renderCryptoExchange(silent = false) {
             <div class="ex-card">
                 <div class="ex-section-label">Торговля</div>
                 <div class="ex-trade-tabs">
-                    <button class="ex-trade-tab ex-tab--buy-active" id="crypto-buy-tab" onclick="switchCryptoTab('buy')">🟢 Купить</button>
-                    <button class="ex-trade-tab" id="crypto-sell-tab" onclick="switchCryptoTab('sell')">🔴 Продать</button>
+                    <button class="ex-trade-tab ex-tab--buy-active" id="crypto-buy-tab" onclick="switchTradeTab('buy')">🟢 Купить</button>
+                    <button class="ex-trade-tab" id="crypto-sell-tab" onclick="switchTradeTab('sell')">🔴 Продать</button>
                 </div>
                 <div id="crypto-buy-form">
                     <div class="ex-form-label">Потратить монет (биржевой кошелёк):</div>
@@ -606,7 +606,7 @@ function toggleCryptoWallet() {
     if (btn) btn.textContent = show ? '💼 Управление кошельком ▲' : '💼 Управление кошельком ▼';
 }
 
-function switchCryptoTab(tab) {
+function switchTradeTab(tab) {
     document.getElementById('crypto-buy-form').style.display  = tab === 'buy'  ? '' : 'none';
     document.getElementById('crypto-sell-form').style.display = tab === 'sell' ? '' : 'none';
     const buyBtn  = document.getElementById('crypto-buy-tab');
