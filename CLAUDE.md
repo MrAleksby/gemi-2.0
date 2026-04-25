@@ -70,6 +70,7 @@ git push                     # GitHub: MrAleksby/gemi-2.0, ветка main
 
 - После транзакций Firestore читать данные с `{ source: 'server' }` — иначе SDK отдаёт кеш
 - Кнопки "Макс" в формах ввода суммы **убраны** — не добавлять
-- Поля ввода суммы: `width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:1em`
+- Поля ввода суммы: стиль задаётся **глобально** в `style.css:46` через `input[type="number"] { !important }` — `padding:15px 12px`, `border:2px solid #c4927a`, `border-radius:12px`, `font-size:1.1rem`, `background:#fff8f5`. Inline-стили в JS-файлах на эти свойства не влияют (перебиваются `!important`). Менять внешний вид всех инпутов — только через `style.css`.
+- Когда меняешь стиль любого `input` — проверить `style.css:46` и все аналогичные поля во всех `.js` файлах на консистентность
 - Налог на вывод с биржи: **1%**, минимум 0.01 монеты
 - Cloud Functions деплоятся в europe-west1 (не us-central1)
