@@ -930,93 +930,41 @@ async function workForOwner(bizId, salary, dailyCap) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
-        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
-        const [energy, energyUsed] = await Promise.all([
-            getOrResetEnergy(user.uid),
-            getOrResetBizCapacity(bizRef)
-        ]);
+        const fn     = firebase.functions().httpsCallable('workForOwner');
+        const result = await fn({ bizId });
+        const { salary: earnedSalary, ownerIncome, energyLeft, remaining } = result.data;
 
-        if (energy <= 0) { showBizMsg('😴 Твоя энергия закончилась!'); if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; } return; }
+        showBizMsg(`✅ +${earnedSalary} монет тебе! Владелец +${ownerIncome}. 📦 Осталось мест: ${remaining}`);
 
-        const bizSnap = await bizRef.get();
-        const biz = bizSnap.data();
-        const stage = getStage(biz.stage);
-
-        if (energyUsed >= stage.dailyCapacity) {
-            showBizMsg(`🏁 Бизнес заполнен на сегодня! (${stage.dailyCapacity}/${stage.dailyCapacity})`);
-            if (btn) { btn.disabled = false; btn.textContent = '🏁 Заполнено на сегодня'; } return;
-        }
-
-        const ownerIncome = stage.incomePerEnergy - salary;
-        if (ownerIncome < 0) { showBizMsg('❌ Зарплата больше чем доход бизнеса!'); if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; } return; }
-
-        const workerSnap = await firebase.firestore().collection('users').doc(user.uid).get();
-        const workerData = workerSnap.data();
-        const workerName = workerData.name || 'Неизвестно';
-
-        // Проверяем требования к опыту
-        if (stage.workerRequiredExp && stage.workerRequiredField) {
-            const workerExp = workerData[stage.workerRequiredField] || 0;
-            if (workerExp < stage.workerRequiredExp) {
-                showBizMsg(`❌ Нужен опыт в «${stage.workerRequiredLabel}»: ${workerExp}/${stage.workerRequiredExp} ч.`);
-                if (btn) { btn.disabled = false; btn.textContent = '🔒 Нет опыта'; }
-                return;
-            }
-        }
-
-        const remaining = stage.dailyCapacity - energyUsed - 1;
-
-        const workerExpUpdate = {};
-        workerExpUpdate[stage.expField] = firebase.firestore.FieldValue.increment(1);
-
-        await Promise.all([
-            firebase.firestore().collection('users').doc(user.uid).update({
-                energy: firebase.firestore.FieldValue.increment(-1),
-                businessCoins: firebase.firestore.FieldValue.increment(salary),
-                ...workerExpUpdate
-            }),
-            firebase.firestore().collection('users').doc(biz.ownerId).update({
-                businessCoins: firebase.firestore.FieldValue.increment(ownerIncome)
-            }),
-            bizRef.update({
-                totalEarned: firebase.firestore.FieldValue.increment(stage.incomePerEnergy),
-                energyUsedToday: firebase.firestore.FieldValue.increment(1)
-            }),
-            bizRef.collection('work_logs').add({
-                workerName, isOwner: false, income: stage.incomePerEnergy,
-                salary, ownerProfit: ownerIncome, timestamp: new Date()
-            })
-        ]);
-
-        showBizMsg(`✅ +${salary} монет тебе! Владелец +${ownerIncome}. 📦 Осталось мест: ${remaining}`);
-
-        // Обновляем только карточку — без перерисовки всей доски
+        // Обновляем карточку без перерисовки всей доски (если данные о ёмкости переданы)
         const card = document.querySelector(`.biz-job-card[data-biz-id="${bizId}"]`);
-        if (card) {
-            const newUsed = energyUsed + 1;
-            const newLeft = stage.dailyCapacity - newUsed;
-            const newFull = newLeft <= 0;
-            const newPct  = Math.min(100, Math.round((newUsed / stage.dailyCapacity) * 100));
-            const newColor = newFull ? '#e74c3c' : newLeft <= stage.dailyCapacity * 0.2 ? '#e8956d' : '#27ae60';
-            const newText  = newFull ? 'Заполнено' : (newLeft + ' из ' + stage.dailyCapacity);
+        if (card && typeof dailyCap === 'number' && dailyCap > 0) {
+            const newUsed  = dailyCap - remaining;
+            const newLeft  = remaining;
+            const newFull  = newLeft <= 0;
+            const newPct   = Math.min(100, Math.round((newUsed / dailyCap) * 100));
+            const newColor = newFull ? '#e74c3c' : newLeft <= dailyCap * 0.2 ? '#e8956d' : '#27ae60';
+            const newText  = newFull ? 'Заполнено' : (newLeft + ' из ' + dailyCap);
             card.querySelector('.biz-cap-text').textContent = newText;
             card.querySelector('.biz-cap-text').style.color = newColor;
             card.querySelector('.biz-cap-bar-fill').style.width = newPct + '%';
             card.querySelector('.biz-cap-bar-fill').style.background = newColor;
             const energyDisplay = document.getElementById('jobboard-energy-display');
-            if (energyDisplay) energyDisplay.textContent = `⚡ Твоя энергия: ${energy - 1}/${ENERGY_MAX}`;
+            if (energyDisplay) energyDisplay.textContent = `⚡ Твоя энергия: ${energyLeft}/${ENERGY_MAX}`;
             if (btn) {
                 if (newFull) {
                     btn.disabled = true; btn.textContent = '🏁 Мест нет на сегодня';
-                } else if (energy - 1 <= 0) {
+                } else if (energyLeft <= 0) {
                     btn.disabled = true; btn.textContent = '😴 Нет энергии';
                 } else {
                     btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)';
                 }
             }
+        } else {
+            renderJobBoard(true);
         }
     } catch(e) {
-        showBizMsg('❌ Ошибка: ' + e.message);
+        showBizMsg('❌ ' + (e.message || 'Ошибка'));
         if (btn) { btn.disabled = false; btn.textContent = '🔨 Выйти на работу (−1 ⚡)'; }
     }
 }
@@ -1140,8 +1088,6 @@ async function bizWithdraw() {
     try {
         const db  = firebase.firestore();
         const ref = db.collection('users').doc(user.uid);
-        const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-        const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
         let userName = '';
 
         const bizSnap  = await db.collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
@@ -1149,32 +1095,31 @@ async function bizWithdraw() {
         const taxRate  = BIZ_WITHDRAW_TAX[bizStage] || 0.01;
         const taxPct   = Math.round(taxRate * 100);
 
+        // Транзакция только на своём документе (без записи в документ админа)
+        let tax = 0;
         await db.runTransaction(async (tx) => {
             const snap     = await tx.get(ref);
             const freshBiz = snap.data().businessCoins || 0;
             userName = snap.data().name || '';
             if (freshBiz < amount) throw new Error(`Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`);
-            const tax      = adminRef ? Math.max(0.01, Math.round(amount * taxRate * 100) / 100) : 0;
+            tax            = Math.max(0.01, Math.round(amount * taxRate * 100) / 100);
             const received = amount - tax;
             tx.update(ref, {
                 businessCoins: firebase.firestore.FieldValue.increment(-amount),
                 coins:         firebase.firestore.FieldValue.increment(received)
             });
-            if (adminRef && tax > 0) {
-                tx.update(adminRef, { businessCoins: firebase.firestore.FieldValue.increment(tax) });
-            }
         });
 
-        const tax      = adminRef ? Math.max(1, Math.floor(amount * taxRate)) : 0;
         const received = amount - tax;
-        if (adminRef && tax > 0) {
-            db.collection('tax_log').add({
-                userId: user.uid, userName,
+        // Налог → Cloud Function (асинхронно, не блокируем UI)
+        if (tax > 0) {
+            firebase.functions().httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'business',
-                label: `Налог на вывод (${taxPct}%)`,
-                timestamp: new Date()
-            }).catch(() => {});
+                userId: user.uid, userName,
+                label: `Налог на вывод (${taxPct}%)`
+            }).catch(e => console.error('Ошибка перечисления налога:', e));
         }
+
         const msg = tax > 0 ? `✅ Выведено ${received} монет (налог ${taxPct}%: ${tax})` : `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }

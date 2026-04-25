@@ -1,9 +1,147 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Временные правила для тестирования - разрешаем все для аутентифицированных пользователей
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    // ─── Вспомогательные функции ─────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Читает документ вызывающего из Firestore для проверки прав администратора.
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Возвращает true, если запись пытается изменить поле isAdmin.
+    function touchesIsAdmin() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']);
+    }
+
+    // При создании документа проверяет, не устанавливается ли isAdmin: true.
+    function newDocHasIsAdmin() {
+      return request.resource.data.get('isAdmin', false) == true;
+    }
+
+    // ─── users ────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Любой авторизованный пользователь может читать (нужно для лидерборда,
+      // автодополнения переводов, поиска получателя)
+      allow read: if isAuth();
+
+      // Регистрация: только своя запись, нельзя установить isAdmin: true
+      allow create: if isAuth()
+        && request.auth.uid == userId
+        && !newDocHasIsAdmin();
+
+      // Обновление: только свой документ ИЛИ администратор;
+      // поле isAdmin может менять только уже существующий администратор.
+      // Кросс-пользовательские операции (переводы, налоги, workForOwner)
+      // теперь выполняются через Cloud Functions с Admin SDK.
+      allow update: if isAuth()
+        && (request.auth.uid == userId || isAdmin())
+        && (!touchesIsAdmin() || isAdmin());
+
+      // Удаление: только администратор
+      allow delete: if isAdmin();
+    }
+
+    // ─── score_requests ───────────────────────────────────────────────────────
+    // Игроки создают заявки; администратор одобряет/отклоняет
+    match /score_requests/{d} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── exchange_trades ──────────────────────────────────────────────────────
+    // Иммутабельный лог сделок; клиент создаёт, никто не меняет
+    match /exchange_trades/{d} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── exchange_commissions ─────────────────────────────────────────────────
+    // Записывает только Cloud Function addTradeCommission; читает только админ
+    match /exchange_commissions/{d} {
+      allow read: if isAdmin();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── tax_log ──────────────────────────────────────────────────────────────
+    // Записывает Cloud Function payTaxToAdmin; читает только админ
+    match /tax_log/{d} {
+      allow read: if isAdmin();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── transactions ─────────────────────────────────────────────────────────
+    // Записывает admin-actions.js (со стороны администратора)
+    match /transactions/{d} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── businesses ───────────────────────────────────────────────────────────
+    match /businesses/{bizId} {
+      allow read: if isAuth();
+      allow create, update: if isAuth();
+      allow delete: if isAdmin();
+
+      match /work_logs/{d} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if false;
+      }
+    }
+
+    // ─── job_board ────────────────────────────────────────────────────────────
+    match /job_board/{d} {
+      allow read: if isAuth();
+      allow create, update, delete: if isAuth();
+    }
+
+    // ─── deposits ─────────────────────────────────────────────────────────────
+    match /deposits/{d} {
+      allow read: if isAuth();
+      allow create, update: if isAuth();
+      allow delete: if isAdmin();
+    }
+
+    // ─── weekly_winners ───────────────────────────────────────────────────────
+    // Записывает только scheduled Cloud Function; всем читать
+    match /weekly_winners/{d} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // ─── admin_logs ───────────────────────────────────────────────────────────
+    // Записывает Cloud Function resetUserPassword; читает только админ
+    match /admin_logs/{d} {
+      allow read: if isAdmin();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── usernames (phone → uid mapping) ──────────────────────────────────────
+    match /usernames/{d} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth();
+    }
+
+    // ─── chats ────────────────────────────────────────────────────────────────
+    match /chats/{chatId} {
+      allow read, write: if isAuth();
+
+      match /messages/{d} {
+        allow read, write: if isAuth();
+      }
     }
   }
 }

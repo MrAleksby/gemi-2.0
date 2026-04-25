@@ -720,38 +720,35 @@ async function cryptoWithdraw() {
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
-        const db   = firebase.firestore();
-        const ref  = db.collection('users').doc(user.uid);
-        const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-        const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+        const db  = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
         let userName = '';
+        let tax = 0;
 
+        // Транзакция только на своём документе (без записи в документ админа)
         await db.runTransaction(async (tx) => {
             const snap    = await tx.get(ref);
             const freshEx = snap.data().exchangeCoins || 0;
             userName = snap.data().name || '';
             if (freshEx < amount) throw new Error(`Недостаточно монет на бирже. У вас: ${freshEx}`);
-            const tax      = adminRef ? Math.max(0.01, Math.round(amount * 0.01 * 100) / 100) : 0;
+            tax            = Math.max(0.01, Math.round(amount * 0.01 * 100) / 100);
             const received = amount - tax;
             tx.update(ref, {
                 exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
                 coins:         firebase.firestore.FieldValue.increment(received)
             });
-            if (adminRef && tax > 0) {
-                tx.update(adminRef, { businessCoins: firebase.firestore.FieldValue.increment(tax) });
-            }
         });
 
-        const tax      = adminRef ? Math.max(0.01, Math.round(amount * 0.01 * 100) / 100) : 0;
         const received = amount - tax;
-        if (adminRef && tax > 0) {
-            db.collection('tax_log').add({
-                userId: user.uid, userName,
+        // Налог → Cloud Function (асинхронно, не блокируем UI)
+        if (tax > 0) {
+            firebase.functions().httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'exchange',
-                label: 'Налог на доходы пользователей',
-                timestamp: new Date()
-            }).catch(() => {});
+                userId: user.uid, userName,
+                label: 'Налог на доходы пользователей'
+            }).catch(e => console.error('Ошибка перечисления налога:', e));
         }
+
         const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести ←'; }
@@ -783,17 +780,8 @@ async function adminWithdrawCommission() {
 
 async function addCommissionToAdmin(userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission) {
     try {
-        const adminSnap = await firebase.firestore().collection('users')
-            .where('isAdmin', '==', true).limit(1).get();
-        if (!adminSnap.empty) {
-            await adminSnap.docs[0].ref.update({
-                exchangeCoins: firebase.firestore.FieldValue.increment(commission)
-            });
-        }
-        await firebase.firestore().collection('exchange_commissions').add({
-            userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission,
-            timestamp: new Date()
-        });
+        const fn = firebase.functions().httpsCallable('addTradeCommission');
+        await fn({ userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission });
     } catch(e) {
         console.error('Ошибка записи комиссии:', e);
     }

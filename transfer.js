@@ -107,8 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('transfer-form').onsubmit = async (e) => {
             e.preventDefault();
             const toName = document.getElementById('transfer-to').value.trim();
-            const amount = parseInt(amountInput.value, 10);
-            const msg    = document.getElementById('transfer-message');
+            const amount = transferType === 'coins'
+                ? parseInt(amountInput.value, 10)
+                : parseFloat(amountInput.value);
+            const msg       = document.getElementById('transfer-message');
             const transferBtn = e.target.querySelector('button[type="submit"]');
             msg.textContent = '';
             msg.className   = 'transfer-message';
@@ -122,38 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof setLoading === 'function') setLoading(transferBtn, true);
 
             try {
-                const user = firebase.auth().currentUser;
-                if (!user) throw new Error('Войдите в аккаунт!');
-
-                const fromRef  = firebase.firestore().collection('users').doc(user.uid);
-                const fromDoc  = await fromRef.get();
-                if (!fromDoc.exists) throw new Error('Профиль не найден!');
-                const fromData = fromDoc.data();
+                const fnName = transferType === 'coins' ? 'transferCoins' : 'transferCF';
+                const fn     = firebase.functions().httpsCallable(fnName);
+                const result = await fn({ toName, amount });
 
                 const fieldName = transferType === 'coins' ? 'монет' : 'CF';
-                if ((fromData[transferType] || 0) < amount) {
-                    throw new Error(`Недостаточно ${fieldName}!`);
-                }
-
-                const usersSnap = await firebase.firestore().collection('users').get();
-                const toDoc     = usersSnap.docs.find(doc =>
-                    doc.data().name && doc.data().name.trim().toLowerCase() === toName.toLowerCase()
-                );
-                if (!toDoc) throw new Error('Пользователь не найден!');
-                if (toDoc.id === user.uid) throw new Error(`Нельзя переводить ${fieldName} самому себе!`);
-
-                const batch = firebase.firestore().batch();
-                batch.update(fromRef, {
-                    [transferType]: (fromData[transferType] || 0) - amount,
-                    transferCount: firebase.firestore.FieldValue.increment(1)
-                });
-                batch.update(toDoc.ref, {
-                    [transferType]: (toDoc.data()[transferType] || 0) + amount,
-                    receivedTransfers: firebase.firestore.FieldValue.increment(1)
-                });
-                await batch.commit();
-
-                msg.textContent = `Успешно переведено ${amount} ${fieldName} игроку ${toDoc.data().name}!`;
+                msg.textContent = `Успешно переведено ${amount} ${fieldName} игроку ${result.data.toName}!`;
                 msg.classList.add('success');
                 document.getElementById('transfer-to').value = '';
                 amountInput.value = '';
