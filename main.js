@@ -711,24 +711,37 @@ document.getElementById('register-form').onsubmit = async (e) => {
 
     const phoneKey = phone.replace(/\D/g, '');
 
-    // Проверяем уникальность телефона
-    const phoneDoc = await db.collection('usernames').doc(phoneKey).get();
-    if (phoneDoc.exists) {
-        if (registerMsg) { registerMsg.textContent = 'Этот номер телефона уже зарегистрирован!'; registerMsg.className = 'transfer-message error'; }
-        submitBtn.disabled = false; return;
-    }
-
     try {
         isRegistering = true;
+        console.log('[REG] 1. Создаём аккаунт Firebase Auth...');
         const fakeEmail = phoneToEmail(phone);
         const cred = await auth.createUserWithEmailAndPassword(fakeEmail, password);
-        const uid = cred.user.uid; // берём uid сразу из cred, не ждём onAuthStateChanged
+        const uid = cred.user.uid;
+        console.log('[REG] 2. Auth создан, uid:', uid);
+
+        // Проверяем уникальность телефона уже после авторизации (правила требуют isAuth())
+        console.log('[REG] 3. Проверяем телефон в usernames...');
+        const phoneDoc = await db.collection('usernames').doc(phoneKey).get();
+        console.log('[REG] 4. Телефон занят:', phoneDoc.exists);
+        if (phoneDoc.exists) {
+            // Номер занят — откатываем только что созданный аккаунт
+            await cred.user.delete();
+            isRegistering = false;
+            registerSection.style.display = '';
+            loginSection.style.display = 'none';
+            if (registerMsg) { registerMsg.textContent = 'Этот номер телефона уже зарегистрирован!'; registerMsg.className = 'transfer-message error'; }
+            submitBtn.disabled = false; return;
+        }
+
+        console.log('[REG] 5. Пишем usernames...');
         await db.collection('usernames').doc(phoneKey).set({ uid });
+        console.log('[REG] 6. Пишем users...');
         await db.collection('users').doc(uid).set({
             name: fullname, phone: phoneKey, level: 1, experience: 0,
             points: 0, coins: 0, cf: 0, wins: 0, games: 0,
             status: 'pending', createdAt: new Date()
         });
+        console.log('[REG] 7. Готово — показываем pending screen');
         isRegistering = false;
         currentUser = uid;
         registerSection.style.display = 'none';
@@ -736,9 +749,18 @@ document.getElementById('register-form').onsubmit = async (e) => {
 
         // isAdmin выставляется вручную в Firebase Console
     } catch (err) {
+        console.error('[REG] ОШИБКА:', err);
         isRegistering = false;
-        const registerMsg = document.getElementById('register-msg');
-        if (registerMsg) { registerMsg.textContent = 'Ошибка регистрации: ' + err.message; registerMsg.className = 'transfer-message error'; }
+        // Если Auth создан но Firestore упал — удаляем аккаунт и показываем форму снова
+        if (auth.currentUser) {
+            try { await auth.currentUser.delete(); } catch (e) {}
+        }
+        registerSection.style.display = '';
+        loginSection.style.display = 'none';
+        const registerMsg2 = document.getElementById('register-msg');
+        if (registerMsg2) { registerMsg2.textContent = 'Ошибка регистрации: ' + err.message; registerMsg2.className = 'transfer-message error'; }
+        // Временный алерт для отладки на iPhone (удалить после)
+        alert('Ошибка: ' + (err.code || '') + '\n' + err.message);
     }
     submitBtn.disabled = false;
 };
