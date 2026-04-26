@@ -742,7 +742,7 @@ async function cryptoWithdraw() {
         const received = amount - tax;
         // Налог → Cloud Function (асинхронно, не блокируем UI)
         if (tax > 0) {
-            firebase.functions().httpsCallable('payTaxToAdmin')({
+            firebase.app().functions('europe-west1').httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'exchange',
                 userId: user.uid, userName,
                 label: 'Налог на доходы пользователей'
@@ -780,7 +780,7 @@ async function adminWithdrawCommission() {
 
 async function addCommissionToAdmin(userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission) {
     try {
-        const fn = firebase.functions().httpsCallable('addTradeCommission');
+        const fn = firebase.app().functions('europe-west1').httpsCallable('addTradeCommission');
         await fn({ userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission });
     } catch(e) {
         console.error('Ошибка записи комиссии:', e);

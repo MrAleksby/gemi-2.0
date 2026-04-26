@@ -930,7 +930,7 @@ async function workForOwner(bizId, salary, dailyCap) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
-        const fn     = firebase.functions().httpsCallable('workForOwner');
+        const fn     = firebase.app().functions('europe-west1').httpsCallable('workForOwner');
         const result = await fn({ bizId });
         const { salary: earnedSalary, ownerIncome, energyLeft, remaining } = result.data;
 
@@ -1113,7 +1113,7 @@ async function bizWithdraw() {
         const received = amount - tax;
         // Налог → Cloud Function (асинхронно, не блокируем UI)
         if (tax > 0) {
-            firebase.functions().httpsCallable('payTaxToAdmin')({
+            firebase.app().functions('europe-west1').httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'business',
                 userId: user.uid, userName,
                 label: `Налог на вывод (${taxPct}%)`

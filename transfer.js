@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const fnName = transferType === 'coins' ? 'transferCoins' : 'transferCF';
-                const fn     = firebase.functions().httpsCallable(fnName);
+                const fn     = firebase.app().functions('europe-west1').httpsCallable(fnName);
                 const result = await fn({ toName, amount });
 
                 const fieldName = transferType === 'coins' ? 'монет' : 'CF';
