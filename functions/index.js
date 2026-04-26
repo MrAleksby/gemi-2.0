@@ -203,7 +203,7 @@ exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
     });
 
 // ─── Сброс пароля игрока (только для админа) ────────────────────────────────
-exports.resetUserPassword = functions.https.onCall(async (data, context) => {
+exports.resetUserPassword = functions.region('europe-west1').https.onCall(async (data, context) => {
     // Проверяем что вызывающий авторизован
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
@@ -221,12 +221,16 @@ exports.resetUserPassword = functions.https.onCall(async (data, context) => {
     if (!uid || typeof uid !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Не указан uid игрока');
     }
-    if (!newPassword || newPassword.length < 4) {
-        throw new functions.https.HttpsError('invalid-argument', 'Пароль должен быть не менее 4 символов');
+    if (!newPassword || newPassword.length < 6) {
+        throw new functions.https.HttpsError('invalid-argument', 'Пароль должен быть не менее 6 символов');
     }
 
     // Меняем пароль в Firebase Auth
-    await admin.auth().updateUser(uid, { password: newPassword });
+    try {
+        await admin.auth().updateUser(uid, { password: newPassword });
+    } catch (e) {
+        throw new functions.https.HttpsError('internal', 'Ошибка Firebase Auth: ' + e.message);
+    }
 
     // Логируем действие
     await admin.firestore().collection('admin_logs').add({

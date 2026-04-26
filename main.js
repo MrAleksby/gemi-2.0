@@ -1655,17 +1655,18 @@ async function loadPlayersList() {
 
     container.querySelectorAll('.btn-reset-password').forEach(btn => {
         btn.onclick = async () => {
-            const newPwd = prompt('Новый пароль для игрока (минимум 4 символа):');
+            const newPwd = prompt('Новый пароль для игрока (минимум 6 символов):');
             if (!newPwd) return;
-            if (newPwd.length < 4) { alert('❌ Минимум 4 символа'); return; }
+            if (newPwd.length < 6) { alert('❌ Минимум 6 символов'); return; }
             btn.disabled = true; btn.textContent = '⏳...';
             try {
-                const resetFn = firebase.functions().httpsCallable('resetUserPassword');
+                const resetFn = firebase.app().functions('europe-west1').httpsCallable('resetUserPassword');
                 await resetFn({ uid: btn.dataset.uid, newPassword: newPwd });
                 btn.textContent = '✅ готово';
                 setTimeout(() => { btn.textContent = '🔑 пароль'; btn.disabled = false; }, 2000);
             } catch(e) {
-                alert('❌ Ошибка: ' + e.message);
+                console.error('[resetPassword] error:', e.code, e.message, e.details, e);
+                alert('❌ Ошибка: ' + e.code + ' | ' + e.message + (e.details ? ' | ' + JSON.stringify(e.details) : ''));
                 btn.textContent = '🔑 пароль'; btn.disabled = false;
             }
         };
