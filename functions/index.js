@@ -161,17 +161,18 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
 
 // ─── Еженедельный сброс рейтинга инвесторов (пн 20:00 Ташкент = 15:00 UTC) ──
 exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
-    .schedule('0 15 * * 0')
+    .schedule('0 20 * * 1')
     .timeZone('Asia/Tashkent')
     .onRun(async () => {
         const db = admin.firestore();
 
-        const snap = await db.collection('users').where('isAdmin', '==', false).get();
-        if (snap.empty) return null;
+        const snap = await db.collection('users').get();
+        const nonAdmins = snap.docs.filter(doc => doc.data().isAdmin !== true);
+        if (nonAdmins.length === 0) return null;
 
-        // Ищем победителя — наибольший weeklyPnl > 0
+        // Ищем победителя среди не-админов — наибольший weeklyPnl > 0
         let winner = null;
-        snap.docs.forEach(doc => {
+        nonAdmins.forEach(doc => {
             const d = doc.data();
             if (!d.name || !d.name.trim()) return;
             const pnl = d.weeklyPnl || 0;
@@ -194,9 +195,9 @@ exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
             console.log('[WeeklyReset] Нет победителя (никто не в плюсе)');
         }
 
-        // Сбрасываем weeklyPnl всем
+        // Сбрасываем weeklyPnl только не-админам
         const batch = db.batch();
-        snap.docs.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
+        nonAdmins.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
         await batch.commit();
 
         return null;

@@ -140,8 +140,54 @@ async function rejectScoreRequest(requestId, reason = '') {
     }
 }
 
+// ─── Сброс недельного рейтинга инвесторов ────────────────────────────────────
+
+async function resetWeeklyInvestorRating() {
+    if (!confirm('Зафиксировать чемпиона недели и сбросить weeklyPnl у всех игроков?')) return;
+
+    try {
+        const snap = await db.collection('users').get();
+        const nonAdmins = snap.docs.filter(doc => doc.data().isAdmin !== true);
+
+        // Ищем победителя — наибольший weeklyPnl > 0
+        let winner = null;
+        nonAdmins.forEach(doc => {
+            const d = doc.data();
+            if (!d.name || !d.name.trim()) return;
+            const pnl = d.weeklyPnl || 0;
+            if (pnl > 0 && (!winner || pnl > winner.weeklyPnl)) {
+                winner = { uid: doc.id, name: d.name, weeklyPnl: pnl };
+            }
+        });
+
+        // Сохраняем победителя
+        if (winner) {
+            await db.collection('weekly_winners').add({
+                uid:       winner.uid,
+                name:      winner.name,
+                weeklyPnl: winner.weeklyPnl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        }
+
+        // Сбрасываем weeklyPnl
+        const batch = db.batch();
+        nonAdmins.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
+        await batch.commit();
+
+        if (winner) {
+            alert(`✅ Чемпион недели: ${winner.name} (+${winner.weeklyPnl.toFixed(2)} монет)\nweeklyPnl сброшен у всех игроков.`);
+        } else {
+            alert('✅ weeklyPnl сброшен. Чемпиона нет — никто не в плюсе за неделю.');
+        }
+    } catch (e) {
+        alert('❌ Ошибка: ' + e.message);
+    }
+}
+
 // Экспорт в глобальный scope
-window.adminAddCF          = adminAddCF;
-window.adminWithdrawCF     = adminWithdrawCF;
-window.approveScoreRequest = approveScoreRequest;
-window.rejectScoreRequest  = rejectScoreRequest;
+window.adminAddCF                  = adminAddCF;
+window.adminWithdrawCF             = adminWithdrawCF;
+window.approveScoreRequest         = approveScoreRequest;
+window.rejectScoreRequest          = rejectScoreRequest;
+window.resetWeeklyInvestorRating   = resetWeeklyInvestorRating;
