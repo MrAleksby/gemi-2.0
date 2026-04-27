@@ -159,49 +159,37 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
     return null;
 });
 
-// ─── Еженедельный сброс рейтинга инвесторов (пн 20:00 Ташкент = 15:00 UTC) ──
-exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
-    .schedule('0 20 * * 1')
-    .timeZone('Asia/Tashkent')
-    .onRun(async () => {
-        const db = admin.firestore();
-
-        const snap = await db.collection('users').get();
-        const nonAdmins = snap.docs.filter(doc => doc.data().isAdmin !== true);
-        if (nonAdmins.length === 0) return null;
-
-        // Ищем победителя среди не-админов — наибольший weeklyPnl > 0
-        let winner = null;
-        nonAdmins.forEach(doc => {
-            const d = doc.data();
-            if (!d.name || !d.name.trim()) return;
-            const pnl = d.weeklyPnl || 0;
-            if (pnl > 0 && (!winner || pnl > winner.weeklyPnl)) {
-                winner = { uid: doc.id, name: d.name, weeklyPnl: pnl };
-            }
-        });
-
-        // Фиксируем победителя
-        if (winner) {
-            await db.collection('weekly_winners').add({
-                uid:       winner.uid,
-                name:      winner.name,
-                weeklyPnl: winner.weeklyPnl,
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            console.log(`[WeeklyReset] Победитель: ${winner.name}, PnL=${winner.weeklyPnl.toFixed(2)}`);
-        } else {
-            console.log('[WeeklyReset] Нет победителя (никто не в плюсе)');
-        }
-
-        // Сбрасываем weeklyPnl только не-админам
-        const batch = db.batch();
-        nonAdmins.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
-        await batch.commit();
-
-        return null;
-    });
+// ─── Еженедельный сброс рейтинга инвесторов (отключён — сброс делается вручную через админку) ──
+// Чтобы включить: раскомментировать блок ниже и задеплоить functions
+//
+// exports.resetWeeklyInvestorRating = functions.region('europe-west1').pubsub
+//     .schedule('0 20 * * 1')
+//     .timeZone('Asia/Tashkent')
+//     .onRun(async () => {
+//         const db = admin.firestore();
+//         const snap = await db.collection('users').get();
+//         const nonAdmins = snap.docs.filter(doc => doc.data().isAdmin !== true);
+//         if (nonAdmins.length === 0) return null;
+//         let winner = null;
+//         nonAdmins.forEach(doc => {
+//             const d = doc.data();
+//             if (!d.name || !d.name.trim()) return;
+//             const pnl = d.weeklyPnl || 0;
+//             if (pnl > 0 && (!winner || pnl > winner.weeklyPnl)) {
+//                 winner = { uid: doc.id, name: d.name, weeklyPnl: pnl };
+//             }
+//         });
+//         if (winner) {
+//             await db.collection('weekly_winners').add({
+//                 uid: winner.uid, name: winner.name, weeklyPnl: winner.weeklyPnl,
+//                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
+//             });
+//         }
+//         const batch = db.batch();
+//         nonAdmins.forEach(doc => batch.update(doc.ref, { weeklyPnl: 0 }));
+//         await batch.commit();
+//         return null;
+//     });
 
 // ─── Сброс пароля игрока (только для админа) ────────────────────────────────
 exports.resetUserPassword = functions.region('europe-west1').https.onCall(async (data, context) => {
