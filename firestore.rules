@@ -114,10 +114,11 @@ service cloud.firestore {
     }
 
     // ─── weekly_winners ───────────────────────────────────────────────────────
-    // Записывает только scheduled Cloud Function; всем читать
+    // Записывает только администратор (вручную через кнопку в админке)
     match /weekly_winners/{d} {
       allow read: if isAuth();
-      allow write: if false;
+      allow create: if isAdmin();
+      allow update, delete: if false;
     }
 
     // ─── admin_logs ───────────────────────────────────────────────────────────
