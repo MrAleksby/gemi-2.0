@@ -605,6 +605,32 @@ auth.onAuthStateChanged(async (user) => {
             // Обновляем профиль с новыми данными
             await showProfileFromData(data);
 
+            // SL/TP срабатывание — немедленное уведомление и обновление биржевого модала
+            if (_initialized && !data.isAdmin) {
+                const sltpNotes = data.slTpNotifications;
+                if (sltpNotes && sltpNotes.length > 0) {
+                    const cryptoModal = document.getElementById('crypto-modal');
+                    const isExchangeOpen = cryptoModal && cryptoModal.style.display !== 'none';
+                    if (isExchangeOpen) {
+                        // Модал открыт — renderCryptoExchange покажет тост и очистит уведомления
+                        if (typeof renderCryptoExchange === 'function') renderCryptoExchange(true);
+                    } else {
+                        // Модал закрыт — показываем тост сразу и очищаем
+                        sltpNotes.forEach(n => {
+                            const label = n.type === 'stopLoss' ? '🔴 Stop-Loss' : '🟢 Take-Profit';
+                            if (typeof showToast === 'function') {
+                                showToast(
+                                    `${label} по ${n.assetSymbol} сработал! +${fmt(n.coinsNet)} 💰 на биржевом счёте`,
+                                    n.type === 'stopLoss' ? 'error' : 'success',
+                                    8000
+                                );
+                            }
+                        });
+                        db.collection('users').doc(currentUser).update({ slTpNotifications: [] }).catch(() => {});
+                    }
+                }
+            }
+
             if (!_initialized) {
                 _initialized = true;
                 setNavTab('home');

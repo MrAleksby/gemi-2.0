@@ -474,6 +474,9 @@ async function renderCryptoExchange(silent = false) {
                 <span class="crypto-pnl-value" id="ex-pnl-value">${pnlSign}${totalPnl.toFixed(2)} монет</span>
             </div>
 
+            <!-- ④.5 ПОСЛЕДНЯЯ СДЕЛКА -->
+            <div id="ex-last-trade-wrap"></div>
+
             <!-- ⑤ ТОРГОВЛЯ -->
             ${!canTrade ? `
             <div class="crypto-level-lock">
@@ -593,6 +596,79 @@ async function renderCryptoExchange(silent = false) {
     }
 
     startCryptoPriceUpdates();
+    if (document.getElementById('ex-last-trade-wrap')) loadLastTrade();
+}
+
+// ─── Последняя сделка (виджет на торговой вкладке) ────────────────────────────
+
+async function loadLastTrade() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const wrap = document.getElementById('ex-last-trade-wrap');
+    if (!wrap) return;
+
+    try {
+        const snap = await firebase.firestore()
+            .collection('exchange_trades')
+            .where('userId', '==', user.uid)
+            .get();
+
+        const trades = snap.docs
+            .map(d => d.data())
+            .filter(t => t.type === 'sell' && t.pnl != null)
+            .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+        if (!trades.length) { wrap.innerHTML = ''; return; }
+
+        const last    = trades[0];
+        const wins    = trades.filter(t => t.pnl > 0).length;
+        const winRate = Math.round(wins / trades.length * 100);
+        const totalPnlAll = trades.reduce((s, t) => s + t.pnl, 0);
+
+        const pnlColor = last.pnl >= 0 ? '#27ae60' : '#e53935';
+        const pnlSign  = last.pnl >= 0 ? '+' : '';
+        const totSign  = totalPnlAll >= 0 ? '+' : '';
+        const totColor = totalPnlAll >= 0 ? '#27ae60' : '#e53935';
+
+        const triggerLabel = last.trigger === 'takeProfit' ? '🟢 TP'
+            : last.trigger === 'stopLoss' ? '🔴 SL'
+            : '🔄 Вручную';
+
+        const assetObj  = getAsset(last.assetId);
+        const assetIcon = assetObj ? assetObj.icon : '💼';
+
+        const ts      = last.timestamp?.toDate ? last.timestamp.toDate() : new Date();
+        const dateStr = ts.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+        wrap.innerHTML = `
+            <div class="ex-card" style="padding:11px 14px;">
+                <div style="font-size:0.7em;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📋 Последняя сделка</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <span style="font-size:1.5em;line-height:1;">${assetIcon}</span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.9em;font-weight:700;color:#222;">${last.assetSymbol} <span style="font-weight:400;color:#888;font-size:0.85em;">${triggerLabel}</span></div>
+                        <div style="font-size:0.73em;color:#aaa;">${dateStr}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <div style="font-weight:800;font-size:1.08em;color:${pnlColor};">${pnlSign}${last.pnl.toFixed(2)} 💰</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+                    <div style="background:#f8f8f8;border-radius:8px;padding:6px 8px;text-align:center;">
+                        <div style="font-size:0.65em;color:#aaa;margin-bottom:2px;">Сделок</div>
+                        <div style="font-weight:700;font-size:0.9em;color:#333;">${trades.length}</div>
+                    </div>
+                    <div style="background:#f8f8f8;border-radius:8px;padding:6px 8px;text-align:center;">
+                        <div style="font-size:0.65em;color:#aaa;margin-bottom:2px;">Win rate</div>
+                        <div style="font-weight:700;font-size:0.9em;color:#333;">${winRate}%</div>
+                    </div>
+                    <div style="background:#f8f8f8;border-radius:8px;padding:6px 8px;text-align:center;">
+                        <div style="font-size:0.65em;color:#aaa;margin-bottom:2px;">Итого PnL</div>
+                        <div style="font-weight:700;font-size:0.9em;color:${totColor};">${totSign}${totalPnlAll.toFixed(1)}</div>
+                    </div>
+                </div>
+            </div>`;
+    } catch(e) { /* silent */ }
 }
 
 // ─── UI-хелперы ────────────────────────────────────────────────────────────────
