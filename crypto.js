@@ -765,20 +765,16 @@ async function cryptoDeposit() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('crypto_deposit', amount);
     try {
-        const ref  = firebase.firestore().collection('users').doc(user.uid);
-        const snap = await ref.get();
-        const freshCoins = snap.data().coins || 0;
-        if (freshCoins < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`;
-            if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
-            return;
-        }
-        await ref.update({
-            coins:         firebase.firestore.FieldValue.increment(-amount),
-            exchangeCoins: firebase.firestore.FieldValue.increment(amount)
+        const { skipped } = await safeWalletTransfer({
+            kind: 'crypto_deposit', opId, amount,
+            fromField: 'coins', toField: 'exchangeCoins',
         });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
+        if (msgEl) {
+            msgEl.style.color = '#27ae60';
+            msgEl.textContent = skipped ? '↺ Операция уже выполнена' : `✅ Пополнено на ${amount} монет`;
+        }
         if (btn) { btn.disabled = false; btn.textContent = 'Пополнить →'; }
         renderCryptoExchange(true);
     } catch(e) {
@@ -795,37 +791,29 @@ async function cryptoWithdraw() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('crypto_withdraw', amount);
     try {
-        const db  = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        let userName = '';
-        let tax = 0;
-
-        // Транзакция только на своём документе (без записи в документ админа)
-        await db.runTransaction(async (tx) => {
-            const snap    = await tx.get(ref);
-            const freshEx = snap.data().exchangeCoins || 0;
-            userName = snap.data().name || '';
-            if (freshEx < amount) throw new Error(`Недостаточно монет на бирже. У вас: ${freshEx}`);
-            tax            = Math.max(0.01, Math.round(amount * 0.01 * 100) / 100);
-            const received = amount - tax;
-            tx.update(ref, {
-                exchangeCoins: firebase.firestore.FieldValue.increment(-amount),
-                coins:         firebase.firestore.FieldValue.increment(received)
-            });
+        const { tax, skipped, userName } = await safeWalletTransfer({
+            kind: 'crypto_withdraw', opId, amount,
+            fromField: 'exchangeCoins', toField: 'coins',
+            taxRate: 0.01,
         });
 
-        const received = amount - tax;
-        // Налог → Cloud Function (асинхронно, не блокируем UI)
-        if (tax > 0) {
+        // Налог → Cloud Function (только если транзакция реально выполнилась)
+        if (!skipped && tax > 0) {
             firebase.app().functions('europe-west1').httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'exchange',
                 userId: user.uid, userName,
-                label: 'Налог на доходы пользователей'
+                label: 'Налог на доходы пользователей',
+                opId
             }).catch(e => console.error('Ошибка перечисления налога:', e));
         }
 
-        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог 1%: ${tax})` : `✅ Выведено ${amount} монет`;
+        const received = Math.round((amount - tax) * 100) / 100;
+        let msg;
+        if (skipped) msg = '↺ Операция уже выполнена';
+        else if (tax > 0) msg = `✅ Выведено ${received} монет (налог 1%: ${tax})`;
+        else msg = `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести ←'; }
         renderCryptoExchange(true);

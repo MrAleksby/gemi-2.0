@@ -2186,6 +2186,67 @@ document.getElementById('admin-nuclear-reset').onclick = async () => {
     }
 };
 
+// ─── Идемпотентные переводы между кошельками одного игрока ───────────────────
+// Защищает 6 операций (биржа↔основной, бизнес↔основной, бизнес↔биржа) от
+// двойного списания при сбоях сети: двойной клик, replay из offline-очереди
+// SDK при восстановлении связи, перерисовка кнопки render-функцией.
+
+window.WALLET_OP_INFLIGHT = window.WALLET_OP_INFLIGHT || new Set();
+
+function makeWalletOpId(kind, amount) {
+    return `${kind}_${amount}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Атомарный идемпотентный перевод между кошельками текущего пользователя.
+ * Внутри runTransaction читается marker users/{uid}/wallet_ops/{opId}.
+ * Если marker уже существует — операция считается выполненной и пропускается.
+ *
+ * @param {{kind:string, opId:string, amount:number, fromField:string, toField:string,
+ *          taxRate?:number, computeTax?:(amount:number)=>number}} args
+ * @returns {Promise<{tax:number, skipped:boolean, userName:string}>}
+ */
+async function safeWalletTransfer({ kind, opId, amount, fromField, toField, taxRate, computeTax }) {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error('Не авторизован');
+    const lockKey = `${user.uid}:${kind}`;
+    if (window.WALLET_OP_INFLIGHT.has(lockKey)) {
+        return { tax: 0, skipped: true, userName: '' };
+    }
+    window.WALLET_OP_INFLIGHT.add(lockKey);
+    try {
+        const db = firebase.firestore();
+        const userRef = db.collection('users').doc(user.uid);
+        const opRef   = userRef.collection('wallet_ops').doc(opId);
+        let tax = 0, skipped = false, userName = '';
+        await db.runTransaction(async (tx) => {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+            const userSnap = await tx.get(userRef);
+            const data = userSnap.data() || {};
+            const fromBal = data[fromField] || 0;
+            userName = data.name || '';
+            if (fromBal < amount) throw new Error(`Недостаточно средств. У вас: ${fromBal}`);
+            tax = computeTax
+                ? computeTax(amount)
+                : (taxRate ? Math.max(0.01, Math.round(amount * taxRate * 100) / 100) : 0);
+            const received = Math.round((amount - tax) * 100) / 100;
+            tx.update(userRef, {
+                [fromField]: firebase.firestore.FieldValue.increment(-amount),
+                [toField]:   firebase.firestore.FieldValue.increment(received),
+            });
+            tx.set(opRef, {
+                kind, amount, tax,
+                fromField, toField,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+        return { tax, skipped, userName };
+    } finally {
+        window.WALLET_OP_INFLIGHT.delete(lockKey);
+    }
+}
+
 // ─── DOMContentLoaded ─────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {

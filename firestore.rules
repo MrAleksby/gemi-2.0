@@ -45,6 +45,15 @@ service cloud.firestore {
 
       // Удаление: только администратор
       allow delete: if isAdmin();
+
+      // ─── wallet_ops (idempotency markers для переводов между кошельками) ──
+      // Иммутабельные маркеры выполненных операций. Используются
+      // safeWalletTransfer() в main.js для защиты от дублирования при
+      // сбоях сети (replay из offline-очереди SDK).
+      match /wallet_ops/{opId} {
+        allow read, create: if isAuth() && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
     }
 
     // ─── score_requests ───────────────────────────────────────────────────────

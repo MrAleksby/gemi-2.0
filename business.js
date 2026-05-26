@@ -1055,20 +1055,16 @@ async function bizDeposit() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('biz_deposit', amount);
     try {
-        const ref = firebase.firestore().collection('users').doc(user.uid);
-        const snap = await ref.get();
-        const freshCoins = snap.data().coins || 0;
-        if (freshCoins < amount) {
-            if (msgEl) msgEl.textContent = `❌ Недостаточно монет. У вас: ${freshCoins}`;
-            if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
-            return;
-        }
-        await ref.update({
-            coins: firebase.firestore.FieldValue.increment(-amount),
-            businessCoins: firebase.firestore.FieldValue.increment(amount)
+        const { skipped } = await safeWalletTransfer({
+            kind: 'biz_deposit', opId, amount,
+            fromField: 'coins', toField: 'businessCoins',
         });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Пополнено на ${amount} монет`; }
+        if (msgEl) {
+            msgEl.style.color = '#27ae60';
+            msgEl.textContent = skipped ? '↺ Операция уже выполнена' : `✅ Пополнено на ${amount} монет`;
+        }
         if (btn) { btn.disabled = false; btn.textContent = 'Пополнить'; }
         renderBusinessTab(true);
     } catch(e) {
@@ -1085,42 +1081,36 @@ async function bizWithdraw() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('biz_withdraw', amount);
     try {
         const db  = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        let userName = '';
 
         const bizSnap  = await db.collection('businesses').where('ownerId', '==', user.uid).limit(1).get();
         const bizStage = bizSnap.empty ? 'cart' : bizSnap.docs[0].data().stage;
         const taxRate  = BIZ_WITHDRAW_TAX[bizStage] || 0.01;
         const taxPct   = Math.round(taxRate * 100);
 
-        // Транзакция только на своём документе (без записи в документ админа)
-        let tax = 0;
-        await db.runTransaction(async (tx) => {
-            const snap     = await tx.get(ref);
-            const freshBiz = snap.data().businessCoins || 0;
-            userName = snap.data().name || '';
-            if (freshBiz < amount) throw new Error(`Недостаточно монет в бизнес-кошельке. У вас: ${freshBiz}`);
-            tax            = Math.max(0.01, Math.round(amount * taxRate * 100) / 100);
-            const received = amount - tax;
-            tx.update(ref, {
-                businessCoins: firebase.firestore.FieldValue.increment(-amount),
-                coins:         firebase.firestore.FieldValue.increment(received)
-            });
+        const { tax, skipped, userName } = await safeWalletTransfer({
+            kind: 'biz_withdraw', opId, amount,
+            fromField: 'businessCoins', toField: 'coins',
+            computeTax: a => Math.max(0.01, Math.round(a * taxRate * 100) / 100),
         });
 
-        const received = amount - tax;
-        // Налог → Cloud Function (асинхронно, не блокируем UI)
-        if (tax > 0) {
+        // Налог → Cloud Function (только если транзакция реально выполнилась)
+        if (!skipped && tax > 0) {
             firebase.app().functions('europe-west1').httpsCallable('payTaxToAdmin')({
                 amount: tax, source: 'business',
                 userId: user.uid, userName,
-                label: `Налог на вывод (${taxPct}%)`
+                label: `Налог на вывод (${taxPct}%)`,
+                opId
             }).catch(e => console.error('Ошибка перечисления налога:', e));
         }
 
-        const msg = tax > 0 ? `✅ Выведено ${received} монет (налог ${taxPct}%: ${tax})` : `✅ Выведено ${amount} монет`;
+        const received = Math.round((amount - tax) * 100) / 100;
+        let msg;
+        if (skipped) msg = '↺ Операция уже выполнена';
+        else if (tax > 0) msg = `✅ Выведено ${received} монет (налог ${taxPct}%: ${tax})`;
+        else msg = `✅ Выведено ${amount} монет`;
         if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = msg; }
         if (btn) { btn.disabled = false; btn.textContent = 'Вывести'; }
         renderBusinessTab(true);
@@ -1138,19 +1128,17 @@ async function transferBizToExchange() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('biz_to_exchange', amount);
     try {
-        const db = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        await db.runTransaction(async (tx) => {
-            const snap = await tx.get(ref);
-            const freshBiz = snap.data().businessCoins || 0;
-            if (freshBiz < amount) throw new Error(`Недостаточно в бизнес-кошельке: ${freshBiz}`);
-            tx.update(ref, {
-                businessCoins:  firebase.firestore.FieldValue.increment(-amount),
-                exchangeCoins:  firebase.firestore.FieldValue.increment(amount)
-            });
+        const { skipped } = await safeWalletTransfer({
+            kind: 'biz_to_exchange', opId, amount,
+            fromField: 'businessCoins', toField: 'exchangeCoins',
         });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Переведено ${amount} монет на биржу`; }
+        if (msgEl) {
+            msgEl.style.color = '#27ae60';
+            msgEl.textContent = skipped ? '↺ Операция уже выполнена' : `✅ Переведено ${amount} монет на биржу`;
+        }
+        if (btn) { btn.disabled = false; btn.textContent = '→ Биржа'; }
         renderBusinessTab(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ ' + e.message; }
@@ -1166,19 +1154,17 @@ async function transferExchangeToBiz() {
     const user = firebase.auth().currentUser;
     if (!user) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    const opId = makeWalletOpId('exchange_to_biz', amount);
     try {
-        const db = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        await db.runTransaction(async (tx) => {
-            const snap = await tx.get(ref);
-            const freshEx = snap.data().exchangeCoins || 0;
-            if (freshEx < amount) throw new Error(`Недостаточно на бирже: ${freshEx}`);
-            tx.update(ref, {
-                exchangeCoins:  firebase.firestore.FieldValue.increment(-amount),
-                businessCoins:  firebase.firestore.FieldValue.increment(amount)
-            });
+        const { skipped } = await safeWalletTransfer({
+            kind: 'exchange_to_biz', opId, amount,
+            fromField: 'exchangeCoins', toField: 'businessCoins',
         });
-        if (msgEl) { msgEl.style.color = '#27ae60'; msgEl.textContent = `✅ Переведено ${amount} монет в бизнес`; }
+        if (msgEl) {
+            msgEl.style.color = '#27ae60';
+            msgEl.textContent = skipped ? '↺ Операция уже выполнена' : `✅ Переведено ${amount} монет в бизнес`;
+        }
+        if (btn) { btn.disabled = false; btn.textContent = '→ Бизнес'; }
         renderBusinessTab(true);
     } catch(e) {
         if (msgEl) { msgEl.style.color = '#e53935'; msgEl.textContent = '❌ ' + e.message; }
