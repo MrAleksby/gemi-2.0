@@ -1,3 +1,4 @@
+// runtime: nodejs22 (см. firebase.json)
 // v1 API (1st-gen функции). В firebase-functions v6+ корневой импорт больше не
 // содержит region/https/pubsub — берём их явно из подпути /v1.
 const functions = require('firebase-functions/v1');
