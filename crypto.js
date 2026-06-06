@@ -842,10 +842,11 @@ async function adminWithdrawCommission() {
 
 // ─── Комиссия → Админу ────────────────────────────────────────────────────────
 
-async function addCommissionToAdmin(userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission) {
+async function addCommissionToAdmin(userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission, opId) {
     try {
         const fn = firebase.app().functions('europe-west1').httpsCallable('addTradeCommission');
-        await fn({ userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission });
+        // opId привязан к сделке — сервер отбросит повторную комиссию при ретрае
+        await fn({ userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission, opId: opId ? opId + ':comm' : undefined });
     } catch(e) {
         console.error('Ошибка записи комиссии:', e);
     }
@@ -869,42 +870,55 @@ async function executeBuy() {
         const priceData = await fetchAssetPrice(asset);
         if (!priceData) throw new Error('Не удалось получить курс');
 
-        const ref       = firebase.firestore().collection('users').doc(user.uid);
-        const snap      = await ref.get();
-        const freshData = snap.data();
-        const freshEx   = freshData.exchangeCoins || 0;
+        const price = priceData.price;
+        const dec   = assetDecimals(asset.id);
+        // opId привязан к одному клику — защищает от повторного начисления
+        // при ретраях транзакции (commit прошёл, ответ потерян из-за сети).
+        const opId  = makeWalletOpId('buy_' + asset.id, coinsInput);
 
-        if (freshEx < coinsInput) {
-            msgEl.textContent = `❌ Недостаточно монет на бирже. У вас: ${freshEx}`;
-            btn.disabled = false; btn.textContent = `Купить ${asset.symbol}`; return;
+        const { skipped, extra } = await safeUserTransaction({
+            kind: 'buy_' + asset.id, opId,
+            build: (data) => {
+                const freshEx = data.exchangeCoins || 0;
+                if (freshEx < coinsInput) throw new Error(`Недостаточно монет на бирже. У вас: ${freshEx}`);
+                const commission    = coinsInput * CRYPTO_COMMISSION;
+                const coinsForAsset = coinsInput - commission;
+                const assetReceived = coinsForAsset / price;
+                const oldAmount     = data[`${asset.id}Amount`]   || 0;
+                const oldAvgPrice   = data[`${asset.id}AvgPrice`] || 0;
+                const newAvgPrice   = (oldAmount + assetReceived > 0)
+                    ? ((oldAmount * oldAvgPrice) + (assetReceived * price)) / (oldAmount + assetReceived)
+                    : price;
+                const update = {
+                    exchangeCoins:              firebase.firestore.FieldValue.increment(-coinsInput),
+                    [`${asset.id}Amount`]:      firebase.firestore.FieldValue.increment(assetReceived),
+                    [`${asset.id}AvgPrice`]:    newAvgPrice,
+                };
+                return {
+                    update,
+                    marker: { amount: coinsInput, commission },
+                    extra:  { assetReceived, commission, userName: data.name || 'Неизвестно' },
+                };
+            }
+        });
+
+        if (skipped) {
+            msgEl.textContent = '↺ Операция уже выполнена';
+            msgEl.style.color = '#27ae60';
+            btn.disabled = false; btn.textContent = `Купить ${asset.symbol}`;
+            renderCryptoExchange(true);
+            return;
         }
 
-        const commission    = coinsInput * CRYPTO_COMMISSION;
-        const coinsForAsset = coinsInput - commission;
-        const assetReceived = coinsForAsset / priceData.price;
-        const price         = priceData.price;
-        const dec           = assetDecimals(asset.id);
-
-        const oldAmount   = freshData[`${asset.id}Amount`]   || 0;
-        const oldAvgPrice = freshData[`${asset.id}AvgPrice`] || 0;
-        const newAvgPrice = (oldAmount + assetReceived > 0)
-            ? ((oldAmount * oldAvgPrice) + (assetReceived * price)) / (oldAmount + assetReceived)
-            : price;
-
-        const update = {
-            exchangeCoins: firebase.firestore.FieldValue.increment(-coinsInput),
-        };
-        update[`${asset.id}Amount`]   = firebase.firestore.FieldValue.increment(assetReceived);
-        update[`${asset.id}AvgPrice`] = newAvgPrice;
-        await ref.update(update);
-
-        const userName = freshData.name || 'Неизвестно';
-        await addCommissionToAdmin(user.uid, userName, 'buy', asset.id, asset.symbol, assetReceived, coinsInput, commission);
+        const { assetReceived, commission, userName } = extra;
+        // Комиссия и лог сделки — только если транзакция реально выполнилась
+        await addCommissionToAdmin(user.uid, userName, 'buy', asset.id, asset.symbol, assetReceived, coinsInput, commission, opId);
 
         await firebase.firestore().collection('exchange_trades').add({
             userId: user.uid, userName,
             type: 'buy', assetId: asset.id, assetSymbol: asset.symbol,
             assetAmount: assetReceived, price, coinsAmount: coinsInput, commission, pnl: null,
+            opId,
             timestamp: new Date()
         });
 
@@ -937,47 +951,59 @@ async function executeSell() {
         const priceData = await fetchAssetPrice(asset);
         if (!priceData) throw new Error('Не удалось получить курс');
 
-        const ref       = firebase.firestore().collection('users').doc(user.uid);
-        const snap      = await ref.get();
-        const freshData = snap.data();
-        const freshAmt  = freshData[`${asset.id}Amount`] || 0;
-
-        // округление до нужной точности для избежания floating-point ошибок
-        const prec = Math.pow(10, assetDecimals(asset.id));
-        const freshRounded = Math.round(freshAmt  * prec) / prec;
+        const price = priceData.price;
+        const dec   = assetDecimals(asset.id);
+        const prec  = Math.pow(10, dec);
         const inputRounded = Math.round(assetInput * prec) / prec;
+        const opId  = makeWalletOpId('sell_' + asset.id, assetInput);
 
-        if (freshRounded < inputRounded) {
-            msgEl.textContent = `❌ Недостаточно ${asset.symbol}. У вас: ${freshRounded.toFixed(assetDecimals(asset.id))}`;
-            btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`; return;
+        const { skipped, extra } = await safeUserTransaction({
+            kind: 'sell_' + asset.id, opId,
+            build: (data) => {
+                const freshAmt     = data[`${asset.id}Amount`] || 0;
+                // округление до нужной точности для избежания floating-point ошибок
+                const freshRounded = Math.round(freshAmt * prec) / prec;
+                if (freshRounded < inputRounded) {
+                    throw new Error(`Недостаточно ${asset.symbol}. У вас: ${freshRounded.toFixed(dec)}`);
+                }
+                const oldAvg     = data[`${asset.id}AvgPrice`] || 0;
+                const coinsGross = assetInput * price;
+                const commission = coinsGross * CRYPTO_COMMISSION;
+                const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
+                const pnl        = (price - oldAvg) * assetInput - commission;
+                const xpGain     = pnl > 0 ? Math.floor(pnl) : 0;
+
+                const update = {
+                    exchangeCoins:          firebase.firestore.FieldValue.increment(coinsNet),
+                    totalPnl:               firebase.firestore.FieldValue.increment(pnl),
+                    weeklyPnl:              firebase.firestore.FieldValue.increment(pnl),
+                    [`${asset.id}Amount`]:  firebase.firestore.FieldValue.increment(-assetInput),
+                };
+                if (xpGain > 0) update.points = firebase.firestore.FieldValue.increment(xpGain);
+                return {
+                    update,
+                    marker: { amount: assetInput, coinsNet, pnl },
+                    extra:  { coinsNet, commission, pnl, xpGain, userName: data.name || 'Неизвестно' },
+                };
+            }
+        });
+
+        if (skipped) {
+            msgEl.textContent = '↺ Операция уже выполнена';
+            msgEl.style.color = '#27ae60';
+            btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
+            renderCryptoExchange(true);
+            return;
         }
 
-        const price      = priceData.price;
-        const oldAvg     = freshData[`${asset.id}AvgPrice`] || 0;
-        const coinsGross = assetInput * price;
-        const commission = coinsGross * CRYPTO_COMMISSION;
-        const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
-        const pnl        = (price - oldAvg) * assetInput - commission;
-        const dec        = assetDecimals(asset.id);
-
-        const xpGain = pnl > 0 ? Math.floor(pnl) : 0;
-
-        const update = {
-            exchangeCoins: firebase.firestore.FieldValue.increment(coinsNet),
-            totalPnl:      firebase.firestore.FieldValue.increment(pnl),
-            weeklyPnl:     firebase.firestore.FieldValue.increment(pnl),
-        };
-        if (xpGain > 0) update.points = firebase.firestore.FieldValue.increment(xpGain);
-        update[`${asset.id}Amount`] = firebase.firestore.FieldValue.increment(-assetInput);
-        await ref.update(update);
-
-        const userName = freshData.name || 'Неизвестно';
-        await addCommissionToAdmin(user.uid, userName, 'sell', asset.id, asset.symbol, assetInput, coinsNet, commission);
+        const { coinsNet, commission, pnl, xpGain, userName } = extra;
+        await addCommissionToAdmin(user.uid, userName, 'sell', asset.id, asset.symbol, assetInput, coinsNet, commission, opId);
 
         await firebase.firestore().collection('exchange_trades').add({
             userId: user.uid, userName,
             type: 'sell', assetId: asset.id, assetSymbol: asset.symbol,
             assetAmount: assetInput, price, coinsAmount: coinsNet, commission, pnl,
+            opId,
             timestamp: new Date()
         });
 

@@ -126,7 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const fnName = transferType === 'coins' ? 'transferCoins' : 'transferCF';
                 const fn     = firebase.app().functions('europe-west1').httpsCallable(fnName);
-                const result = await fn({ toName, amount });
+                // opId защищает от двойного перевода при обрыве сети (ответ
+                // сервера потерян → пользователь повторяет отправку).
+                const opId   = (typeof makeWalletOpId === 'function')
+                    ? makeWalletOpId('transfer_' + transferType, amount)
+                    : `transfer_${transferType}_${amount}_${Date.now()}`;
+                const result = await fn({ toName, amount, opId });
 
                 const fieldName = transferType === 'coins' ? 'монет' : 'CF';
                 msg.textContent = `Успешно переведено ${amount} ${fieldName} игроку ${result.data.toName}!`;

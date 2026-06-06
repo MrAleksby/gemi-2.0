@@ -634,47 +634,72 @@ async function workInBusiness(bizId) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
 
     try {
-        const bizRef = firebase.firestore().collection('businesses').doc(bizId);
-        const [energy, energyUsed] = await Promise.all([
-            getOrResetEnergy(user.uid),
-            getOrResetBizCapacity(bizRef)
-        ]);
+        const db      = firebase.firestore();
+        const bizRef  = db.collection('businesses').doc(bizId);
+        const userRef = db.collection('users').doc(user.uid);
+        const key     = bizDayKey();
 
-        if (energy <= 0) { showBizMsg('😴 Твоя энергия закончилась!'); if (btn) { btn.disabled = false; } return; }
+        // Единая транзакция: проверка/сброс энергии и ёмкости + начисление дохода
+        // и опыта атомарны. Это исключает двойное начисление (повтор при обрыве
+        // сети, двойной клик, гонка двух запросов) — энергия и место в бизнесе
+        // расходуются ровно один раз.
+        let result = null;  // { income, energyLeft, remaining, workerName }
+        let errMsg = null;
+        await db.runTransaction(async (tx) => {
+            const bizSnap  = await tx.get(bizRef);
+            const userSnap = await tx.get(userRef);
+            const biz   = bizSnap.data();
+            const uData = userSnap.data();
+            const stage = getStage(biz.stage);
 
-        const bizSnap = await bizRef.get();
-        const biz = bizSnap.data();
-        const stage = getStage(biz.stage);
+            // Ёмкость бизнеса (с учётом сброса нового дня)
+            const isBizNewDay = (biz.bizEnergyDate || '') !== key;
+            const energyUsed  = isBizNewDay ? 0 : (biz.energyUsedToday || 0);
+            if (energyUsed >= stage.dailyCapacity) {
+                errMsg = `🏁 Бизнес заполнен на сегодня! (${stage.dailyCapacity}/${stage.dailyCapacity}) Завтра откроется снова.`;
+                return;
+            }
 
-        if (energyUsed >= stage.dailyCapacity) {
-            showBizMsg(`🏁 Бизнес заполнен на сегодня! (${stage.dailyCapacity}/${stage.dailyCapacity}) Завтра откроется снова.`);
-            if (btn) { btn.disabled = false; } return;
-        }
+            // Энергия игрока (с учётом сброса нового дня)
+            const isUserNewDay = (uData.energyDate || '') !== key;
+            const energy = isUserNewDay ? ENERGY_MAX : (uData.energy !== undefined ? uData.energy : ENERGY_MAX);
+            if (energy <= 0) { errMsg = '😴 Твоя энергия закончилась!'; return; }
 
-        const income = stage.incomePerEnergy;
-        const freshUserSnap = await firebase.firestore().collection('users').doc(user.uid).get();
-        const workerName = freshUserSnap.data().name || 'Неизвестно';
-        const remaining = stage.dailyCapacity - energyUsed - 1;
+            const income = stage.incomePerEnergy;
 
-        const expUpdate = {};
-        expUpdate[stage.expField] = firebase.firestore.FieldValue.increment(1);
+            const userUpdate = {
+                businessCoins:    firebase.firestore.FieldValue.increment(income),
+                [stage.expField]: firebase.firestore.FieldValue.increment(1),
+            };
+            if (isUserNewDay) { userUpdate.energy = ENERGY_MAX - 1; userUpdate.energyDate = key; }
+            else              { userUpdate.energy = firebase.firestore.FieldValue.increment(-1); }
 
-        await Promise.all([
-            firebase.firestore().collection('users').doc(user.uid).update({
-                businessCoins: firebase.firestore.FieldValue.increment(income),
-                energy: firebase.firestore.FieldValue.increment(-1),
-                ...expUpdate
-            }),
-            bizRef.update({
-                totalEarned: firebase.firestore.FieldValue.increment(income),
-                energyUsedToday: firebase.firestore.FieldValue.increment(1)
-            }),
-            bizRef.collection('work_logs').add({
-                workerName, isOwner: true, income, salary: 0, ownerProfit: income, timestamp: new Date()
-            })
-        ]);
+            const bizUpdate = { totalEarned: firebase.firestore.FieldValue.increment(income) };
+            if (isBizNewDay) { bizUpdate.energyUsedToday = 1; bizUpdate.bizEnergyDate = key; }
+            else             { bizUpdate.energyUsedToday = firebase.firestore.FieldValue.increment(1); }
 
-        showBizMsg(`✅ +${income} монет! ⚡ Твоя энергия: ${energy - 1} | 📦 Осталось мест: ${remaining}`);
+            tx.update(userRef, userUpdate);
+            tx.update(bizRef, bizUpdate);
+
+            result = {
+                income,
+                energyLeft: energy - 1,
+                remaining:  stage.dailyCapacity - energyUsed - 1,
+                workerName: uData.name || 'Неизвестно',
+            };
+        });
+
+        if (errMsg) { showBizMsg(errMsg); if (btn) { btn.disabled = false; } return; }
+        if (!result) { if (btn) { btn.disabled = false; } return; }
+
+        // Лог работы — некритичен, пишем вне транзакции
+        bizRef.collection('work_logs').add({
+            workerName: result.workerName, isOwner: true,
+            income: result.income, salary: 0, ownerProfit: result.income,
+            timestamp: new Date()
+        }).catch(e => console.error('work_logs:', e));
+
+        showBizMsg(`✅ +${result.income} монет! ⚡ Твоя энергия: ${result.energyLeft} | 📦 Осталось мест: ${result.remaining}`);
         renderBusinessTab(true);
     } catch(e) {
         showBizMsg('❌ Ошибка: ' + e.message);
@@ -931,7 +956,11 @@ async function workForOwner(bizId, salary, dailyCap) {
 
     try {
         const fn     = firebase.app().functions('europe-west1').httpsCallable('workForOwner');
-        const result = await fn({ bizId });
+        // opId защищает от двойного начисления зарплаты и опыта при обрыве сети
+        const opId   = (typeof makeWalletOpId === 'function')
+            ? makeWalletOpId('work_' + bizId, salary)
+            : `work_${bizId}_${Date.now()}`;
+        const result = await fn({ bizId, opId });
         const { salary: earnedSalary, ownerIncome, energyLeft, remaining } = result.data;
 
         showBizMsg(`✅ +${earnedSalary} монет тебе! Владелец +${ownerIncome}. 📦 Осталось мест: ${remaining}`);

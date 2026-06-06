@@ -74,45 +74,60 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
 
             if (!triggered) continue;
 
-            // Выполняем продажу
-            const avgPrice   = userData[`${asset.id}AvgPrice`] || 0;
-            const coinsGross = assetAmount * price;
-            const commission = coinsGross * 0.001;
-            const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
-            const pnl        = (price - avgPrice) * assetAmount - commission;
-            const xpGain     = pnl > 0 ? Math.floor(pnl) : 0;
-
             const userName = userData.name || 'Неизвестно';
 
-            const userUpdate = {
-                exchangeCoins: admin.firestore.FieldValue.increment(coinsNet),
-                totalPnl:      admin.firestore.FieldValue.increment(pnl),
-                weeklyPnl:     admin.firestore.FieldValue.increment(pnl),
-                [`${asset.id}StopLoss`]:   0,
-                [`${asset.id}TakeProfit`]: 0,
-                slTpNotifications: admin.firestore.FieldValue.arrayUnion({
-                    assetId:     asset.id,
-                    assetSymbol: asset.symbol,
-                    type:        triggered,
-                    price,
-                    coinsNet,
-                    pnl,
-                    timestamp:   Date.now(),
-                }),
-            };
-            if (xpGain > 0) userUpdate.points = admin.firestore.FieldValue.increment(xpGain);
-
-            // Если продаём весь остаток — обнуляем количество и среднюю цену
-            userUpdate[`${asset.id}Amount`]   = 0;
-            userUpdate[`${asset.id}AvgPrice`] = 0;
-
+            // Продажа выполняется в транзакции: внутри повторно читаем свежие
+            // данные и заново проверяем, что позиция ещё открыта и SL/TP всё ещё
+            // выставлены. Если другой (наложившийся или дублирующий) запуск
+            // планировщика уже закрыл ордер — видим amount=0/SL=TP=0 и выходим.
+            // Это исключает двойное начисление монет и опыта по одному ордеру.
             const p = (async () => {
-                await userRef.update(userUpdate);
+                let sold = null;
+                await db.runTransaction(async (tx) => {
+                    const snap = await tx.get(userRef);
+                    const d    = snap.data() || {};
+                    const amt  = d[`${asset.id}Amount`] || 0;
+                    if (amt <= 0) return; // позиция уже закрыта
 
-                // Комиссия → админу
+                    const sl = d[`${asset.id}StopLoss`]   || 0;
+                    const tp = d[`${asset.id}TakeProfit`] || 0;
+                    let trig = null;
+                    if (sl > 0 && price <= sl) trig = 'stopLoss';
+                    if (tp > 0 && price >= tp) trig = 'takeProfit';
+                    if (!trig) return; // SL/TP уже сброшены или больше не срабатывают
+
+                    const avgPrice   = d[`${asset.id}AvgPrice`] || 0;
+                    const coinsGross = amt * price;
+                    const commission = coinsGross * 0.001;
+                    const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
+                    const pnl        = (price - avgPrice) * amt - commission;
+                    const xpGain     = pnl > 0 ? Math.floor(pnl) : 0;
+
+                    const userUpdate = {
+                        exchangeCoins: admin.firestore.FieldValue.increment(coinsNet),
+                        totalPnl:      admin.firestore.FieldValue.increment(pnl),
+                        weeklyPnl:     admin.firestore.FieldValue.increment(pnl),
+                        [`${asset.id}StopLoss`]:   0,
+                        [`${asset.id}TakeProfit`]: 0,
+                        [`${asset.id}Amount`]:     0,
+                        [`${asset.id}AvgPrice`]:   0,
+                        slTpNotifications: admin.firestore.FieldValue.arrayUnion({
+                            assetId: asset.id, assetSymbol: asset.symbol,
+                            type: trig, price, coinsNet, pnl, timestamp: Date.now(),
+                        }),
+                    };
+                    if (xpGain > 0) userUpdate.points = admin.firestore.FieldValue.increment(xpGain);
+                    tx.update(userRef, userUpdate);
+
+                    sold = { trig, amt, coinsNet, commission, pnl };
+                });
+
+                if (!sold) return; // продажа не выполнена (уже обработано)
+
+                // Комиссия → админу (только при реально выполненной продаже)
                 if (adminRef) {
                     await adminRef.update({
-                        exchangeCoins: admin.firestore.FieldValue.increment(commission),
+                        exchangeCoins: admin.firestore.FieldValue.increment(sold.commission),
                     });
                 }
 
@@ -121,14 +136,14 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
                     userId:      userDoc.id,
                     userName,
                     type:        'sell_sltp',
-                    trigger:     triggered,
+                    trigger:     sold.trig,
                     assetId:     asset.id,
                     assetSymbol: asset.symbol,
-                    assetAmount,
-                    coinsNet,
-                    commission,
+                    assetAmount: sold.amt,
+                    coinsNet:    sold.coinsNet,
+                    commission:  sold.commission,
                     price,
-                    pnl,
+                    pnl:         sold.pnl,
                     timestamp:   admin.firestore.FieldValue.serverTimestamp(),
                 });
 
@@ -137,18 +152,18 @@ exports.checkOrders = functions.region('europe-west1').pubsub.schedule('every 1 
                     userId:      userDoc.id,
                     userName,
                     type:        'sell',
-                    trigger:     triggered,
+                    trigger:     sold.trig,
                     assetId:     asset.id,
                     assetSymbol: asset.symbol,
-                    assetAmount,
+                    assetAmount: sold.amt,
                     price,
-                    coinsAmount: coinsNet,
-                    commission,
-                    pnl,
+                    coinsAmount: sold.coinsNet,
+                    commission:  sold.commission,
+                    pnl:         sold.pnl,
                     timestamp:   admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                console.log(`[SL/TP] ${triggered} сработал: ${userName} продал ${assetAmount} ${asset.symbol} по цене ${price}, PnL=${pnl.toFixed(2)}`);
+                console.log(`[SL/TP] ${sold.trig} сработал: ${userName} продал ${sold.amt} ${asset.symbol} по цене ${price}, PnL=${sold.pnl.toFixed(2)}`);
             })();
 
             promises.push(p.catch(e => console.error(`Ошибка обработки ордера ${asset.id} для ${userDoc.id}:`, e.message)));
@@ -258,84 +273,85 @@ function getStageById(stageId) {
     return BUSINESS_STAGES_FN.find(s => s.id === stageId) || BUSINESS_STAGES_FN[0];
 }
 
+// ─── Идемпотентность операций ────────────────────────────────────────────────
+// Маркеры выполненных операций в processed_ops/{opId} защищают onCall-функции
+// от повторного начисления, когда клиент повторяет запрос (commit уже прошёл на
+// сервере, но ответ потерян из-за обрыва сети). Маркер пишется атомарно вместе
+// с мутацией внутри runTransaction. processed_ops пишется только Admin SDK —
+// правила безопасности на него не нужны (Admin SDK их обходит).
+
+// Перевод монет/CF между игроками — атомарно, с защитой от дублей.
+async function transferBetweenPlayers(db, fromUid, toName, amount, field, opId, validate) {
+    const fromRef = db.collection('users').doc(fromUid);
+
+    const toSnap = await db.collection('users').where('name', '==', toName.trim()).limit(1).get();
+    if (toSnap.empty) throw new functions.https.HttpsError('not-found', 'Пользователь не найден!');
+    const toDocId   = toSnap.docs[0].id;
+    const toDocName = toSnap.docs[0].data().name;
+    if (toDocId === fromUid)
+        throw new functions.https.HttpsError('invalid-argument', 'Нельзя переводить самому себе!');
+    const toRef = db.collection('users').doc(toDocId);
+    const opRef = opId ? db.collection('processed_ops').doc(String(opId)) : null;
+
+    let skipped = false;
+    await db.runTransaction(async (tx) => {
+        if (opRef) {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+        }
+        const fromSnap = await tx.get(fromRef);
+        if (!fromSnap.exists) throw new functions.https.HttpsError('not-found', 'Ваш профиль не найден');
+        validate(fromSnap.data());
+        tx.update(fromRef, {
+            [field]:       admin.firestore.FieldValue.increment(-amount),
+            transferCount: admin.firestore.FieldValue.increment(1)
+        });
+        tx.update(toRef, {
+            [field]:           admin.firestore.FieldValue.increment(amount),
+            receivedTransfers: admin.firestore.FieldValue.increment(1)
+        });
+        if (opRef) tx.set(opRef, {
+            kind: 'transfer_' + field, fromUid, toUid: toDocId, amount,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    });
+    return { success: true, toName: toDocName, skipped };
+}
+
 // ─── Перевод монет между игроками (onCall) ────────────────────────────────────
 exports.transferCoins = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
-    const { toName, amount } = data;
+    const { toName, amount, opId } = data;
     if (!toName || typeof toName !== 'string' || !toName.trim())
         throw new functions.https.HttpsError('invalid-argument', 'Укажите имя получателя');
     if (!Number.isInteger(amount) || amount < 1)
         throw new functions.https.HttpsError('invalid-argument', 'Сумма должна быть целым числом ≥ 1');
 
-    const db = admin.firestore();
-    const fromUid = context.auth.uid;
-
-    const fromDoc = await db.collection('users').doc(fromUid).get();
-    if (!fromDoc.exists) throw new functions.https.HttpsError('not-found', 'Ваш профиль не найден');
-    if ((fromDoc.data().coins || 0) < amount)
-        throw new functions.https.HttpsError('failed-precondition', `Недостаточно монет! У вас: ${fromDoc.data().coins || 0}`);
-
-    const toSnap = await db.collection('users').where('name', '==', toName.trim()).limit(1).get();
-    if (toSnap.empty) throw new functions.https.HttpsError('not-found', 'Пользователь не найден!');
-    const toDocId   = toSnap.docs[0].id;
-    const toDocName = toSnap.docs[0].data().name;
-    if (toDocId === fromUid)
-        throw new functions.https.HttpsError('invalid-argument', 'Нельзя переводить монеты самому себе!');
-
-    const batch = db.batch();
-    batch.update(db.collection('users').doc(fromUid), {
-        coins:         admin.firestore.FieldValue.increment(-amount),
-        transferCount: admin.firestore.FieldValue.increment(1)
+    return transferBetweenPlayers(admin.firestore(), context.auth.uid, toName, amount, 'coins', opId, (d) => {
+        if ((d.coins || 0) < amount)
+            throw new functions.https.HttpsError('failed-precondition', `Недостаточно монет! У вас: ${d.coins || 0}`);
     });
-    batch.update(db.collection('users').doc(toDocId), {
-        coins:             admin.firestore.FieldValue.increment(amount),
-        receivedTransfers: admin.firestore.FieldValue.increment(1)
-    });
-    await batch.commit();
-    return { success: true, toName: toDocName };
 });
 
 // ─── Перевод CF между игроками (onCall) ──────────────────────────────────────
 exports.transferCF = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
-    const { toName, amount } = data;
+    const { toName, amount, opId } = data;
     if (!toName || typeof toName !== 'string' || !toName.trim())
         throw new functions.https.HttpsError('invalid-argument', 'Укажите имя получателя');
     if (typeof amount !== 'number' || amount < 1)
         throw new functions.https.HttpsError('invalid-argument', 'Сумма CF должна быть ≥ 1');
 
-    const db = admin.firestore();
-    const fromUid = context.auth.uid;
-
-    const fromDoc = await db.collection('users').doc(fromUid).get();
-    if (!fromDoc.exists) throw new functions.https.HttpsError('not-found', 'Ваш профиль не найден');
-    if ((fromDoc.data().cf || 0) < amount)
-        throw new functions.https.HttpsError('failed-precondition', `Недостаточно CF! У вас: ${fromDoc.data().cf || 0}`);
-
-    const toSnap = await db.collection('users').where('name', '==', toName.trim()).limit(1).get();
-    if (toSnap.empty) throw new functions.https.HttpsError('not-found', 'Пользователь не найден!');
-    const toDocId   = toSnap.docs[0].id;
-    const toDocName = toSnap.docs[0].data().name;
-    if (toDocId === fromUid)
-        throw new functions.https.HttpsError('invalid-argument', 'Нельзя переводить CF самому себе!');
-
-    const batch = db.batch();
-    batch.update(db.collection('users').doc(fromUid), {
-        cf:            admin.firestore.FieldValue.increment(-amount),
-        transferCount: admin.firestore.FieldValue.increment(1)
+    return transferBetweenPlayers(admin.firestore(), context.auth.uid, toName, amount, 'cf', opId, (d) => {
+        if ((d.cf || 0) < amount)
+            throw new functions.https.HttpsError('failed-precondition', `Недостаточно CF! У вас: ${d.cf || 0}`);
     });
-    batch.update(db.collection('users').doc(toDocId), {
-        cf:                admin.firestore.FieldValue.increment(amount),
-        receivedTransfers: admin.firestore.FieldValue.increment(1)
-    });
-    await batch.commit();
-    return { success: true, toName: toDocName };
 });
 
 // ─── Работа у владельца бизнеса (onCall) ─────────────────────────────────────
 exports.workForOwner = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
-    const { bizId } = data;
+    const { bizId, opId } = data;
     if (!bizId || typeof bizId !== 'string')
         throw new functions.https.HttpsError('invalid-argument', 'Укажите bizId');
 
@@ -404,6 +420,22 @@ exports.workForOwner = functions.region('europe-west1').https.onCall(async (data
         bizUpdate.energyUsedToday = admin.firestore.FieldValue.increment(1);
     }
 
+    // Защита от дублей: занимаем маркер opId перед начислениями. create()
+    // атомарен — упадёт, если такой opId уже обработан (повтор запроса при
+    // обрыве сети). Так начисления (зарплата + опыт + доход владельца) не
+    // удвоятся. Маркер занимаем после всех проверок, чтобы неудачная попытка
+    // не «съела» opId зря.
+    if (opId) {
+        try {
+            await db.collection('processed_ops').doc(String(opId)).create({
+                kind: 'work', bizId, workerUid, salary, ownerIncome,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (e) {
+            throw new functions.https.HttpsError('already-exists', 'Эта операция уже выполнена');
+        }
+    }
+
     await Promise.all([
         workerRef.update(workerUpdate),
         db.collection('users').doc(biz.ownerId).update({
@@ -430,47 +462,81 @@ exports.workForOwner = functions.region('europe-west1').https.onCall(async (data
 // ─── Перечисление налога администратору (onCall) ──────────────────────────────
 exports.payTaxToAdmin = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
-    const { amount, source, userId, userName, label } = data;
+    const { amount, source, userId, userName, label, opId } = data;
     if (context.auth.uid !== userId)
         throw new functions.https.HttpsError('permission-denied', 'Нельзя платить налог за другого пользователя');
     if (typeof amount !== 'number' || amount <= 0)
         throw new functions.https.HttpsError('invalid-argument', 'Некорректная сумма налога');
 
     const db        = admin.firestore();
+    // opId для налога привязан к породившей операции вывода → добавляем суффикс,
+    // чтобы маркер не конфликтовал с маркером самого перевода кошелька.
+    const opRef     = opId ? db.collection('processed_ops').doc(String(opId) + ':tax') : null;
     const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-    if (!adminSnap.empty) {
-        await adminSnap.docs[0].ref.update({
+    const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+
+    let skipped = false;
+    await db.runTransaction(async (tx) => {
+        if (opRef) {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+        }
+        if (adminRef) tx.update(adminRef, {
             businessCoins: admin.firestore.FieldValue.increment(amount)
         });
-    }
-    await db.collection('tax_log').add({
-        userId, userName,
-        amount, source,
-        label: label || 'Налог',
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+        if (opRef) tx.set(opRef, {
+            kind: 'tax', userId, amount, source,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
     });
-    return { success: true };
+
+    if (!skipped) {
+        await db.collection('tax_log').add({
+            userId, userName,
+            amount, source,
+            label: label || 'Налог',
+            opId: opId || null,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+    }
+    return { success: true, skipped };
 });
 
 // ─── Торговая комиссия → Админу (onCall) ──────────────────────────────────────
 exports.addTradeCommission = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
-    const { userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission } = data;
+    const { userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission, opId } = data;
     if (context.auth.uid !== userId)
         throw new functions.https.HttpsError('permission-denied', 'Нельзя записать комиссию за другого пользователя');
     if (typeof commission !== 'number' || commission <= 0)
         throw new functions.https.HttpsError('invalid-argument', 'Некорректная сумма комиссии');
 
     const db        = admin.firestore();
+    const opRef     = opId ? db.collection('processed_ops').doc(String(opId)) : null;
     const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
-    if (!adminSnap.empty) {
-        await adminSnap.docs[0].ref.update({
+    const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+
+    let skipped = false;
+    await db.runTransaction(async (tx) => {
+        if (opRef) {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+        }
+        if (adminRef) tx.update(adminRef, {
             exchangeCoins: admin.firestore.FieldValue.increment(commission)
         });
-    }
-    await db.collection('exchange_commissions').add({
-        userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission,
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+        if (opRef) tx.set(opRef, {
+            kind: 'commission', userId, commission, type, assetId,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
     });
-    return { success: true };
+
+    if (!skipped) {
+        await db.collection('exchange_commissions').add({
+            userId, userName, type, assetId, assetSymbol, assetAmount, coinsAmount, commission,
+            opId: opId || null,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+    }
+    return { success: true, skipped };
 });

@@ -199,39 +199,55 @@ const BADGE_TIER_BONUS = {
 
 async function checkAndAwardBadges(data) {
     if (!currentUser) return;
-    const earned = new Set(Array.isArray(data.badges) ? data.badges : []);
-    const newBadges = [];
-    BADGES.forEach(b => {
-        try { if (!earned.has(b.id) && b.check(data)) newBadges.push(b.id); } catch(e) {}
-    });
-    if (newBadges.length > 0) {
-        const updated = [...earned, ...newBadges];
+    const ref = db.collection('users').doc(currentUser);
 
-        // Считаем суммарный бонус за все новые награды
-        let totalCoins = 0, totalPoints = 0;
-        newBadges.forEach(id => {
-            const b = BADGES.find(x => x.id === id);
-            if (b) {
-                const bonus = BADGE_TIER_BONUS[b.tier] || { coins: 0, points: 0 };
-                totalCoins  += bonus.coins;
-                totalPoints += bonus.points;
-            }
+    // Транзакция: список бейджей и расчёт новых наград идёт по СВЕЖИМ данным
+    // внутри транзакции. Бонус (монеты/опыт) за бейдж начисляется один раз —
+    // повторный запуск (две перерисовки профиля, гонка) увидит бейдж уже
+    // выданным и не начислит бонус снова.
+    let awarded = [];
+    let finalBadges = Array.isArray(data.badges) ? data.badges : [];
+    try {
+        await db.runTransaction(async (tx) => {
+            const snap  = await tx.get(ref);
+            const fresh = snap.data() || {};
+            const earned = new Set(Array.isArray(fresh.badges) ? fresh.badges : []);
+            const newBadges = [];
+            BADGES.forEach(b => {
+                try { if (!earned.has(b.id) && b.check(fresh)) newBadges.push(b.id); } catch(e) {}
+            });
+            if (newBadges.length === 0) { finalBadges = [...earned]; return; }
+
+            let totalCoins = 0, totalPoints = 0;
+            newBadges.forEach(id => {
+                const b = BADGES.find(x => x.id === id);
+                if (b) {
+                    const bonus = BADGE_TIER_BONUS[b.tier] || { coins: 0, points: 0 };
+                    totalCoins  += bonus.coins;
+                    totalPoints += bonus.points;
+                }
+            });
+
+            const updated = [...earned, ...newBadges];
+            const updateData = { badges: updated };
+            if (totalCoins  > 0) updateData.coins  = firebase.firestore.FieldValue.increment(totalCoins);
+            if (totalPoints > 0) updateData.points = firebase.firestore.FieldValue.increment(totalPoints);
+            tx.update(ref, updateData);
+
+            awarded     = newBadges;
+            finalBadges = updated;
         });
-
-        // Обновляем в Firestore: бейджи + бонусы
-        const updateData = { badges: updated };
-        if (totalCoins  > 0) updateData.coins  = firebase.firestore.FieldValue.increment(totalCoins);
-        if (totalPoints > 0) updateData.points = firebase.firestore.FieldValue.increment(totalPoints);
-        await db.collection('users').doc(currentUser).update(updateData);
-
-        // Показываем тост для каждой новой награды
-        newBadges.forEach(id => {
-            const b = BADGES.find(x => x.id === id);
-            if (b) showBadgeToast(b);
-        });
-        data.badges = updated;
+    } catch(e) {
+        console.warn('checkAndAwardBadges error:', e);
     }
-    renderBadges(Array.isArray(data.badges) ? data.badges : []);
+
+    // Тосты — только за реально выданные в этой транзакции бейджи
+    awarded.forEach(id => {
+        const b = BADGES.find(x => x.id === id);
+        if (b) showBadgeToast(b);
+    });
+    data.badges = finalBadges;
+    renderBadges(finalBadges);
 }
 
 function showBadgeToast(badge) {
@@ -318,23 +334,28 @@ async function checkDailyBonus(uid) {
     try {
         const today = new Date().toISOString().slice(0, 10); // "2026-04-06"
         const ref   = db.collection('users').doc(uid);
-        const snap  = await ref.get();
-        const data  = snap.data();
-        if (!data || data.isAdmin) return;
-        if (data.lastDailyBonus === today) return; // уже получил сегодня
 
-        const lvl    = Math.max(1, Math.min(getLevelByPoints(data.points || 0), 25));
-        const bonus  = lvl;
-
-        await ref.update({
-            coins:          firebase.firestore.FieldValue.increment(bonus),
-            lastDailyBonus: today
+        // Транзакция с повторной проверкой lastDailyBonus внутри: бонус
+        // начисляется строго один раз в день даже при двойной загрузке
+        // страницы / повторной авторизации (гонка двух чтений).
+        let bonus = 0, lvl = 0;
+        await db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const data = snap.data();
+            if (!data || data.isAdmin) return;
+            if (data.lastDailyBonus === today) return; // уже получил сегодня
+            lvl   = Math.max(1, Math.min(getLevelByPoints(data.points || 0), 25));
+            bonus = lvl;
+            tx.update(ref, {
+                coins:          firebase.firestore.FieldValue.increment(bonus),
+                lastDailyBonus: today
+            });
         });
 
-        showToast(`🎁 Ежедневный бонус: +${bonus} монет! (уровень ${lvl})`);
-
-        // Обновляем профиль чтобы отобразить новый баланс
-        showProfile();
+        if (bonus > 0) {
+            showToast(`🎁 Ежедневный бонус: +${bonus} монет! (уровень ${lvl})`);
+            showProfile(); // обновляем профиль чтобы отобразить новый баланс
+        }
     } catch(e) {
         console.warn('checkDailyBonus error:', e);
     }
@@ -2242,6 +2263,51 @@ async function safeWalletTransfer({ kind, opId, amount, fromField, toField, taxR
             });
         });
         return { tax, skipped, userName };
+    } finally {
+        window.WALLET_OP_INFLIGHT.delete(lockKey);
+    }
+}
+
+/**
+ * Универсальный идемпотентный апдейт документа текущего пользователя.
+ * Для сложных операций (покупка/продажа на бирже), где меняется несколько
+ * полей и нужны вычисления по свежим данным внутри транзакции.
+ *
+ * build(data) вызывается со свежими данными пользователя ВНУТРИ транзакции
+ * и должен вернуть { update, marker?, extra? }. Может бросить Error для
+ * отмены (например, недостаточно средств).
+ *
+ * @param {{kind:string, opId:string, build:(data:object)=>{update:object, marker?:object, extra?:object}}} args
+ * @returns {Promise<{skipped:boolean, extra:object|null}>}
+ */
+async function safeUserTransaction({ kind, opId, build }) {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error('Не авторизован');
+    const lockKey = `${user.uid}:${kind}`;
+    if (window.WALLET_OP_INFLIGHT.has(lockKey)) {
+        return { skipped: true, extra: null };
+    }
+    window.WALLET_OP_INFLIGHT.add(lockKey);
+    try {
+        const db      = firebase.firestore();
+        const userRef = db.collection('users').doc(user.uid);
+        const opRef   = userRef.collection('wallet_ops').doc(opId);
+        let skipped = false, extra = null;
+        await db.runTransaction(async (tx) => {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+            const userSnap = await tx.get(userRef);
+            const data  = userSnap.data() || {};
+            const built = build(data);
+            extra = built.extra || null;
+            tx.update(userRef, built.update);
+            tx.set(opRef, {
+                kind,
+                ...(built.marker || {}),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+        return { skipped, extra };
     } finally {
         window.WALLET_OP_INFLIGHT.delete(lockKey);
     }

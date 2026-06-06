@@ -70,31 +70,46 @@ function clearTransactionInputs() {
 
 async function approveScoreRequest(requestId) {
     try {
-        const reqDoc = await db.collection('score_requests').doc(requestId).get();
-        if (!reqDoc.exists) return;
-        const req = reqDoc.data();
+        const reqRef  = db.collection('score_requests').doc(requestId);
+        const preSnap = await reqRef.get();
+        if (!preSnap.exists) return;
+        const req = preSnap.data();
 
-        // Ищем пользователя по userId
         const userRef = db.collection('users').doc(req.userId);
-        const userDoc = await userRef.get();
-        if (!userDoc.exists) { console.error('approveScoreRequest: пользователь не найден, userId=' + req.userId); return; }
 
-        const data = userDoc.data();
-        const newPoints = (data.points || 0) + (req.points || 0);
-        const newLevel  = getLevelByPoints(newPoints);
+        // Транзакция с проверкой статуса: повторное одобрение (двойной клик,
+        // устаревший UI, ретрай при обрыве сети) не начислит статистику дважды.
+        const outcome = await db.runTransaction(async (tx) => {
+            const reqSnap = await tx.get(reqRef);
+            if (!reqSnap.exists) return { done: false };
+            const r = reqSnap.data();
+            if (r.status && r.status !== 'pending') return { done: false, already: true };
 
-        const batch = db.batch();
-        batch.update(userRef, {
-            games:  (data.games  || 0) + (req.games  || 0),
-            wins:   (data.wins   || 0) + (req.wins   || 0),
-            cf:     (data.cf     || 0) + (req.cf     || 0),
-            points: newPoints,
-            level:  newLevel,
-            coins:  (data.coins  || 0) + (req.coins  || 0),
-            approvedRequests: firebase.firestore.FieldValue.increment(1)
+            const userSnap = await tx.get(userRef);
+            if (!userSnap.exists) { console.error('approveScoreRequest: пользователь не найден, userId=' + req.userId); return { done: false }; }
+
+            const data = userSnap.data();
+            const newPoints = (data.points || 0) + (r.points || 0);
+            const newLevel  = getLevelByPoints(newPoints);
+
+            tx.update(userRef, {
+                games:  (data.games  || 0) + (r.games  || 0),
+                wins:   (data.wins   || 0) + (r.wins   || 0),
+                cf:     (data.cf     || 0) + (r.cf     || 0),
+                points: newPoints,
+                level:  newLevel,
+                coins:  (data.coins  || 0) + (r.coins  || 0),
+                approvedRequests: firebase.firestore.FieldValue.increment(1)
+            });
+            tx.update(reqRef, { status: 'approved', resolvedAt: new Date() });
+            return { done: true };
         });
-        batch.update(reqDoc.ref, { status: 'approved', resolvedAt: new Date() });
-        await batch.commit();
+
+        if (outcome.already) {
+            if (typeof adminMessage !== 'undefined' && adminMessage) adminMessage.textContent = '↺ Счёт уже обработан';
+            return;
+        }
+        if (!outcome.done) return;
 
         const parts = [];
         if (req.games)  parts.push(`${req.games} игр`);
