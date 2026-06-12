@@ -24,6 +24,15 @@ service cloud.firestore {
       return request.resource.data.get('isAdmin', false) == true;
     }
 
+    // Поля, начисляемые только сервером/админом: CF, опыт, статистика, счётчики
+    // заявок. Игрок не может менять их у себя напрямую с клиента. Переводы CF/монет
+    // идут через Cloud Functions (Admin SDK, правила обходятся), биржа/бизнес
+    // трогают только coins/exchangeCoins/businessCoins — они здесь не перечислены.
+    function changesProtected() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['cf', 'points', 'games', 'wins', 'level', 'approvedRequests', 'rejectedRequests']);
+    }
+
     // ─── users ────────────────────────────────────────────────────────────────
     match /users/{userId} {
       // Любой авторизованный пользователь может читать (нужно для лидерборда,
@@ -41,7 +50,8 @@ service cloud.firestore {
       // теперь выполняются через Cloud Functions с Admin SDK.
       allow update: if isAuth()
         && (request.auth.uid == userId || isAdmin())
-        && (!touchesIsAdmin() || isAdmin());
+        && (!touchesIsAdmin() || isAdmin())
+        && (!changesProtected() || isAdmin());
 
       // Удаление: только администратор
       allow delete: if isAdmin();
