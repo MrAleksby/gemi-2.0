@@ -4,7 +4,7 @@ const CRYPTO_COMMISSION = 0.001; // 0.1%
 
 const CRYPTO_ITEMS = [
     { id: 'btc',  name: 'Bitcoin',  symbol: 'BTC',  icon: '₿',  color: '#f7931a', type: 'crypto', binance: 'BTCUSDT'  },
-    { id: 'ton',  name: 'Toncoin',  symbol: 'TON',  icon: '💎', color: '#0088cc', type: 'crypto', binance: 'TONUSDT'  },
+    { id: 'ton',  name: 'Gram',     symbol: 'GRAM', icon: '💎', color: '#0088cc', type: 'crypto', binance: 'GRAMUSDT' },
     { id: 'eth',  name: 'Ethereum', symbol: 'ETH',  icon: '⟠',  color: '#627eea', type: 'crypto', binance: 'ETHUSDT'  },
     { id: 'paxg', name: 'Золото',   symbol: 'PAXG', icon: '🥇', color: '#d4a017', type: 'crypto', binance: 'PAXGUSDT' },
     { id: 'xag',  name: 'Серебро',  symbol: 'XAG',  icon: '🥈', color: '#aaaaaa', type: 'crypto', binance: 'XAGUSDT',  futures: true },

@@ -8,7 +8,7 @@ admin.initializeApp();
 // ─── Конфигурация активов ────────────────────────────────────────────────────
 const ASSETS = [
     { id: 'btc',  symbol: 'BTC',  binance: 'BTCUSDT',  futures: false },
-    { id: 'ton',  symbol: 'TON',  binance: 'TONUSDT',  futures: false },
+    { id: 'ton',  symbol: 'GRAM', binance: 'GRAMUSDT', futures: false },
     { id: 'eth',  symbol: 'ETH',  binance: 'ETHUSDT',  futures: false },
     { id: 'paxg', symbol: 'PAXG', binance: 'PAXGUSDT', futures: false },
     { id: 'xag',  symbol: 'XAG',  binance: 'XAGUSDT',  futures: true  },
