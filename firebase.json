@@ -10,7 +10,12 @@
     "public": ".",
     "ignore": [
       "firebase.json",
-      "**/.*"
+      "**/.*",
+      "**/.*/**",
+      "**/node_modules/**",
+      "functions/**",
+      "firestore.rules",
+      "**/*.md"
     ],
     "headers": [
       {
