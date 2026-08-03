@@ -1642,6 +1642,15 @@ function updateUsersList() {
     if (adminSection && adminSection.style.display !== 'none') loadUsersList();
 }
 
+// Телефон хранится голыми цифрами (phoneKey). Форматируем только для читаемости —
+// при входе phoneToEmail всё равно отбрасывает всё, кроме цифр.
+function formatPhone(phone) {
+    const d = String(phone || '').replace(/\D/g, '');
+    if (!d) return '';
+    const m = d.match(/^(\d{3})(\d{2})(\d{3})(\d{2})(\d{2})$/);
+    return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]} ${m[5]}` : d;
+}
+
 async function loadPlayersList() {
     const container = document.getElementById('players-list-container');
     if (!container) return;
@@ -1672,9 +1681,14 @@ async function loadPlayersList() {
         const sessMins  = Math.floor((totalSec % 3600) / 60);
         const sessTime  = sessHours > 0 ? `${sessHours}ч ${sessMins}м` : sessMins > 0 ? `${sessMins}м` : '—';
         const sessCount = d.sessionCount || 0;
+        const phone     = formatPhone(d.phone);
+        const phoneEl   = phone
+            ? `<span class="players-list-phone" style="font-size:0.75em;color:#666;background:#f5f0ec;border:1px solid #e0d5cc;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap;">📱 ${phone}</span>`
+            : `<span style="font-size:0.75em;color:#bbb;margin-left:6px;">📱 —</span>`;
         return `<div class="players-list-row" data-uid="${doc.id}">
             <div class="players-list-view">
                 <span class="players-list-name">${d.name}</span>
+                ${phoneEl}
                 ${statusBadge}${approveBtn}
                 <span style="font-size:0.75em;color:#888;margin-left:4px;">⏱ ${sessTime}</span>
                 <span style="font-size:0.75em;color:#888;margin-left:6px;">🔑 ${sessCount}x</span>

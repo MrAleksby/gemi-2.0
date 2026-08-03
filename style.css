@@ -2551,6 +2551,7 @@ th {
 .players-list-view {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 }
 .players-list-name {
