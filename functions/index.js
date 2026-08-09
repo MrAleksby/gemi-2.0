@@ -505,6 +505,200 @@ exports.payTaxToAdmin = functions.region('europe-west1').https.onCall(async (dat
     return { success: true, skipped };
 });
 
+// ─── Обмен CF → опыт + монеты (onCall) ────────────────────────────────────────
+// cf/points/level защищены правилами (см. changesProtected в firestore.rules),
+// поэтому обмен выполняется сервером через Admin SDK.
+
+const LEVEL_THRESHOLDS_FN = [
+    0, 30, 76, 136, 210, 300, 406, 526, 660, 810, 976, 1156, 1350, 1560, 1786,
+    2026, 2280, 2550, 2836, 3136, 3450, 3780, 4126, 4486, 4860
+];
+
+function getLevelByPointsFn(points) {
+    for (let i = LEVEL_THRESHOLDS_FN.length - 1; i >= 0; i--) {
+        if (points >= LEVEL_THRESHOLDS_FN[i]) return i + 1;
+    }
+    return 1;
+}
+
+const CF_TO_POINTS_FN = 2;
+const CF_TO_COINS_FN  = 2;
+
+exports.exchangeCF = functions.region('europe-west1').https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
+    const { amount, opId } = data;
+    if (!Number.isInteger(amount) || amount < 1)
+        throw new functions.https.HttpsError('invalid-argument', 'Сумма обмена — целое число ≥ 1');
+
+    const db      = admin.firestore();
+    const uid     = context.auth.uid;
+    const userRef = db.collection('users').doc(uid);
+    const opRef   = opId ? db.collection('processed_ops').doc(String(opId)) : null;
+
+    const gainedPoints = amount * CF_TO_POINTS_FN;
+    const gainedCoins  = amount * CF_TO_COINS_FN;
+
+    let skipped = false;
+    let result  = { cf: 0, points: 0, coins: 0, level: 1, name: '' };
+
+    await db.runTransaction(async (tx) => {
+        if (opRef) {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+        }
+        const snap = await tx.get(userRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Профиль не найден');
+        const d = snap.data();
+        const currentCF = d.cf || 0;
+        if (currentCF < amount)
+            throw new functions.https.HttpsError('failed-precondition',
+                `Недостаточно CF! У вас: ${currentCF.toFixed(2)}`);
+
+        const newCF     = currentCF - amount;
+        const newPoints = (d.points || 0) + gainedPoints;
+        const newCoins  = Math.round(((d.coins || 0) + gainedCoins) * 100) / 100;
+        const newLevel  = getLevelByPointsFn(newPoints);
+
+        tx.update(userRef, {
+            cf: newCF, points: newPoints, coins: newCoins, level: newLevel,
+            exchangeCount: admin.firestore.FieldValue.increment(1)
+        });
+        if (opRef) tx.set(opRef, {
+            kind: 'exchange_cf', uid, amount,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        result = { cf: newCF, points: newPoints, coins: newCoins, level: newLevel, name: d.name || '' };
+    });
+
+    if (skipped) {
+        // Повтор запроса: мутация уже применена — отдаём актуальное состояние,
+        // чтобы клиент показал правильный баланс.
+        const snap = await userRef.get();
+        const d    = snap.data() || {};
+        return {
+            success: true, skipped: true, gainedPoints, gainedCoins,
+            cf: d.cf || 0, points: d.points || 0, coins: d.coins || 0,
+            level: d.level || 1, name: d.name || ''
+        };
+    }
+
+    // Формат совпадает с addTransactionRecord() в admin-actions.js
+    await db.collection('transactions').add({
+        username: result.name,
+        amount,
+        type: 'exchange',
+        reason: `Обмен ${amount} CF → ${gainedPoints} ⭐ опыта + ${gainedCoins} 💰 монет`,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        userId: uid,
+        admin: false
+    });
+
+    return { success: true, skipped: false, gainedPoints, gainedCoins, ...result };
+});
+
+// ─── Выдача наград/бейджей (onCall) ───────────────────────────────────────────
+// Бонус за бейдж включает points — поле защищено правилами, поэтому проверка
+// условий и начисление выполняются сервером. Список должен совпадать с BADGES
+// в main.js (иконки/названия остаются на клиенте, здесь только условия и тир).
+
+const BADGE_TIER_BONUS_FN = {
+    common:    { coins: 10,  points: 0  },
+    rare:      { coins: 25,  points: 0  },
+    superrare: { coins: 40,  points: 0  },
+    epic:      { coins: 50,  points: 5  },
+    mythic:    { coins: 100, points: 10 },
+    legendary: { coins: 200, points: 25 }
+};
+
+const BADGES_FN = [
+    { id: 'game_1',  tier: 'common',    check: d => (d.games || 0) >= 1  },
+    { id: 'game_4',  tier: 'common',    check: d => (d.games || 0) >= 4  },
+    { id: 'game_8',  tier: 'rare',      check: d => (d.games || 0) >= 8  },
+    { id: 'game_12', tier: 'rare',      check: d => (d.games || 0) >= 12 },
+    { id: 'game_16', tier: 'superrare', check: d => (d.games || 0) >= 16 },
+    { id: 'game_20', tier: 'epic',      check: d => (d.games || 0) >= 20 },
+    { id: 'game_24', tier: 'mythic',    check: d => (d.games || 0) >= 24 },
+    { id: 'game_30', tier: 'legendary', check: d => (d.games || 0) >= 30 },
+    { id: 'win_1',   tier: 'common',    check: d => (d.wins || 0) >= 1  },
+    { id: 'win_3',   tier: 'rare',      check: d => (d.wins || 0) >= 3  },
+    { id: 'win_8',   tier: 'superrare', check: d => (d.wins || 0) >= 8  },
+    { id: 'win_12',  tier: 'epic',      check: d => (d.wins || 0) >= 12 },
+    { id: 'win_16',  tier: 'mythic',    check: d => (d.wins || 0) >= 16 },
+    { id: 'win_20',  tier: 'legendary', check: d => (d.wins || 0) >= 20 },
+    { id: 'kd_05',   tier: 'superrare', check: d => (d.games || 0) >= 5 && (d.wins || 0) / (d.games || 1) >= 0.5 },
+    { id: 'kd_07',   tier: 'epic',      check: d => (d.games || 0) >= 5 && (d.wins || 0) / (d.games || 1) >= 0.7 },
+    { id: 'kd_09',   tier: 'mythic',    check: d => (d.games || 0) >= 5 && (d.wins || 0) / (d.games || 1) >= 0.9 },
+    { id: 'cf_100',  tier: 'common',    check: d => (d.cf || 0) >= 100  },
+    { id: 'cf_300',  tier: 'rare',      check: d => (d.cf || 0) >= 300  },
+    { id: 'cf_500',  tier: 'superrare', check: d => (d.cf || 0) >= 500  },
+    { id: 'cf_1000', tier: 'epic',      check: d => (d.cf || 0) >= 1000 },
+    { id: 'cf_1500', tier: 'mythic',    check: d => (d.cf || 0) >= 1500 },
+    { id: 'coin_100',   tier: 'common',    check: d => (d.coins || 0) >= 100   },
+    { id: 'coin_500',   tier: 'rare',      check: d => (d.coins || 0) >= 500   },
+    { id: 'coin_1000',  tier: 'superrare', check: d => (d.coins || 0) >= 1000  },
+    { id: 'coin_2000',  tier: 'epic',      check: d => (d.coins || 0) >= 2000  },
+    { id: 'coin_3000',  tier: 'epic',      check: d => (d.coins || 0) >= 3000  },
+    { id: 'coin_5000',  tier: 'mythic',    check: d => (d.coins || 0) >= 5000  },
+    { id: 'coin_10000', tier: 'legendary', check: d => (d.coins || 0) >= 10000 },
+    { id: 'exp_50',  tier: 'common',    check: d => (d.points || 0) >= 50  },
+    { id: 'exp_150', tier: 'rare',      check: d => (d.points || 0) >= 150 },
+    { id: 'exp_300', tier: 'superrare', check: d => (d.points || 0) >= 300 },
+    { id: 'exp_500', tier: 'legendary', check: d => (d.points || 0) >= 500 },
+    { id: 'lvl_5',   tier: 'rare',      check: d => getLevelByPointsFn(d.points || 0) >= 5  },
+    { id: 'lvl_10',  tier: 'superrare', check: d => getLevelByPointsFn(d.points || 0) >= 10 },
+    { id: 'lvl_15',  tier: 'epic',      check: d => getLevelByPointsFn(d.points || 0) >= 15 },
+    { id: 'lvl_20',  tier: 'mythic',    check: d => getLevelByPointsFn(d.points || 0) >= 20 },
+    { id: 'lvl_25',  tier: 'legendary', check: d => getLevelByPointsFn(d.points || 0) >= 25 },
+    { id: 'first_req',   tier: 'common',    check: d => (d.totalRequests || 0) >= 1 },
+    { id: 'reliable',    tier: 'superrare', check: d => (d.approvedRequests || 0) >= 5 && !(d.rejectedRequests > 0) },
+    { id: 'top3_rank',   tier: 'epic',      check: d => (d.bestRank || 99) <= 3 },
+    { id: 'silent_hunt', tier: 'mythic',    check: d => (d.games || 0) >= 10 && (d.wins || 0) / (d.games || 1) >= 0.8 },
+    { id: 'top1_rank',   tier: 'legendary', check: d => (d.bestRank || 99) <= 1 }
+];
+
+exports.awardBadges = functions.region('europe-west1').https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
+
+    const db      = admin.firestore();
+    const userRef = db.collection('users').doc(context.auth.uid);
+
+    let awarded = [];
+    let badges  = [];
+
+    await db.runTransaction(async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Профиль не найден');
+        const d      = snap.data();
+        const earned = new Set(Array.isArray(d.badges) ? d.badges : []);
+
+        awarded = BADGES_FN
+            .filter(b => !earned.has(b.id) && (() => { try { return b.check(d); } catch (e) { return false; } })())
+            .map(b => b.id);
+
+        badges = [...earned, ...awarded];
+        if (awarded.length === 0) return;
+
+        let bonusCoins = 0, bonusPoints = 0;
+        awarded.forEach(id => {
+            const b = BADGES_FN.find(x => x.id === id);
+            const bonus = BADGE_TIER_BONUS_FN[b.tier] || { coins: 0, points: 0 };
+            bonusCoins  += bonus.coins;
+            bonusPoints += bonus.points;
+        });
+
+        const update = { badges };
+        if (bonusCoins  > 0) update.coins  = Math.round(((d.coins || 0) + bonusCoins) * 100) / 100;
+        if (bonusPoints > 0) {
+            update.points = (d.points || 0) + bonusPoints;
+            update.level  = getLevelByPointsFn(update.points);
+        }
+        tx.update(userRef, update);
+    });
+
+    return { success: true, awarded, badges };
+});
+
 // ─── Торговая комиссия → Админу (onCall) ──────────────────────────────────────
 exports.addTradeCommission = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');

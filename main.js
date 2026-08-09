@@ -187,56 +187,32 @@ const BADGES = [
     { id: 'top1_rank',   icon: '🏅', name: 'Чемпион рейтинга',   desc: 'Занял 1-е место в рейтинге',        cat: 'Особые', tier: 'legendary', check: d => (d.bestRank||99) <= 1 },
 ];
 
-// Бонусы за каждый тир награды
-const BADGE_TIER_BONUS = {
-    common:    { coins: 10,  points: 0  },
-    rare:      { coins: 25,  points: 0  },
-    superrare: { coins: 40,  points: 0  },
-    epic:      { coins: 50,  points: 5  },
-    mythic:    { coins: 100, points: 10 },
-    legendary: { coins: 200, points: 25 }
-};
+// Бонусы за тир награды начисляет Cloud Function awardBadges
+// (BADGE_TIER_BONUS_FN в functions/index.js) — здесь дубликат не нужен.
 
 async function checkAndAwardBadges(data) {
     if (!currentUser) return;
-    const ref = db.collection('users').doc(currentUser);
 
-    // Транзакция: список бейджей и расчёт новых наград идёт по СВЕЖИМ данным
-    // внутри транзакции. Бонус (монеты/опыт) за бейдж начисляется один раз —
-    // повторный запуск (две перерисовки профиля, гонка) увидит бейдж уже
-    // выданным и не начислит бонус снова.
+    // Выдаёт бейджи Cloud Function awardBadges: бонус тира включает опыт, а
+    // points/level защищены правилами Firestore и с клиента не пишутся.
+    // Функция считает условия по свежим данным внутри транзакции, поэтому бонус
+    // за бейдж начисляется один раз (повторный запуск увидит бейдж выданным).
     let awarded = [];
     let finalBadges = Array.isArray(data.badges) ? data.badges : [];
+
+    // Предварительная проверка на клиенте — чтобы не дёргать функцию на каждой
+    // перерисовке профиля. Решение всё равно принимает сервер.
+    const earned = new Set(finalBadges);
+    const hasCandidate = BADGES.some(b => {
+        try { return !earned.has(b.id) && b.check(data); } catch(e) { return false; }
+    });
+    if (!hasCandidate) { renderBadges(finalBadges); return; }
+
     try {
-        await db.runTransaction(async (tx) => {
-            const snap  = await tx.get(ref);
-            const fresh = snap.data() || {};
-            const earned = new Set(Array.isArray(fresh.badges) ? fresh.badges : []);
-            const newBadges = [];
-            BADGES.forEach(b => {
-                try { if (!earned.has(b.id) && b.check(fresh)) newBadges.push(b.id); } catch(e) {}
-            });
-            if (newBadges.length === 0) { finalBadges = [...earned]; return; }
-
-            let totalCoins = 0, totalPoints = 0;
-            newBadges.forEach(id => {
-                const b = BADGES.find(x => x.id === id);
-                if (b) {
-                    const bonus = BADGE_TIER_BONUS[b.tier] || { coins: 0, points: 0 };
-                    totalCoins  += bonus.coins;
-                    totalPoints += bonus.points;
-                }
-            });
-
-            const updated = [...earned, ...newBadges];
-            const updateData = { badges: updated };
-            if (totalCoins  > 0) updateData.coins  = firebase.firestore.FieldValue.increment(totalCoins);
-            if (totalPoints > 0) updateData.points = firebase.firestore.FieldValue.increment(totalPoints);
-            tx.update(ref, updateData);
-
-            awarded     = newBadges;
-            finalBadges = updated;
-        });
+        const fn  = firebase.app().functions('europe-west1').httpsCallable('awardBadges');
+        const res = (await fn()).data;
+        awarded     = res.awarded || [];
+        finalBadges = res.badges  || finalBadges;
     } catch(e) {
         console.warn('checkAndAwardBadges error:', e);
     }
@@ -1095,39 +1071,15 @@ document.getElementById('exchange-form').onsubmit = async (e) => {
     setLoading(exchangeBtn, true);
 
     try {
-        const userRef = db.collection('users').doc(currentUser);
-        const userDoc = await userRef.get();
-        const data    = userDoc.data();
-        const currentCF = data.cf || 0;
+        // cf/points/level защищены правилами Firestore — обмен считает и пишет
+        // Cloud Function (Admin SDK). opId защищает от двойного начисления при
+        // обрыве сети: повторный вызов увидит маркер операции и ничего не сделает.
+        const fn   = firebase.app().functions('europe-west1').httpsCallable('exchangeCF');
+        const opId = makeWalletOpId('exchange_cf', amt);
+        const res  = (await fn({ amount: amt, opId })).data;
+        const newCF = res.cf;
 
-        if (currentCF < amt) {
-            msg.textContent = `Недостаточно CF! У вас ${currentCF.toFixed(2)} CF`;
-            msg.className = 'transfer-message error';
-            setLoading(exchangeBtn, false);
-            return;
-        }
-
-        const newPoints = (data.points || 0) + amt * CF_TO_POINTS;
-        const newCoins  = (data.coins  || 0) + amt * CF_TO_COINS;
-        const newCF     = currentCF - amt;
-        const newLevel  = getLevelByPoints(newPoints);
-
-        await userRef.update({
-            cf: newCF, points: newPoints, coins: newCoins, level: newLevel,
-            exchangeCount: firebase.firestore.FieldValue.increment(1)
-        });
-
-        const userSnap = await userRef.get();
-        const username = userSnap.data().name || '';
-        await addTransactionRecord(
-            username,
-            amt,
-            'exchange',
-            `Обмен ${amt} CF → ${amt * CF_TO_POINTS} ⭐ опыта + ${amt * CF_TO_COINS} 💰 монет`,
-            currentUser
-        );
-
-        msg.textContent = `Получено ${amt * CF_TO_POINTS} ⭐ опыта и ${amt * CF_TO_COINS} 💰 монет!`;
+        msg.textContent = `Получено ${res.gainedPoints} ⭐ опыта и ${res.gainedCoins} 💰 монет!`;
         msg.className = 'transfer-message success';
         document.getElementById('exchange-cf-amount').value = '';
         document.getElementById('exchange-preview').textContent = '';
