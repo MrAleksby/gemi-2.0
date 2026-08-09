@@ -948,47 +948,16 @@ async function executeSell() {
     btn.disabled = true; btn.textContent = '⏳ Обработка...';
 
     try {
-        const priceData = await fetchAssetPrice(asset);
-        if (!priceData) throw new Error('Не удалось получить курс');
+        const dec  = assetDecimals(asset.id);
+        // opId привязан к одному клику — сервер отбросит повтор при ретрае сети
+        const opId = makeWalletOpId('sell_' + asset.id, assetInput);
 
-        const price = priceData.price;
-        const dec   = assetDecimals(asset.id);
-        const prec  = Math.pow(10, dec);
-        const inputRounded = Math.round(assetInput * prec) / prec;
-        const opId  = makeWalletOpId('sell_' + asset.id, assetInput);
+        // Продажа целиком на сервере: начисление опыта при прибыли пишет points/level,
+        // а они защищены правилами (changesProtected в firestore.rules).
+        const fn  = firebase.app().functions('europe-west1').httpsCallable('sellAsset');
+        const res = (await fn({ assetId: asset.id, amount: assetInput, opId })).data;
 
-        const { skipped, extra } = await safeUserTransaction({
-            kind: 'sell_' + asset.id, opId,
-            build: (data) => {
-                const freshAmt     = data[`${asset.id}Amount`] || 0;
-                // округление до нужной точности для избежания floating-point ошибок
-                const freshRounded = Math.round(freshAmt * prec) / prec;
-                if (freshRounded < inputRounded) {
-                    throw new Error(`Недостаточно ${asset.symbol}. У вас: ${freshRounded.toFixed(dec)}`);
-                }
-                const oldAvg     = data[`${asset.id}AvgPrice`] || 0;
-                const coinsGross = assetInput * price;
-                const commission = coinsGross * CRYPTO_COMMISSION;
-                const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
-                const pnl        = (price - oldAvg) * assetInput - commission;
-                const xpGain     = pnl > 0 ? Math.floor(pnl) : 0;
-
-                const update = {
-                    exchangeCoins:          firebase.firestore.FieldValue.increment(coinsNet),
-                    totalPnl:               firebase.firestore.FieldValue.increment(pnl),
-                    weeklyPnl:              firebase.firestore.FieldValue.increment(pnl),
-                    [`${asset.id}Amount`]:  firebase.firestore.FieldValue.increment(-assetInput),
-                };
-                if (xpGain > 0) update.points = firebase.firestore.FieldValue.increment(xpGain);
-                return {
-                    update,
-                    marker: { amount: assetInput, coinsNet, pnl },
-                    extra:  { coinsNet, commission, pnl, xpGain, userName: data.name || 'Неизвестно' },
-                };
-            }
-        });
-
-        if (skipped) {
+        if (res.skipped) {
             msgEl.textContent = '↺ Операция уже выполнена';
             msgEl.style.color = '#27ae60';
             btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
@@ -996,22 +965,13 @@ async function executeSell() {
             return;
         }
 
-        const { coinsNet, commission, pnl, xpGain, userName } = extra;
-        await addCommissionToAdmin(user.uid, userName, 'sell', asset.id, asset.symbol, assetInput, coinsNet, commission, opId);
-
-        await firebase.firestore().collection('exchange_trades').add({
-            userId: user.uid, userName,
-            type: 'sell', assetId: asset.id, assetSymbol: asset.symbol,
-            assetAmount: assetInput, price, coinsAmount: coinsNet, commission, pnl,
-            opId,
-            timestamp: new Date()
-        });
-
-        const xpMsg = xpGain > 0 ? ` &nbsp;⭐ +${xpGain} опыта` : '';
-        msgEl.innerHTML = `✅ Продано <b>${assetInput} ${asset.symbol}</b> за ${coinsNet} монет${xpMsg}`;
+        const xpMsg = res.xpGain > 0 ? ` &nbsp;⭐ +${res.xpGain} опыта` : '';
+        msgEl.innerHTML = `✅ Продано <b>${res.amount.toFixed(dec)} ${asset.symbol}</b> за ${res.coinsNet} монет${xpMsg}`;
         msgEl.style.color = '#27ae60';
         btn.disabled = false; btn.textContent = `Продать ${asset.symbol}`;
-        cryptoPrices[asset.id] = { price, change24h: priceData.change24h, fetchedAt: Date.now() };
+        if (cryptoPrices[asset.id]) {
+            cryptoPrices[asset.id] = { ...cryptoPrices[asset.id], price: res.price, fetchedAt: Date.now() };
+        }
         renderCryptoExchange(true);
     } catch(e) {
         msgEl.textContent = '❌ Ошибка: ' + e.message;

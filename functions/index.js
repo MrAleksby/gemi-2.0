@@ -737,3 +737,139 @@ exports.addTradeCommission = functions.region('europe-west1').https.onCall(async
     }
     return { success: true, skipped };
 });
+
+// ─── Продажа актива на бирже (onCall) ─────────────────────────────────────────
+// При прибыльной сделке начисляется опыт (points/level) — поля защищены
+// правилами (changesProtected в firestore.rules), поэтому клиент не может
+// выполнить продажу сам. Вся сделка считается сервером: курс берётся с Binance,
+// баланс/PnL/опыт обновляются в транзакции, комиссия уходит админу.
+// Логика совпадает с checkOrders (продажа по SL/TP).
+
+const CRYPTO_COMMISSION_FN = 0.001; // 0.1%, как CRYPTO_COMMISSION в crypto.js
+
+function assetDecimalsFn(id) {
+    return (id === 'btc' || id === 'ton') ? 8 : 6;
+}
+
+exports.sellAsset = functions.region('europe-west1').https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Необходима авторизация');
+
+    const { assetId, amount, opId } = data || {};
+    const asset = ASSETS.find(a => a.id === assetId);
+    if (!asset)
+        throw new functions.https.HttpsError('invalid-argument', 'Неизвестный актив');
+    if (typeof amount !== 'number' || !isFinite(amount) || amount <= 0)
+        throw new functions.https.HttpsError('invalid-argument', 'Некорректное количество');
+
+    let price;
+    try {
+        price = await fetchBinancePrice(asset);
+    } catch (e) {
+        console.error(`sellAsset: не удалось получить курс ${asset.symbol}:`, e.message);
+        throw new functions.https.HttpsError('unavailable', 'Не удалось получить курс');
+    }
+    if (!isFinite(price) || price <= 0)
+        throw new functions.https.HttpsError('unavailable', 'Не удалось получить курс');
+
+    const db      = admin.firestore();
+    const uid     = context.auth.uid;
+    const userRef = db.collection('users').doc(uid);
+    const opRef   = opId ? db.collection('processed_ops').doc(String(opId)) : null;
+
+    const adminSnap = await db.collection('users').where('isAdmin', '==', true).limit(1).get();
+    const adminRef  = adminSnap.empty ? null : adminSnap.docs[0].ref;
+
+    const dec  = assetDecimalsFn(asset.id);
+    const prec = Math.pow(10, dec);
+    // округление до точности актива — иначе floating-point даёт ложное «недостаточно»
+    const requested = Math.round(amount * prec) / prec;
+
+    let skipped = false;
+    let result  = null;
+
+    await db.runTransaction(async (tx) => {
+        if (opRef) {
+            const opSnap = await tx.get(opRef);
+            if (opSnap.exists) { skipped = true; return; }
+        }
+        const snap = await tx.get(userRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Профиль не найден');
+
+        const d           = snap.data();
+        const held        = d[`${asset.id}Amount`] || 0;
+        const heldRounded = Math.round(held * prec) / prec;
+        if (heldRounded < requested)
+            throw new functions.https.HttpsError('failed-precondition',
+                `Недостаточно ${asset.symbol}. У вас: ${heldRounded.toFixed(dec)}`);
+
+        // не даём балансу уйти в минус из-за округления вверх
+        const sellAmt    = Math.min(requested, held);
+        const avgPrice   = d[`${asset.id}AvgPrice`] || 0;
+        const coinsGross = sellAmt * price;
+        const commission = coinsGross * CRYPTO_COMMISSION_FN;
+        const coinsNet   = Math.round((coinsGross - commission) * 100) / 100;
+        const pnl        = (price - avgPrice) * sellAmt - commission;
+        const xpGain     = pnl > 0 ? Math.floor(pnl) : 0;
+        const remaining  = Math.round((held - sellAmt) * prec) / prec;
+
+        const update = {
+            exchangeCoins:         admin.firestore.FieldValue.increment(coinsNet),
+            totalPnl:              admin.firestore.FieldValue.increment(pnl),
+            weeklyPnl:             admin.firestore.FieldValue.increment(pnl),
+            [`${asset.id}Amount`]: remaining > 0 ? remaining : 0,
+        };
+        if (remaining <= 0) {
+            // позиция закрыта — сбрасываем среднюю цену и висящие ордера
+            update[`${asset.id}AvgPrice`]   = 0;
+            update[`${asset.id}StopLoss`]   = 0;
+            update[`${asset.id}TakeProfit`] = 0;
+        }
+        if (xpGain > 0) {
+            const newPoints = (d.points || 0) + xpGain;
+            update.points = newPoints;
+            update.level  = getLevelByPointsFn(newPoints);
+        }
+        tx.update(userRef, update);
+
+        // админ, продающий свои активы, комиссию сам себе не платит
+        if (adminRef && adminRef.id !== uid && commission > 0) {
+            tx.update(adminRef, {
+                exchangeCoins: admin.firestore.FieldValue.increment(commission)
+            });
+        }
+        if (opRef) tx.set(opRef, {
+            kind: 'sell_' + asset.id, uid, amount: sellAmt, coinsNet, pnl,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        result = { sellAmt, coinsNet, commission, pnl, xpGain, userName: d.name || 'Неизвестно' };
+    });
+
+    if (skipped) return { success: true, skipped: true };
+
+    // Логи пишем только при реально выполненной сделке
+    await db.collection('exchange_trades').add({
+        userId: uid, userName: result.userName,
+        type: 'sell', assetId: asset.id, assetSymbol: asset.symbol,
+        assetAmount: result.sellAmt, price,
+        coinsAmount: result.coinsNet, commission: result.commission, pnl: result.pnl,
+        opId: opId || null,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    await db.collection('exchange_commissions').add({
+        userId: uid, userName: result.userName,
+        type: 'sell', assetId: asset.id, assetSymbol: asset.symbol,
+        assetAmount: result.sellAmt, coinsAmount: result.coinsNet, commission: result.commission,
+        opId: opId || null,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return {
+        success: true, skipped: false, price,
+        amount:  result.sellAmt,
+        coinsNet: result.coinsNet,
+        pnl:      result.pnl,
+        xpGain:   result.xpGain
+    };
+});
