@@ -1284,7 +1284,33 @@ document.getElementById('toggle-rating-btn').onclick = () => {
 const scoreRequestModal = document.getElementById('score-request-modal');
 document.getElementById('submit-score-btn').onclick = () => {
     scoreRequestModal.style.display = 'flex';
+    showPrevGoalHint();
 };
+
+// Подсказка: цели, которые игрок поставил себе в прошлый раз
+async function showPrevGoalHint() {
+    const box = document.getElementById('req-prev-goal');
+    if (!box || !currentUser) return;
+    try {
+        const doc = await db.collection('users').doc(currentUser).get();
+        const d = doc.data() || {};
+        const gp = d.goalPassiveIncome;
+        const gc = d.goalCapital;
+        if (gp == null && gc == null) { box.style.display = 'none'; return; }
+        const parts = [];
+        if (gp != null) parts.push(`💵 пассивный доход <b>${fmtMoney(gp)}</b>`);
+        if (gc != null) parts.push(`🏦 капитал <b>${fmtMoney(gc)}</b>`);
+        box.innerHTML = `🎯 Прошлая цель: ${parts.join(' · ')}`;
+        box.style.display = '';
+    } catch (e) {
+        box.style.display = 'none';
+    }
+}
+
+// Формат чисел отчёта: без лишних нулей, с разделителями разрядов
+function fmtMoney(n) {
+    return Number(n || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+}
 document.getElementById('score-request-close').onclick = () => {
     scoreRequestModal.style.display = 'none';
 };
@@ -1307,6 +1333,19 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
     const coins   = parseInt(document.getElementById('req-coins').value)   || 0;
     const comment = document.getElementById('req-comment').value.trim();
 
+    // Показатели на конец игры и цели на следующую — обязательны, отслеживаем прогресс
+    const round2 = (v) => Math.round(v * 100) / 100;
+    const readNum = (id) => {
+        const raw = document.getElementById(id).value.trim();
+        if (raw === '') return null;
+        const v = parseFloat(raw);
+        return isNaN(v) ? null : round2(v);
+    };
+    const passiveIncome     = readNum('req-passive');
+    const capital           = readNum('req-capital');
+    const goalPassiveIncome = readNum('req-goal-passive');
+    const goalCapital       = readNum('req-goal-capital');
+
     if (!games && !wins && !cf && !points && !coins) {
         msg.textContent = 'Заполните хотя бы одно поле!';
         msg.className = 'transfer-message error';
@@ -1314,7 +1353,22 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
         return;
     }
 
-    if (games < 0 || wins < 0 || cf < 0 || points < 0 || coins < 0) {
+    if (passiveIncome === null || capital === null) {
+        msg.textContent = 'Укажите пассивный доход и капитал на конец игры!';
+        msg.className = 'transfer-message error';
+        submitBtn.disabled = false;
+        return;
+    }
+
+    if (goalPassiveIncome === null || goalCapital === null) {
+        msg.textContent = 'Укажите цель по пассивному доходу и капиталу!';
+        msg.className = 'transfer-message error';
+        submitBtn.disabled = false;
+        return;
+    }
+
+    if (games < 0 || wins < 0 || cf < 0 || points < 0 || coins < 0 ||
+        passiveIncome < 0 || capital < 0 || goalPassiveIncome < 0 || goalCapital < 0) {
         msg.textContent = 'Значения не могут быть отрицательными!';
         msg.className = 'transfer-message error';
         submitBtn.disabled = false;
@@ -1341,12 +1395,18 @@ document.getElementById('score-request-form').onsubmit = async (e) => {
         }
 
         const userDoc = await db.collection('users').doc(currentUser).get();
-        const username = userDoc.data().name;
+        const userData = userDoc.data();
+        const username = userData.name;
 
         await db.collection('score_requests').add({
             userId: currentUser,
             username,
             games, wins, cf, points, coins,
+            passiveIncome, capital,
+            goalPassiveIncome, goalCapital,
+            // цели с прошлого счёта — чтобы админ сразу видел, выполнены ли они
+            prevGoalPassiveIncome: userData.goalPassiveIncome ?? null,
+            prevGoalCapital:       userData.goalCapital ?? null,
             comment: comment || '',
             status: 'pending',
             createdAt: new Date()
@@ -1422,6 +1482,33 @@ function setupPlayerRequestListener() {
 
 // ─── Real-time: очередь счетов для администратора ─────────────────────────────
 
+// Блок «на конец игры + цели» в карточке счёта: факт, новые цели и итог прошлой цели
+function buildRequestFinanceHtml(req) {
+    const has = (v) => v !== null && v !== undefined;
+    if (!has(req.passiveIncome) && !has(req.capital) &&
+        !has(req.goalPassiveIncome) && !has(req.goalCapital)) return '';
+
+    const rows = [];
+    if (has(req.passiveIncome)) rows.push(`<div class="rf-row"><span class="rf-label">💵 Пассивный доход</span><span class="rf-value">${fmtMoney(req.passiveIncome)}</span></div>`);
+    if (has(req.capital))       rows.push(`<div class="rf-row"><span class="rf-label">🏦 Капитал</span><span class="rf-value">${fmtMoney(req.capital)}</span></div>`);
+    if (has(req.goalPassiveIncome)) rows.push(`<div class="rf-row"><span class="rf-label">🎯 Цель: пассивный доход</span><span class="rf-value">${fmtMoney(req.goalPassiveIncome)}</span></div>`);
+    if (has(req.goalCapital))       rows.push(`<div class="rf-row"><span class="rf-label">🎯 Цель: капитал</span><span class="rf-value">${fmtMoney(req.goalCapital)}</span></div>`);
+
+    // Сверка с целью, поставленной в прошлый раз
+    const checks = [];
+    if (has(req.prevGoalPassiveIncome) && has(req.passiveIncome)) {
+        const ok = req.passiveIncome >= req.prevGoalPassiveIncome;
+        checks.push(`💵 ${fmtMoney(req.prevGoalPassiveIncome)} → ${fmtMoney(req.passiveIncome)} <span class="${ok ? 'rf-hit' : 'rf-miss'}">${ok ? '✅' : '❌'}</span>`);
+    }
+    if (has(req.prevGoalCapital) && has(req.capital)) {
+        const ok = req.capital >= req.prevGoalCapital;
+        checks.push(`🏦 ${fmtMoney(req.prevGoalCapital)} → ${fmtMoney(req.capital)} <span class="${ok ? 'rf-hit' : 'rf-miss'}">${ok ? '✅' : '❌'}</span>`);
+    }
+    if (checks.length) rows.push(`<div class="rf-goal">Прошлая цель: ${checks.join(' · ')}</div>`);
+
+    return `<div class="request-finance">${rows.join('')}</div>`;
+}
+
 function setupAdminRequestsListener() {
     unsubAdminRequests = db.collection('score_requests')
         .where('status', '==', 'pending')
@@ -1455,6 +1542,8 @@ function setupAdminRequestsListener() {
                 if (req.points) fields.push(`⭐ ${req.points} опыта`);
                 if (req.coins)  fields.push(`💰 ${req.coins} монет`);
 
+                const financeHtml = buildRequestFinanceHtml(req);
+
                 const card = document.createElement('div');
                 card.className = 'request-card';
                 card.innerHTML = `
@@ -1463,6 +1552,7 @@ function setupAdminRequestsListener() {
                         <span class="request-time">${dateStr}</span>
                     </div>
                     <div class="request-fields">${fields.map(f => `<span class="req-field">${f}</span>`).join('')}</div>
+                    ${financeHtml}
                     ${req.comment ? `<div class="request-comment">💬 ${req.comment}</div>` : ''}
                     <div class="request-actions">
                         <button class="approve-btn" onclick="approveRequest('${doc.id}')">✅ Принять</button>

@@ -92,7 +92,7 @@ async function approveScoreRequest(requestId) {
             const newPoints = (data.points || 0) + (r.points || 0);
             const newLevel  = getLevelByPoints(newPoints);
 
-            tx.update(userRef, {
+            const userUpdate = {
                 games:  (data.games  || 0) + (r.games  || 0),
                 wins:   (data.wins   || 0) + (r.wins   || 0),
                 cf:     (data.cf     || 0) + (r.cf     || 0),
@@ -100,7 +100,15 @@ async function approveScoreRequest(requestId) {
                 level:  newLevel,
                 coins:  (data.coins  || 0) + (r.coins  || 0),
                 approvedRequests: firebase.firestore.FieldValue.increment(1)
-            });
+            };
+
+            // Показатели на конец игры и цели на следующую — для отслеживания прогресса
+            if (r.passiveIncome     != null) userUpdate.passiveIncome     = r.passiveIncome;
+            if (r.capital           != null) userUpdate.capital           = r.capital;
+            if (r.goalPassiveIncome != null) userUpdate.goalPassiveIncome = r.goalPassiveIncome;
+            if (r.goalCapital       != null) userUpdate.goalCapital       = r.goalCapital;
+
+            tx.update(userRef, userUpdate);
             tx.update(reqRef, { status: 'approved', resolvedAt: new Date() });
             return { done: true };
         });
@@ -117,6 +125,8 @@ async function approveScoreRequest(requestId) {
         if (req.cf)     parts.push(`${req.cf} CF`);
         if (req.points) parts.push(`${req.points} опыта`);
         if (req.coins)  parts.push(`${req.coins} монет`);
+        if (req.passiveIncome != null) parts.push(`ПД ${req.passiveIncome}`);
+        if (req.capital       != null) parts.push(`капитал ${req.capital}`);
         await addTransactionRecord(
             req.username,
             req.cf || 0,

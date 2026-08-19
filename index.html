@@ -148,33 +148,62 @@
         <div class="modal-content">
             <span class="close" id="score-request-close">&times;</span>
             <h2>📋 Подать счёт</h2>
-            <p class="modal-hint">Заполни результаты и отправь на проверку администратору</p>
+            <p class="modal-hint">Результаты занятия — на проверку тренеру</p>
             <form id="score-request-form">
-                <div class="score-field">
-                    <label>🎮 Игр сыграно</label>
-                    <input type="number" id="req-games" placeholder="0" min="0" value="0">
+                <div class="score-section-title">🎮 Результаты игры</div>
+                <div class="score-grid">
+                    <div class="score-field">
+                        <label>🎮 Игр</label>
+                        <input type="number" id="req-games" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="score-field">
+                        <label>🏆 Побед</label>
+                        <input type="number" id="req-wins" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="score-field">
+                        <label>💎 CF</label>
+                        <input type="number" id="req-cf" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="score-field">
+                        <label>⭐ Опыт</label>
+                        <input type="number" id="req-points" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="score-field span2">
+                        <label>💰 Монеты</label>
+                        <input type="number" id="req-coins" placeholder="0" min="0" value="0">
+                    </div>
                 </div>
-                <div class="score-field">
-                    <label>🏆 Побед</label>
-                    <input type="number" id="req-wins" placeholder="0" min="0" value="0">
+
+                <div class="score-section-title">📊 На конец игры</div>
+                <div class="score-grid">
+                    <div class="score-field">
+                        <label>💵 Пассивный доход</label>
+                        <input type="number" id="req-passive" placeholder="0" min="0" step="any" required>
+                    </div>
+                    <div class="score-field">
+                        <label>🏦 Капитал</label>
+                        <input type="number" id="req-capital" placeholder="0" min="0" step="any" required>
+                    </div>
                 </div>
-                <div class="score-field">
-                    <label>💎 CF</label>
-                    <input type="number" id="req-cf" placeholder="0" min="0" value="0">
+
+                <div class="score-section-title">🎯 Цель на следующую игру</div>
+                <div class="score-grid">
+                    <div class="score-field">
+                        <label>💵 Пассивный доход</label>
+                        <input type="number" id="req-goal-passive" placeholder="0" min="0" step="any" required>
+                    </div>
+                    <div class="score-field">
+                        <label>🏦 Капитал</label>
+                        <input type="number" id="req-goal-capital" placeholder="0" min="0" step="any" required>
+                    </div>
                 </div>
-                <div class="score-field">
-                    <label>⭐ Опыт / баллы</label>
-                    <input type="number" id="req-points" placeholder="0" min="0" value="0">
-                </div>
-                <div class="score-field">
-                    <label>💰 Монеты</label>
-                    <input type="number" id="req-coins" placeholder="0" min="0" value="0">
-                </div>
+                <div id="req-prev-goal" class="score-prev-goal" style="display:none;"></div>
+
                 <div class="score-field">
                     <label>💬 Комментарий (необязательно)</label>
-                    <textarea id="req-comment" placeholder="Например: выиграл турнир, заработал за задание..." rows="3"></textarea>
+                    <textarea id="req-comment" placeholder="Например: выиграл турнир, заработал за задание..." rows="2"></textarea>
                 </div>
-                <button type="submit" class="main-btn" style="margin-top: 16px;">Отправить счёт</button>
+                <button type="submit" class="main-btn" style="margin-top: 12px;">Отправить счёт</button>
                 <div id="score-request-msg" class="transfer-message"></div>
             </form>
         </div>

@@ -1737,7 +1737,57 @@ th {
     width: 100%;
     display: flex;
     flex-direction: column;
+    gap: 6px;
+}
+
+/* Компактная раскладка формы счёта: два поля в ряд */
+.score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
+}
+
+.score-grid .score-field {
+    margin-bottom: 0;
+}
+
+.score-field.span2 {
+    grid-column: 1 / -1;
+}
+
+.score-section-title {
+    font-size: 0.82em;
+    font-weight: 700;
+    color: #8a6a55;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 6px 0 -2px 2px;
+}
+
+/* Компактные поля только внутри формы счёта */
+#score-request-form input[type="number"] {
+    padding: 10px 10px !important;
+    font-size: 1rem !important;
+}
+
+#score-request-form textarea {
+    padding: 10px 10px;
+    font-size: 0.95rem;
+}
+
+#score-request-form .score-field label {
+    font-size: 0.84em;
+    margin-bottom: 3px;
+}
+
+.score-prev-goal {
+    background: #fff8f5;
+    border: 1px dashed #d8b49f;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.82em;
+    color: #8a6a55;
+    line-height: 1.45;
 }
 
 /* ─── Входящие счета (admin) ──────────────────────────────── */
@@ -1819,6 +1869,45 @@ th {
     font-weight: 600;
     color: #333;
 }
+
+/* Финансовый блок в карточке счёта (админ) */
+.request-finance {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+    background: #fff8f5;
+    border: 1px solid #e8cdbb;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    font-size: 0.85em;
+    color: #5a4436;
+}
+
+.request-finance .rf-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.request-finance .rf-label {
+    font-size: 0.85em;
+    color: #9a7a63;
+}
+
+.request-finance .rf-value {
+    font-weight: 700;
+}
+
+.request-finance .rf-goal {
+    grid-column: 1 / -1;
+    border-top: 1px dashed #e8cdbb;
+    padding-top: 6px;
+    font-size: 0.92em;
+}
+
+.rf-hit  { color: #1b7f3b; font-weight: 700; }
+.rf-miss { color: #c0392b; font-weight: 700; }
 
 .request-actions {
     display: flex;
